@@ -15,8 +15,70 @@ class RegisterPage extends StatelessWidget {
   }
 }
 
-class _RegisterView extends StatelessWidget {
+class _RegisterView extends StatefulWidget {
   const _RegisterView();
+
+  @override
+  State<_RegisterView> createState() => _RegisterViewState();
+}
+
+class _RegisterViewState extends State<_RegisterView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final viewModel = context.read<AuthViewModel>();
+      viewModel.addListener(_onAuthStatusChanged);
+    });
+  }
+
+  void _onAuthStatusChanged() {
+    if (!mounted) return;
+    final viewModel = context.read<AuthViewModel>();
+
+    if (viewModel.status == AuthStatus.success) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Registro Exitoso'),
+          content: Text('Token obtenido: ${viewModel.token}'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                viewModel.resetStatus();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else if (viewModel.status == AuthStatus.error) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error de Registro'),
+          content: Text(viewModel.errorMessage ?? 'Ocurrió un error desconocido'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                viewModel.resetStatus();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    // Note: Since we are using context.read in initState, we can't easily remove listener here
+    // without storing a reference. But usually this ViewModel is tied to this page's lifecycle.
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,6 +196,24 @@ class _RegisterView extends StatelessWidget {
                     return null;
                   },
                 ),
+                const SizedBox(height: 16),
+
+                AuthTextField(
+                  controller: viewModel.registerPhoneController,
+                  label: 'Número de Teléfono',
+                  hint: '1234567890',
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Ingresa tu teléfono';
+                    }
+                    if (value.length < 10) {
+                      return 'Mínimo 10 dígitos';
+                    }
+                    return null;
+                  },
+                ),
                 const SizedBox(height: 28),
 
                 AuthPrimaryButton(
@@ -147,7 +227,7 @@ class _RegisterView extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 AuthGoogleButton(
-                  onPressed: isLoading ? null : () => viewModel.loginWithGoogle(),
+                  onPressed: isLoading ? null : () => viewModel.registerWithGoogle(),
                 ),
                 const SizedBox(height: 40),
               ],

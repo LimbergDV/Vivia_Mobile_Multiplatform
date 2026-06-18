@@ -15,8 +15,63 @@ class LoginPage extends StatelessWidget {
   }
 }
 
-class _LoginView extends StatelessWidget {
+class _LoginView extends StatefulWidget {
   const _LoginView();
+
+  @override
+  State<_LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<_LoginView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final viewModel = context.read<AuthViewModel>();
+      viewModel.addListener(_onAuthStatusChanged);
+    });
+  }
+
+  void _onAuthStatusChanged() {
+    if (!mounted) return;
+    final viewModel = context.read<AuthViewModel>();
+
+    if (viewModel.status == AuthStatus.success) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Login Exitoso'),
+          content: Text('Token obtenido: ${viewModel.token}'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                viewModel.resetStatus();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else if (viewModel.status == AuthStatus.error) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error de Login'),
+          content: Text(viewModel.errorMessage ?? 'Ocurrió un error desconocido'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                viewModel.resetStatus();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
