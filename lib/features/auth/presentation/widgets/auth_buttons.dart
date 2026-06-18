@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class AuthPrimaryButton extends StatelessWidget {
   final String label;
@@ -23,7 +24,7 @@ class AuthPrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primary,
+          backgroundColor: colorScheme.onPrimaryContainer,
           foregroundColor: colorScheme.onPrimary,
           disabledBackgroundColor: colorScheme.primary.withOpacity(0.5),
           shape: RoundedRectangleBorder(
@@ -100,13 +101,10 @@ class _GoogleLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Text(
-      'G',
-      style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF4285F4),
-      ),
+    return SvgPicture.asset(
+      'assets/images/google-svg-logo.svg',
+      width: 22,
+      height: 22,
     );
   }
 }
