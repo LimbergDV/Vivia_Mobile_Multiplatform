@@ -11,13 +11,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final brightness = View.of(context).platformDispatcher.platformBrightness;
     TextTheme textTheme = createTextTheme(context, "Poppins", "Poppins");
-    MaterialTheme theme = MaterialTheme(textTheme);
+    MaterialTheme materialTheme = MaterialTheme(textTheme);
 
     return MaterialApp(
       title: 'Vivia',
       debugShowCheckedModeBanner: false,
-      theme: brightness == Brightness.dark ? ThemeData.dark() : ThemeData.light(),
-      home: const RegisterPage(),
+      theme: materialTheme.light(),
+      darkTheme: materialTheme.dark(),
+      themeMode: ThemeMode.light,
+      home: const LoginPage(),
     );
   }
 }

@@ -14,33 +14,36 @@ class AuthPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1A3A5C),
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: const Color(0xFF1A3A5C).withOpacity(0.6),
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          disabledBackgroundColor: colorScheme.primary.withOpacity(0.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
           elevation: 0,
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
           width: 22,
           height: 22,
           child: CircularProgressIndicator(
             strokeWidth: 2.5,
-            color: Colors.white,
+            color: colorScheme.onPrimary,
           ),
         )
             : Text(
           label,
-          style: const TextStyle(
-            fontSize: 16,
+          style: textTheme.labelLarge?.copyWith(
+            color: colorScheme.onPrimary,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.3,
           ),
@@ -57,32 +60,32 @@ class AuthGoogleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.black87,
-          side: BorderSide(
-            color: Colors.grey.shade300,
-          ),
+          foregroundColor: colorScheme.onSurface,
+          side: BorderSide(color: colorScheme.outlineVariant),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
-          backgroundColor: Colors.white,
+          backgroundColor: colorScheme.surfaceContainerLowest,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _GoogleLogo(),
+            const _GoogleLogo(),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'Entrar con Google',
-              style: TextStyle(
-                fontSize: 15,
+              style: textTheme.labelLarge?.copyWith(
+                color: colorScheme.onSurface,
                 fontWeight: FontWeight.w500,
-                color: Colors.black87,
               ),
             ),
           ],
@@ -93,14 +96,16 @@ class AuthGoogleButton extends StatelessWidget {
 }
 
 class _GoogleLogo extends StatelessWidget {
+  const _GoogleLogo();
+
   @override
   Widget build(BuildContext context) {
-    return RichText(
-      text: const TextSpan(
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        children: [
-          TextSpan(text: 'G', style: TextStyle(color: Color(0xFF4285F4))),
-        ],
+    return const Text(
+      'G',
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF4285F4),
       ),
     );
   }
@@ -111,23 +116,25 @@ class AuthDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Row(
       children: [
         Expanded(
-          child: Divider(color: Colors.grey.shade300, thickness: 1),
+          child: Divider(color: colorScheme.outlineVariant, thickness: 1),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             'ó',
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontSize: 14,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ),
         Expanded(
-          child: Divider(color: Colors.grey.shade300, thickness: 1),
+          child: Divider(color: colorScheme.outlineVariant, thickness: 1),
         ),
       ],
     );

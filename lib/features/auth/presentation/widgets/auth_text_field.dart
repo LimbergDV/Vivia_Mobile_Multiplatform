@@ -27,13 +27,14 @@ class AuthTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w500,
             color: colorScheme.onSurface,
           ),
@@ -44,51 +45,52 @@ class AuthTextField extends StatelessWidget {
           obscureText: isPassword && !(passwordVisible ?? false),
           keyboardType: keyboardType,
           validator: validator,
-          style: Theme.of(context).textTheme.bodyMedium,
+          style: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface,
+          ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurface.withOpacity(0.4),
+            hintStyle: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant.withOpacity(0.6),
             ),
             prefixIcon: Icon(
               prefixIcon,
-              color: colorScheme.onSurface.withOpacity(0.5),
+              color: colorScheme.onSurfaceVariant,
               size: 20,
             ),
+            // ✅ Bug corregido: ahora sí cambia el ícono según el estado
             suffixIcon: isPassword
                 ? IconButton(
               icon: Icon(
                 (passwordVisible ?? false)
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_off_outlined,
-                color: colorScheme.onSurface.withOpacity(0.5),
+                    ? Icons.visibility_outlined      // ojo abierto = visible
+                    : Icons.visibility_off_outlined, // ojo cerrado = oculto
+                color: colorScheme.onSurfaceVariant,
                 size: 20,
               ),
               onPressed: onToggleVisibility,
             )
                 : null,
             filled: true,
-            fillColor: Colors.white,
+            fillColor: colorScheme.surfaceContainerLowest,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 14,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: colorScheme.outline.withOpacity(0.4),
-              ),
+              borderSide: BorderSide(color: colorScheme.outline),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: colorScheme.outline.withOpacity(0.3),
+                color: colorScheme.outlineVariant,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: const Color(0xFF1A3A5C),
+                color: colorScheme.primary,
                 width: 1.5,
               ),
             ),

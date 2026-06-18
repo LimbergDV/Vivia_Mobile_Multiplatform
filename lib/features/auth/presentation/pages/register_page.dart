@@ -22,9 +22,11 @@ class _RegisterView extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = context.watch<AuthViewModel>();
     final isLoading = viewModel.status == AuthStatus.loading;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -40,9 +42,9 @@ class _RegisterView extends StatelessWidget {
 
                 Text(
                   'Regístrate',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  style: textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1A1A1A),
+                    color: colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 28),
@@ -82,8 +84,7 @@ class _RegisterView extends StatelessWidget {
                   prefixIcon: Icons.lock_outline,
                   isPassword: true,
                   passwordVisible: viewModel.registerPasswordVisible,
-                  onToggleVisibility:
-                  viewModel.toggleRegisterPasswordVisibility,
+                  onToggleVisibility: viewModel.toggleRegisterPasswordVisibility,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Ingresa una contraseña';
@@ -103,8 +104,7 @@ class _RegisterView extends StatelessWidget {
                   prefixIcon: Icons.lock_outline,
                   isPassword: true,
                   passwordVisible: viewModel.registerConfirmPasswordVisible,
-                  onToggleVisibility:
-                  viewModel.toggleRegisterConfirmPasswordVisibility,
+                  onToggleVisibility: viewModel.toggleRegisterConfirmPasswordVisibility,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Confirma tu contraseña';
@@ -147,8 +147,7 @@ class _RegisterView extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 AuthGoogleButton(
-                  onPressed:
-                  isLoading ? null : () => viewModel.loginWithGoogle(),
+                  onPressed: isLoading ? null : () => viewModel.loginWithGoogle(),
                 ),
                 const SizedBox(height: 40),
               ],

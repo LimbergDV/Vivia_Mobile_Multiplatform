@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/widgets.dart';
-import 'register_page.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -23,9 +22,11 @@ class _LoginView extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = context.watch<AuthViewModel>();
     final isLoading = viewModel.status == AuthStatus.loading;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: colorScheme.surface,
       body: Stack(
         children: [
           // ── Contenido principal ──────────────────────────
@@ -46,10 +47,9 @@ class _LoginView extends StatelessWidget {
                     // Título
                     Text(
                       'Iniciar Sesión',
-                      style:
-                      Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      style: textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1A1A1A),
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -82,8 +82,7 @@ class _LoginView extends StatelessWidget {
                       prefixIcon: Icons.lock_outline,
                       isPassword: true,
                       passwordVisible: viewModel.loginPasswordVisible,
-                      onToggleVisibility:
-                      viewModel.toggleLoginPasswordVisibility,
+                      onToggleVisibility: viewModel.toggleLoginPasswordVisibility,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Ingresa tu contraseña';
@@ -110,8 +109,7 @@ class _LoginView extends StatelessWidget {
 
                     // Botón Google
                     AuthGoogleButton(
-                      onPressed:
-                      isLoading ? null : () => viewModel.loginWithGoogle(),
+                      onPressed: isLoading ? null : () => viewModel.loginWithGoogle(),
                     ),
                     const SizedBox(height: 40),
 
@@ -120,14 +118,15 @@ class _LoginView extends StatelessWidget {
                       onTap: () => Navigator.of(context).pop(),
                       child: Text(
                         'Volver',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        style: textTheme.bodyMedium?.copyWith(
                           decoration: TextDecoration.underline,
-                          color: const Color(0xFF1A1A1A),
+                          decorationColor: colorScheme.onSurface,
+                          color: colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 220), // espacio para los blobs
+                    const SizedBox(height: 220),
                   ],
                 ),
               ),
