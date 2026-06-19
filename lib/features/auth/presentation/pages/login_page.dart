@@ -166,6 +166,12 @@ class _LoginViewState extends State<_LoginView> {
                     AuthGoogleButton(
                       onPressed: isLoading ? null : () => viewModel.loginWithGoogle(),
                     ),
+                    const SizedBox(height: 16),
+
+                    AuthBiometricButton(
+                      label: 'Entrar con Huella',
+                      onPressed: isLoading ? null : () => viewModel.loginWithBiometrics(),
+                    ),
                     const SizedBox(height: 40),
 
                     // Volver

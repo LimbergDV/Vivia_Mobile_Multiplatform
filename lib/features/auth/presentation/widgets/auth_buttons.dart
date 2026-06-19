@@ -138,3 +138,50 @@ class AuthDivider extends StatelessWidget {
     );
   }
 }
+
+class AuthBiometricButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final String label;
+
+  const AuthBiometricButton({
+    super.key, 
+    required this.onPressed,
+    this.label = 'Registrarse con Biometría',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          side: BorderSide(color: colorScheme.primary),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          backgroundColor: colorScheme.surface,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.fingerprint, color: colorScheme.primary, size: 24),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: textTheme.labelLarge?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -25,7 +25,7 @@ android {
         applicationId = "com.quantum.vivia_mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 28  // Required for Passkeys/WebAuthn support (Android 9.0+)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

@@ -216,6 +216,40 @@ class _RegisterViewState extends State<_RegisterView> {
                 ),
                 const SizedBox(height: 28),
 
+                // Mostrar mensaje de debug si existe
+                if (viewModel.debugMessage != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: colorScheme.primary,
+                        width: 2,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            viewModel.debugMessage!,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 AuthPrimaryButton(
                   label: 'Crear Cuenta',
                   isLoading: isLoading,
@@ -228,6 +262,11 @@ class _RegisterViewState extends State<_RegisterView> {
 
                 AuthGoogleButton(
                   onPressed: isLoading ? null : () => viewModel.registerWithGoogle(),
+                ),
+                const SizedBox(height: 16),
+
+                AuthBiometricButton(
+                  onPressed: isLoading ? null : () => viewModel.registerWithBiometrics(),
                 ),
                 const SizedBox(height: 40),
               ],
