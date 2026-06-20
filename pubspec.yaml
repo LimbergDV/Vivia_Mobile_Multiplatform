@@ -38,6 +38,7 @@ dependencies:
   google_fonts: ^8.1.0
   flutter_svg: ^2.3.0
   provider: ^6.1.5+1
+  lottie: ^3.3.3
 
 dev_dependencies:
   flutter_test:
@@ -63,6 +64,7 @@ flutter:
   assets:
     - assets/images/logo.svg
     - assets/images/google-svg-logo.svg
+    - assets/images/locations_animated_icon.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:
