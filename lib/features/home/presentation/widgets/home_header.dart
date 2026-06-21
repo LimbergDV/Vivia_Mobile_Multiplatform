@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class HomeHeader extends StatelessWidget {
   final String userName;
@@ -52,19 +51,15 @@ class HomeHeader extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              SvgPicture.asset(
-                'assets/icons/notification_icon.svg',
-                width: 26,
-                height: 26,
-                colorFilter: ColorFilter.mode(
-                  colorScheme.onSurface,
-                  BlendMode.srcIn,
-                ),
+              Icon(
+                Icons.notifications_outlined,
+                size: 28,
+                color: colorScheme.onSurface,
               ),
               if (notificationCount > 0)
                 Positioned(
-                  top: -4,
-                  right: -4,
+                  top: -2,
+                  right: -2,
                   child: Container(
                     width: 10,
                     height: 10,
@@ -86,17 +81,18 @@ class HomeHeader extends StatelessWidget {
         GestureDetector(
           onTap: onAvatarTap,
           child: Container(
-            width: 42,
-            height: 42,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
+              color: colorScheme.primaryContainer,
               border: Border.all(
                 color: colorScheme.outlineVariant,
                 width: 1.5,
               ),
             ),
             child: ClipOval(
-              child: avatarUrl != null
+              child: avatarUrl != null && avatarUrl!.isNotEmpty
                   ? Image.network(
                 avatarUrl!,
                 fit: BoxFit.cover,
@@ -118,13 +114,10 @@ class _AvatarFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: colorScheme.primaryContainer,
-      child: Icon(
-        Icons.person_outline,
-        color: colorScheme.onPrimaryContainer,
-        size: 22,
-      ),
+    return Icon(
+      Icons.person_outline_rounded,
+      color: colorScheme.onPrimaryContainer,
+      size: 24,
     );
   }
 }

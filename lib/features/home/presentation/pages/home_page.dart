@@ -24,8 +24,6 @@ class _HomePageState extends State<HomePage> {
   PropertyCategory _selectedCategory = PropertyCategory.todas;
   HomeNavItem _selectedNav = HomeNavItem.home;
   final TextEditingController _searchController = TextEditingController();
-
-  // TODO: reemplazar con datos reales del ViewModel
   final List<dynamic> _properties = [];
 
   @override
@@ -39,38 +37,33 @@ class _HomePageState extends State<HomePage> {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: SafeArea(
-        child: isLandscape
-            ? _LandscapeLayout(
-          userName: widget.userName,
-          avatarUrl: widget.avatarUrl,
-          selectedCategory: _selectedCategory,
-          selectedNav: _selectedNav,
-          searchController: _searchController,
-          properties: _properties,
-          onCategorySelected: (c) =>
-              setState(() => _selectedCategory = c),
-          onNavSelected: (n) => setState(() => _selectedNav = n),
-        )
-            : _PortraitLayout(
-          userName: widget.userName,
-          avatarUrl: widget.avatarUrl,
-          selectedCategory: _selectedCategory,
-          selectedNav: _selectedNav,
-          searchController: _searchController,
-          properties: _properties,
-          onCategorySelected: (c) =>
-              setState(() => _selectedCategory = c),
-          onNavSelected: (n) => setState(() => _selectedNav = n),
-        ),
-      ),
+    if (isLandscape) {
+      return _LandscapeScaffold(
+        userName: widget.userName,
+        avatarUrl: widget.avatarUrl,
+        selectedCategory: _selectedCategory,
+        selectedNav: _selectedNav,
+        searchController: _searchController,
+        properties: _properties,
+        onCategorySelected: (c) => setState(() => _selectedCategory = c),
+        onNavSelected: (n) => setState(() => _selectedNav = n),
+      );
+    }
+
+    return _PortraitScaffold(
+      userName: widget.userName,
+      avatarUrl: widget.avatarUrl,
+      selectedCategory: _selectedCategory,
+      selectedNav: _selectedNav,
+      searchController: _searchController,
+      properties: _properties,
+      onCategorySelected: (c) => setState(() => _selectedCategory = c),
+      onNavSelected: (n) => setState(() => _selectedNav = n),
     );
   }
 }
 
-class _PortraitLayout extends StatelessWidget {
+class _PortraitScaffold extends StatelessWidget {
   final String userName;
   final String? avatarUrl;
   final PropertyCategory selectedCategory;
@@ -80,7 +73,7 @@ class _PortraitLayout extends StatelessWidget {
   final ValueChanged<PropertyCategory> onCategorySelected;
   final ValueChanged<HomeNavItem> onNavSelected;
 
-  const _PortraitLayout({
+  const _PortraitScaffold({
     required this.userName,
     required this.avatarUrl,
     required this.selectedCategory,
@@ -97,72 +90,66 @@ class _PortraitLayout extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    return Column(
-      children: [
-        Expanded(
-          child: CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    HomeHeader(
-                      userName: userName,
-                      avatarUrl: avatarUrl,
-                      notificationCount: 1,
-                    ),
-                    SizedBox(height: screenHeight * 0.025),
-
-                    HomeSearchBar(controller: searchController),
-                    SizedBox(height: screenHeight * 0.02),
-
-                    CategoryChipList(
-                      selected: selectedCategory,
-                      onSelected: onCategorySelected,
-                    ),
-                    SizedBox(height: screenHeight * 0.025),
-
-                    _SectionHeader(
-                      title: 'Todas las propiedades',
-                      colorScheme: colorScheme,
-                      textTheme: textTheme,
-                    ),
-                    SizedBox(height: screenHeight * 0.02),
-                  ]),
-                ),
-              ),
-
-              properties.isEmpty
-                  ? SliverFillRemaining(
-                hasScrollBody: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: const EmptyPropertiesState(),
-                ),
-              )
-                  : SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                        (context, index) => const SizedBox(), // TODO: PropertyCard
-                    childCount: properties.length,
+    return Scaffold(
+      backgroundColor: colorScheme.surface,
+      bottomNavigationBar: HomeBottomNavBar(
+        selected: selectedNav,
+        onItemSelected: onNavSelected,
+      ),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  HomeHeader(
+                    userName: userName,
+                    avatarUrl: avatarUrl,
+                    notificationCount: 1,
                   ),
+                  SizedBox(height: screenHeight * 0.025),
+                  HomeSearchBar(controller: searchController),
+                  SizedBox(height: screenHeight * 0.02),
+                  CategoryChipList(
+                    selected: selectedCategory,
+                    onSelected: onCategorySelected,
+                  ),
+                  SizedBox(height: screenHeight * 0.025),
+                  _SectionHeader(
+                    title: 'Todas las propiedades',
+                    colorScheme: colorScheme,
+                    textTheme: textTheme,
+                  ),
+                  SizedBox(height: screenHeight * 0.02),
+                ]),
+              ),
+            ),
+            properties.isEmpty
+                ? SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: const EmptyPropertiesState(),
+              ),
+            )
+                : SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) => const SizedBox(),
+                  childCount: properties.length,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-
-        HomeBottomNavBar(
-          selected: selectedNav,
-          onItemSelected: onNavSelected,
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _LandscapeLayout extends StatelessWidget {
+class _LandscapeScaffold extends StatelessWidget {
   final String userName;
   final String? avatarUrl;
   final PropertyCategory selectedCategory;
@@ -172,7 +159,7 @@ class _LandscapeLayout extends StatelessWidget {
   final ValueChanged<PropertyCategory> onCategorySelected;
   final ValueChanged<HomeNavItem> onNavSelected;
 
-  const _LandscapeLayout({
+  const _LandscapeScaffold({
     required this.userName,
     required this.avatarUrl,
     required this.selectedCategory,
@@ -189,84 +176,81 @@ class _LandscapeLayout extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    return Row(
-      children: [
-        Container(
-          width: 70,
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            border: Border(
-              right: BorderSide(
-                color: colorScheme.outlineVariant,
-                width: 0.5,
+    return Scaffold(
+      backgroundColor: colorScheme.surface,
+      body: SafeArea(
+        child: Row(
+          children: [
+            Container(
+              width: 70,
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                border: Border(
+                  right: BorderSide(
+                    color: colorScheme.outlineVariant,
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: _VerticalNavBar(
+                selected: selectedNav,
+                onItemSelected: onNavSelected,
               ),
             ),
-          ),
-          child: _VerticalNavBar(
-            selected: selectedNav,
-            onItemSelected: onNavSelected,
-          ),
-        ),
-
-        Expanded(
-          child: CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    HomeHeader(
-                      userName: userName,
-                      avatarUrl: avatarUrl,
-                      notificationCount: 1,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: HomeSearchBar(controller: searchController),
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        HomeHeader(
+                          userName: userName,
+                          avatarUrl: avatarUrl,
+                          notificationCount: 1,
                         ),
-                      ],
+                        const SizedBox(height: 16),
+                        HomeSearchBar(controller: searchController),
+                        const SizedBox(height: 14),
+                        CategoryChipList(
+                          selected: selectedCategory,
+                          onSelected: onCategorySelected,
+                        ),
+                        const SizedBox(height: 16),
+                        _SectionHeader(
+                          title: 'Todas las propiedades',
+                          colorScheme: colorScheme,
+                          textTheme: textTheme,
+                        ),
+                        const SizedBox(height: 14),
+                      ]),
                     ),
-                    const SizedBox(height: 14),
-                    CategoryChipList(
-                      selected: selectedCategory,
-                      onSelected: onCategorySelected,
-                    ),
-                    const SizedBox(height: 16),
-                    _SectionHeader(
-                      title: 'Todas las propiedades',
-                      colorScheme: colorScheme,
-                      textTheme: textTheme,
-                    ),
-                    const SizedBox(height: 14),
-                  ]),
-                ),
-              ),
-              properties.isEmpty
-                  ? SliverFillRemaining(
-                hasScrollBody: false,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.1,
                   ),
-                  child: const EmptyPropertiesState(),
-                ),
-              )
-                  : SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                        (context, index) => const SizedBox(),
-                    childCount: properties.length,
+                  properties.isEmpty
+                      ? SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.1,
+                      ),
+                      child: const EmptyPropertiesState(),
+                    ),
+                  )
+                      : SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                            (context, index) => const SizedBox(),
+                        childCount: properties.length,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -289,39 +273,41 @@ class _VerticalNavBar extends StatelessWidget {
       children: [
         _VerticalNavIcon(
           icon: Icons.home_outlined,
+          selectedIcon: Icons.home_rounded,
           isSelected: selected == HomeNavItem.home,
           onTap: () => onItemSelected(HomeNavItem.home),
         ),
         const SizedBox(height: 8),
         _VerticalNavIcon(
           icon: Icons.notifications_outlined,
+          selectedIcon: Icons.notifications_rounded,
           isSelected: selected == HomeNavItem.notifications,
           onTap: () => onItemSelected(HomeNavItem.notifications),
         ),
         const SizedBox(height: 8),
-
         GestureDetector(
           onTap: () => onItemSelected(HomeNavItem.add),
           child: Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(
-              color: colorScheme.onSurface,
+            decoration: const BoxDecoration(
+              color: Color(0xFF04364A),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.add, color: colorScheme.surface, size: 24),
           ),
         ),
         const SizedBox(height: 8),
-
         _VerticalNavIcon(
           icon: Icons.chat_bubble_outline,
+          selectedIcon: Icons.chat_bubble_rounded,
           isSelected: selected == HomeNavItem.messages,
           onTap: () => onItemSelected(HomeNavItem.messages),
         ),
         const SizedBox(height: 8),
         _VerticalNavIcon(
           icon: Icons.person_outline,
+          selectedIcon: Icons.person_rounded,
           isSelected: selected == HomeNavItem.profile,
           onTap: () => onItemSelected(HomeNavItem.profile),
         ),
@@ -332,11 +318,13 @@ class _VerticalNavBar extends StatelessWidget {
 
 class _VerticalNavIcon extends StatelessWidget {
   final IconData icon;
+  final IconData selectedIcon;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _VerticalNavIcon({
     required this.icon,
+    required this.selectedIcon,
     required this.isSelected,
     required this.onTap,
   });
@@ -344,21 +332,23 @@ class _VerticalNavIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: isSelected
-              ? colorScheme.primaryContainer
+              ? const Color(0xFF04364A).withOpacity(0.10)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
-          icon,
+          isSelected ? selectedIcon : icon,
           size: 24,
           color: isSelected
-              ? colorScheme.primary
+              ? const Color(0xFF04364A)
               : colorScheme.onSurfaceVariant.withOpacity(0.6),
         ),
       ),
@@ -390,9 +380,7 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
         GestureDetector(
-          onTap: () {
-            // TODO: navegar a ver todas
-          },
+          onTap: () {},
           child: Row(
             children: [
               Text(

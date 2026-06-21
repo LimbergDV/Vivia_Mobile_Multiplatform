@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class EmptyPropertiesState extends StatelessWidget {
   const EmptyPropertiesState({super.key});
@@ -14,12 +13,17 @@ class EmptyPropertiesState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SvgPicture.asset(
-            'assets/states/empty_state.svg',
-            width: screenWidth * 0.62,
+          Image.asset(
+            'assets/states/empty_state.png',
+            width: screenWidth * 0.68,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Icon(
+              Icons.folder_off_outlined,
+              size: screenWidth * 0.3,
+              color: colorScheme.onSurfaceVariant.withOpacity(0.3),
+            ),
           ),
-          const SizedBox(height: 28),
-
+          const SizedBox(height: 32),
           Text(
             '¡No tienes propiedades\npublicadas aún!',
             textAlign: TextAlign.center,

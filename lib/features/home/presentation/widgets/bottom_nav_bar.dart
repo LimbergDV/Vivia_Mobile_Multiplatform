@@ -15,63 +15,81 @@ class HomeBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      height: 70,
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(
-          top: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+    return SizedBox(
+      height: 90,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.bottomCenter,
         children: [
-          _NavIcon(
-            assetPath: 'assets/icons/home_icon.svg',
-            isSelected: selected == HomeNavItem.home,
-            onTap: () => onItemSelected(HomeNavItem.home),
-          ),
-          _NavIcon(
-            assetPath: 'assets/icons/notification_icon.svg',
-            isSelected: selected == HomeNavItem.notifications,
-            onTap: () => onItemSelected(HomeNavItem.notifications),
-          ),
-
-          GestureDetector(
-            onTap: () => onItemSelected(HomeNavItem.add),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 72,
             child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: colorScheme.onSurface,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: colorScheme.shadow.withOpacity(0.18),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEFEFEF),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _NavItem(
+                    assetPath: 'assets/icons/home_icon.svg',
+                    isSelected: selected == HomeNavItem.home,
+                    onTap: () => onItemSelected(HomeNavItem.home),
+                  ),
+                  _NavItem(
+                    assetPath: 'assets/icons/notification_icon.svg',
+                    isSelected: selected == HomeNavItem.notifications,
+                    onTap: () => onItemSelected(HomeNavItem.notifications),
+                  ),
+                  const SizedBox(width: 58),
+                  _NavItem(
+                    assetPath: 'assets/icons/chat_icon.svg',
+                    isSelected: selected == HomeNavItem.messages,
+                    onTap: () => onItemSelected(HomeNavItem.messages),
+                  ),
+                  _NavItem(
+                    assetPath: 'assets/icons/profile_icon.svg',
+                    isSelected: selected == HomeNavItem.profile,
+                    onTap: () => onItemSelected(HomeNavItem.profile),
                   ),
                 ],
-              ),
-              child: Icon(
-                Icons.add,
-                color: colorScheme.surface,
-                size: 28,
               ),
             ),
           ),
 
-          _NavIcon(
-            assetPath: 'assets/icons/chat_icon.svg',
-            isSelected: selected == HomeNavItem.messages,
-            onTap: () => onItemSelected(HomeNavItem.messages),
-          ),
-          _NavIcon(
-            assetPath: 'assets/icons/profile_icon.svg',
-            isSelected: selected == HomeNavItem.profile,
-            onTap: () => onItemSelected(HomeNavItem.profile),
+          Positioned(
+            bottom: 22,
+            child: GestureDetector(
+              onTap: () => onItemSelected(HomeNavItem.add),
+              child: Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF04364A),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF04364A).withOpacity(0.35),
+                      blurRadius: 16,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -79,12 +97,12 @@ class HomeBottomNavBar extends StatelessWidget {
   }
 }
 
-class _NavIcon extends StatelessWidget {
+class _NavItem extends StatelessWidget {
   final String assetPath;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _NavIcon({
+  const _NavItem({
     required this.assetPath,
     required this.isSelected,
     required this.onTap,
@@ -92,21 +110,25 @@ class _NavIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final color = isSelected
-        ? colorScheme.primary
-        : colorScheme.onSurfaceVariant.withOpacity(0.6);
-
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: SvgPicture.asset(
-          assetPath,
-          width: 24,
-          height: 24,
-          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF04364A).withOpacity(0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: SvgPicture.asset(
+            assetPath,
+            width: 24,
+            height: 24,
+          ),
         ),
       ),
     );
