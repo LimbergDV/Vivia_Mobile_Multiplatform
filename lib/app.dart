@@ -3,6 +3,7 @@ import 'package:vivia_mobile/features/auth/presentation/pages/choose_option_page
 import 'package:vivia_mobile/features/auth/presentation/pages/location_permissions_page.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/register_page.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/splash_page.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/home_page.dart';
 import 'package:vivia_mobile/shared/theme/theme.dart';
 import 'package:vivia_mobile/shared/theme/util.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/login_page.dart';
@@ -22,7 +23,7 @@ class MyApp extends StatelessWidget {
       theme: materialTheme.light(),
       darkTheme: materialTheme.dark(),
       themeMode: ThemeMode.light,
-      home: const SplashPage(),
+      home: const HomePage(userName: 'Limberg'),
     );
   }
 }
