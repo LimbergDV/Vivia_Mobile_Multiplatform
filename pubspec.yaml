@@ -78,6 +78,7 @@ flutter:
     - assets/icons/notification_icon.svg
     - assets/icons/chat_icon.svg
     - assets/icons/profile_icon.svg
+    - assets/icons/filter_icon.svg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
