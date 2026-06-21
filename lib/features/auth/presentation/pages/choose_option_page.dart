@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/register_page.dart';
 
 class ChooseOptionPage extends StatelessWidget {
-  const ChooseOptionPage({super.key});
+  final UserRole role;
+
+  const ChooseOptionPage({super.key, required this.role});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final screenHeight = MediaQuery.of(context).size.height;
+
+    // ── Textos que cambian según el rol ───────────────────────
+    final subtitle = role == UserRole.lessee
+        ? '¡Hola! Tu próximo hogar está a unos\ncuantos clics.'
+        : '¡Nos da gusto que quieras ser parte\nde nuestra comunidad!';
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -22,6 +30,7 @@ class ChooseOptionPage extends StatelessWidget {
               children: [
                 SizedBox(height: screenHeight * 0.08),
 
+                // ── Logo ───────────────────────────────────────────────
                 Container(
                   width: 110,
                   height: 110,
@@ -46,6 +55,7 @@ class ChooseOptionPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
+                // ── Nombre app ─────────────────────────────────────────
                 Text(
                   'Vívia',
                   style: textTheme.headlineMedium?.copyWith(
@@ -55,8 +65,9 @@ class ChooseOptionPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
+                // ── Subtítulo adaptado al rol ──────────────────────────
                 Text(
-                  '¡Nos da gusto que quieras ser parte\nde nuestra comunidad!',
+                  subtitle,
                   textAlign: TextAlign.center,
                   style: textTheme.bodyLarge?.copyWith(
                     color: colorScheme.onSurfaceVariant,
@@ -73,13 +84,16 @@ class ChooseOptionPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
+                // ── Botón Iniciar Sesión ───────────────────────────────
                 SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                      MaterialPageRoute(
+                        builder: (_) => LoginPage(role: role),
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colorScheme.primary,
@@ -100,13 +114,16 @@ class ChooseOptionPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
+                // ── Botón Crear Cuenta ─────────────────────────────────
                 SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const RegisterPage()),
+                      MaterialPageRoute(
+                        builder: (_) => RegisterPage(role: role),
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF29B6F6),
@@ -127,6 +144,7 @@ class ChooseOptionPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
+                // ── Separador ──────────────────────────────────────────
                 Row(
                   children: [
                     Expanded(
@@ -154,6 +172,7 @@ class ChooseOptionPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
+                // ── Botón Google ───────────────────────────────────────
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -190,6 +209,7 @@ class ChooseOptionPage extends StatelessWidget {
                   ),
                 ),
 
+                // ── Volver ─────────────────────────────────────────────
                 const SizedBox(height: 32),
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/login_page.dart';
+import 'package:vivia_mobile/features/auth/presentation/pages/role_selector_page.dart';
 
 class LocationPermissionsPage extends StatelessWidget {
   const LocationPermissionsPage({super.key});
@@ -56,7 +57,7 @@ class LocationPermissionsPage extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                      MaterialPageRoute(builder: (_) => const RoleSelectorPage()),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colorScheme.primary,

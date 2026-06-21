@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/widgets.dart';
 
 class RegisterPage extends StatelessWidget {
-  const RegisterPage({super.key});
+  final UserRole role;
+
+  const RegisterPage({super.key, required this.role});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => AuthViewModel(),
-      child: const _RegisterView(),
+      child: _RegisterView(role: role),
     );
   }
 }
 
 class _RegisterView extends StatelessWidget {
-  const _RegisterView();
+  final UserRole role;
+
+  const _RegisterView({required this.role});
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +29,9 @@ class _RegisterView extends StatelessWidget {
     final isLoading = viewModel.status == AuthStatus.loading;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
+    // ── Título cambia según el rol ─────────────────────────────
+    final title = role == UserRole.lessee ? 'Regístrate' : 'Regístrate';
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -41,7 +49,7 @@ class _RegisterView extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 Text(
-                  'Regístrate',
+                  title,
                   style: textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
@@ -49,9 +57,10 @@ class _RegisterView extends StatelessWidget {
                 ),
                 const SizedBox(height: 28),
 
+                // ── Nombre(s) — ambos roles ────────────────────────────
                 AuthTextField(
                   controller: viewModel.registerNameController,
-                  label: 'Nombre(s) del vendedor',
+                  label: 'Nombre(s)',
                   hint: 'Escribe tu nombre(s)',
                   prefixIcon: Icons.person_outline,
                   validator: (value) {
@@ -63,9 +72,10 @@ class _RegisterView extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
+                // ── Apellido(s) — ambos roles ──────────────────────────
                 AuthTextField(
                   controller: viewModel.registerLastNameController,
-                  label: 'Apellido(s) del vendedor',
+                  label: 'Apellido(s)',
                   hint: 'Escribe tu apellido(s)',
                   prefixIcon: Icons.person_outline,
                   validator: (value) {
@@ -77,65 +87,133 @@ class _RegisterView extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                AuthTextField(
-                  controller: viewModel.registerPasswordController,
-                  label: 'Contraseña',
-                  hint: '••••••••',
-                  prefixIcon: Icons.lock_outline,
-                  isPassword: true,
-                  passwordVisible: viewModel.registerPasswordVisible,
-                  onToggleVisibility: viewModel.toggleRegisterPasswordVisibility,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Ingresa una contraseña';
-                    }
-                    if (value.length < 6) {
-                      return 'Mínimo 6 caracteres';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
+                // ── Campos extra solo para lessor (arrendador) ─────────
+                if (role == UserRole.lessor) ...[
+                  AuthTextField(
+                    controller: viewModel.registerPasswordController,
+                    label: 'Contraseña',
+                    hint: '••••••••',
+                    prefixIcon: Icons.lock_outline,
+                    isPassword: true,
+                    passwordVisible: viewModel.registerPasswordVisible,
+                    onToggleVisibility:
+                    viewModel.toggleRegisterPasswordVisibility,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Ingresa una contraseña';
+                      }
+                      if (value.length < 6) return 'Mínimo 6 caracteres';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
-                AuthTextField(
-                  controller: viewModel.registerConfirmPasswordController,
-                  label: 'Confirmar Contraseña',
-                  hint: '••••••••',
-                  prefixIcon: Icons.lock_outline,
-                  isPassword: true,
-                  passwordVisible: viewModel.registerConfirmPasswordVisible,
-                  onToggleVisibility: viewModel.toggleRegisterConfirmPasswordVisibility,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Confirma tu contraseña';
-                    }
-                    if (value != viewModel.registerPasswordController.text) {
-                      return 'Las contraseñas no coinciden';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
+                  AuthTextField(
+                    controller: viewModel.registerConfirmPasswordController,
+                    label: 'Confirmar Contraseña',
+                    hint: '••••••••',
+                    prefixIcon: Icons.lock_outline,
+                    isPassword: true,
+                    passwordVisible: viewModel.registerConfirmPasswordVisible,
+                    onToggleVisibility:
+                    viewModel.toggleRegisterConfirmPasswordVisibility,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Confirma tu contraseña';
+                      }
+                      if (value != viewModel.registerPasswordController.text) {
+                        return 'Las contraseñas no coinciden';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
-                AuthTextField(
-                  controller: viewModel.registerEmailController,
-                  label: 'Correo Electrónico',
-                  hint: 'example@domain.com',
-                  prefixIcon: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Ingresa tu correo';
-                    }
-                    if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value)) {
-                      return 'Correo no válido';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 28),
+                  AuthTextField(
+                    controller: viewModel.registerEmailController,
+                    label: 'Correo Electrónico',
+                    hint: 'example@domain.com',
+                    prefixIcon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Ingresa tu correo';
+                      }
+                      if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'Correo no válido';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
+                // ── Campos de contraseña para lessee ──────────────────
+                if (role == UserRole.lessee) ...[
+                  AuthTextField(
+                    controller: viewModel.registerPasswordController,
+                    label: 'Contraseña',
+                    hint: '••••••••',
+                    prefixIcon: Icons.lock_outline,
+                    isPassword: true,
+                    passwordVisible: viewModel.registerPasswordVisible,
+                    onToggleVisibility:
+                    viewModel.toggleRegisterPasswordVisibility,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Ingresa una contraseña';
+                      }
+                      if (value.length < 6) return 'Mínimo 6 caracteres';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  AuthTextField(
+                    controller: viewModel.registerConfirmPasswordController,
+                    label: 'Confirmar Contraseña',
+                    hint: '••••••••',
+                    prefixIcon: Icons.lock_outline,
+                    isPassword: true,
+                    passwordVisible: viewModel.registerConfirmPasswordVisible,
+                    onToggleVisibility:
+                    viewModel.toggleRegisterConfirmPasswordVisibility,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Confirma tu contraseña';
+                      }
+                      if (value != viewModel.registerPasswordController.text) {
+                        return 'Las contraseñas no coinciden';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  AuthTextField(
+                    controller: viewModel.registerEmailController,
+                    label: 'Correo Electrónico',
+                    hint: 'example@domain.com',
+                    prefixIcon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Ingresa tu correo';
+                      }
+                      if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'Correo no válido';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                const SizedBox(height: 12),
+
+                // ── Botón Crear Cuenta ─────────────────────────────────
                 AuthPrimaryButton(
                   label: 'Crear Cuenta',
                   isLoading: isLoading,
@@ -147,23 +225,27 @@ class _RegisterView extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 AuthGoogleButton(
-                  onPressed: isLoading ? null : () => viewModel.loginWithGoogle(),
+                  onPressed:
+                  isLoading ? null : () => viewModel.loginWithGoogle(),
                 ),
                 const SizedBox(height: 24),
 
+                // ── Volver ─────────────────────────────────────────────
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Volver',
-                    style: textTheme.bodyMedium?.copyWith(
-                      decoration: TextDecoration.underline,
-                      decorationColor: colorScheme.onSurface,
-                      color: colorScheme.onSurface,
-                      fontWeight: FontWeight.w500,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: Text(
+                      'Volver',
+                      style: textTheme.bodyMedium?.copyWith(
+                        decoration: TextDecoration.underline,
+                        decorationColor: colorScheme.onSurface,
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
               ],
             ),
           ),
