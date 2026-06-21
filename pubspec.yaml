@@ -74,6 +74,10 @@ flutter:
     - assets/images/properties/house_7.webp
     - assets/images/properties/house_8.webp
     - assets/images/properties/house_9.webp
+    - assets/icons/home_icon.svg
+    - assets/icons/notification_icon.svg
+    - assets/icons/chat_icon.svg
+    - assets/icons/profile_icon.svg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
