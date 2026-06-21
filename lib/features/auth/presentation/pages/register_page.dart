@@ -149,6 +149,20 @@ class _RegisterView extends StatelessWidget {
                 AuthGoogleButton(
                   onPressed: isLoading ? null : () => viewModel.loginWithGoogle(),
                 ),
+                const SizedBox(height: 24),
+
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'Volver',
+                    style: textTheme.bodyMedium?.copyWith(
+                      decoration: TextDecoration.underline,
+                      decorationColor: colorScheme.onSurface,
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 40),
               ],
             ),
