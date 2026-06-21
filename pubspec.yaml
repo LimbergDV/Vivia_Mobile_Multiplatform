@@ -65,6 +65,15 @@ flutter:
     - assets/images/logo.svg
     - assets/images/google-svg-logo.svg
     - assets/images/locations_animated_icon.json
+    - assets/images/properties/house_1.webp
+    - assets/images/properties/house_2.webp
+    - assets/images/properties/house_3.webp
+    - assets/images/properties/house_4.webp
+    - assets/images/properties/house_5.webp
+    - assets/images/properties/house_6.webp
+    - assets/images/properties/house_7.webp
+    - assets/images/properties/house_8.webp
+    - assets/images/properties/house_9.webp
 
   # To add assets to your application, add an assets section, like this:
   # assets:
