@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 
 class PropertyCard extends StatelessWidget {
   final PropertyModel property;
   final VoidCallback? onTap;
-  final VoidCallback? onFavoriteTap;
 
   const PropertyCard({
     super.key,
     required this.property,
     this.onTap,
-    this.onFavoriteTap,
   });
 
   @override
@@ -56,56 +55,58 @@ class PropertyCard extends StatelessWidget {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        property.type,
-                        style: textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface,
+
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      property.type,
+                      style: textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    Text(
+                      '\$${_formatPrice(property.price)}',
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF04364A),
+                      ),
+                    ),
+
+                    Row(
+                      children: [
+                        _PropertyStat(
+                          svgPath: 'assets/icons/area_icon.svg',
+                          label: '${property.area.toInt()}m²',
+                          textTheme: textTheme,
+                          colorScheme: colorScheme,
                         ),
-                      ),
-                      Text(
-                        '\$${property.price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},')}',
-                        style: textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: colorScheme.onSurface,
+                        const SizedBox(width: 8),
+                        _PropertyStat(
+                          svgPath: 'assets/icons/bath_icon.svg',
+                          label: '${property.bedrooms}',
+                          textTheme: textTheme,
+                          colorScheme: colorScheme,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      _PropertyStat(
-                        icon: Icons.square_foot_rounded,
-                        label: '${property.area.toInt()}m2',
-                        colorScheme: colorScheme,
-                        textTheme: textTheme,
-                      ),
-                      const SizedBox(width: 10),
-                      _PropertyStat(
-                        icon: Icons.bed_outlined,
-                        label: '${property.bedrooms}',
-                        colorScheme: colorScheme,
-                        textTheme: textTheme,
-                      ),
-                      const SizedBox(width: 10),
-                      _PropertyStat(
-                        icon: Icons.bathtub_outlined,
-                        label: '${property.bathrooms}',
-                        colorScheme: colorScheme,
-                        textTheme: textTheme,
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 8),
+                        _PropertyStat(
+                          svgPath: 'assets/icons/bed_icon.svg',
+                          label: '${property.bathrooms}',
+                          textTheme: textTheme,
+                          colorScheme: colorScheme,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -113,31 +114,47 @@ class PropertyCard extends StatelessWidget {
       ),
     );
   }
+
+  String _formatPrice(double price) {
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+$)'),
+          (m) => '${m[1]},',
+    );
+  }
 }
 
 class _PropertyStat extends StatelessWidget {
-  final IconData icon;
+  final String svgPath;
   final String label;
-  final ColorScheme colorScheme;
   final TextTheme textTheme;
+  final ColorScheme colorScheme;
 
   const _PropertyStat({
-    required this.icon,
+    required this.svgPath,
     required this.label,
-    required this.colorScheme,
     required this.textTheme,
+    required this.colorScheme,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: const Color(0xFF0061FF)),
+        SvgPicture.asset(
+          svgPath,
+          width: 16,
+          height: 16,
+        ),
         const SizedBox(width: 3),
         Text(
           label,
           style: textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+            fontSize: 12,
           ),
         ),
       ],

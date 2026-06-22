@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/choose_option_page.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/location_permissions_page.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/register_page.dart';
@@ -23,7 +24,7 @@ class MyApp extends StatelessWidget {
       theme: materialTheme.light(),
       darkTheme: materialTheme.dark(),
       themeMode: ThemeMode.light,
-      home: const HomePage(userName: 'Limberg'),
+      home: HomePage(userName: 'Limberg', role: UserRole.lessee),
     );
   }
 }

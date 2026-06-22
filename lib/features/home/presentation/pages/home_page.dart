@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/home/domain/enums/property_category.dart';
+import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/category_chip_list.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/empty_properties_state.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_header.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_search_bar.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_property_card.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
   final String? avatarUrl;
+  final UserRole role;
 
   const HomePage({
     super.key,
     required this.userName,
+    required this.role,
     this.avatarUrl,
   });
 
@@ -24,7 +30,54 @@ class _HomePageState extends State<HomePage> {
   PropertyCategory _selectedCategory = PropertyCategory.todas;
   HomeNavItem _selectedNav = HomeNavItem.home;
   final TextEditingController _searchController = TextEditingController();
-  final List<dynamic> _properties = [];
+
+  final List<PropertyModel> _properties = [
+    PropertyModel(
+      id: '1',
+      title: 'Casa Moderna',
+      type: 'Casa',
+      price: 2000000,
+      location: 'Chiapas, MX',
+      area: 2000,
+      bedrooms: 4,
+      bathrooms: 1,
+      imageUrl: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400',
+    ),
+    PropertyModel(
+      id: '2',
+      title: 'Casa Campestre',
+      type: 'Casa',
+      price: 2000000,
+      location: 'Chiapas, MX',
+      area: 2000,
+      bedrooms: 4,
+      bathrooms: 1,
+      imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400',
+    ),
+    PropertyModel(
+      id: '3',
+      title: 'Villa Exclusiva',
+      type: 'Casa',
+      price: 2000000,
+      location: 'New York, US',
+      area: 2000,
+      bedrooms: 4,
+      bathrooms: 1,
+      imageUrl: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400',
+      isFavorite: true,
+    ),
+    PropertyModel(
+      id: '4',
+      title: 'Casa Suburbana',
+      type: 'Casa',
+      price: 2000000,
+      location: 'New York, US',
+      area: 2000,
+      bedrooms: 4,
+      bathrooms: 1,
+      imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400',
+    ),
+  ];
 
   @override
   void dispose() {
@@ -41,6 +94,7 @@ class _HomePageState extends State<HomePage> {
       return _LandscapeScaffold(
         userName: widget.userName,
         avatarUrl: widget.avatarUrl,
+        role: widget.role,
         selectedCategory: _selectedCategory,
         selectedNav: _selectedNav,
         searchController: _searchController,
@@ -53,6 +107,7 @@ class _HomePageState extends State<HomePage> {
     return _PortraitScaffold(
       userName: widget.userName,
       avatarUrl: widget.avatarUrl,
+      role: widget.role,
       selectedCategory: _selectedCategory,
       selectedNav: _selectedNav,
       searchController: _searchController,
@@ -66,16 +121,18 @@ class _HomePageState extends State<HomePage> {
 class _PortraitScaffold extends StatelessWidget {
   final String userName;
   final String? avatarUrl;
+  final UserRole role;
   final PropertyCategory selectedCategory;
   final HomeNavItem selectedNav;
   final TextEditingController searchController;
-  final List<dynamic> properties;
+  final List<PropertyModel> properties;
   final ValueChanged<PropertyCategory> onCategorySelected;
   final ValueChanged<HomeNavItem> onNavSelected;
 
   const _PortraitScaffold({
     required this.userName,
     required this.avatarUrl,
+    required this.role,
     required this.selectedCategory,
     required this.selectedNav,
     required this.searchController,
@@ -89,6 +146,7 @@ class _PortraitScaffold extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -111,20 +169,80 @@ class _PortraitScaffold extends StatelessWidget {
                   SizedBox(height: screenHeight * 0.025),
                   HomeSearchBar(controller: searchController),
                   SizedBox(height: screenHeight * 0.02),
-                  CategoryChipList(
-                    selected: selectedCategory,
-                    onSelected: onCategorySelected,
-                  ),
-                  SizedBox(height: screenHeight * 0.025),
-                  _SectionHeader(
-                    title: 'Todas las propiedades',
-                    colorScheme: colorScheme,
-                    textTheme: textTheme,
-                  ),
-                  SizedBox(height: screenHeight * 0.02),
                 ]),
               ),
             ),
+
+            if (role == UserRole.lessee && properties.isNotEmpty) ...[
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Cerca de ti',
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 20),
+                            child: Text(
+                              'Ver todos',
+                              style: textTheme.labelMedium?.copyWith(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        height: screenHeight * 0.28,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: properties.length,
+                          separatorBuilder: (_, __) =>
+                          const SizedBox(width: 12),
+                          itemBuilder: (context, i) => NearbyPropertyCard(
+                            property: properties[i],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+              sliver: SliverToBoxAdapter(
+                child: CategoryChipList(
+                  selected: selectedCategory,
+                  onSelected: onCategorySelected,
+                ),
+              ),
+            ),
+
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              sliver: SliverToBoxAdapter(
+                child: _SectionHeader(
+                  title: 'Todas las propiedades',
+                  colorScheme: colorScheme,
+                  textTheme: textTheme,
+                ),
+              ),
+            ),
+
             properties.isEmpty
                 ? SliverFillRemaining(
               hasScrollBody: false,
@@ -134,10 +252,19 @@ class _PortraitScaffold extends StatelessWidget {
               ),
             )
                 : SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: SliverList(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              sliver: SliverGrid(
+                gridDelegate:
+                SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: screenWidth < 400 ? 0.72 : 0.75,
+                ),
                 delegate: SliverChildBuilderDelegate(
-                      (context, index) => const SizedBox(),
+                      (context, index) => PropertyCard(
+                    property: properties[index],
+                  ),
                   childCount: properties.length,
                 ),
               ),
@@ -152,16 +279,18 @@ class _PortraitScaffold extends StatelessWidget {
 class _LandscapeScaffold extends StatelessWidget {
   final String userName;
   final String? avatarUrl;
+  final UserRole role;
   final PropertyCategory selectedCategory;
   final HomeNavItem selectedNav;
   final TextEditingController searchController;
-  final List<dynamic> properties;
+  final List<PropertyModel> properties;
   final ValueChanged<PropertyCategory> onCategorySelected;
   final ValueChanged<HomeNavItem> onNavSelected;
 
   const _LandscapeScaffold({
     required this.userName,
     required this.avatarUrl,
+    required this.role,
     required this.selectedCategory,
     required this.selectedNav,
     required this.searchController,
@@ -174,7 +303,6 @@ class _LandscapeScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -209,38 +337,98 @@ class _LandscapeScaffold extends StatelessWidget {
                           avatarUrl: avatarUrl,
                           notificationCount: 1,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 14),
                         HomeSearchBar(controller: searchController),
                         const SizedBox(height: 14),
-                        CategoryChipList(
-                          selected: selectedCategory,
-                          onSelected: onCategorySelected,
-                        ),
-                        const SizedBox(height: 16),
-                        _SectionHeader(
-                          title: 'Todas las propiedades',
-                          colorScheme: colorScheme,
-                          textTheme: textTheme,
-                        ),
-                        const SizedBox(height: 14),
                       ]),
+                    ),
+                  ),
+                  if (role == UserRole.lessee && properties.isNotEmpty)
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(right: 20),
+                              child: Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Cerca de ti',
+                                    style: textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Ver todos',
+                                    style: textTheme.labelMedium?.copyWith(
+                                      color: colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 180,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: properties.length,
+                                separatorBuilder: (_, __) =>
+                                const SizedBox(width: 10),
+                                itemBuilder: (context, i) =>
+                                    NearbyPropertyCard(
+                                      property: properties[i],
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: CategoryChipList(
+                        selected: selectedCategory,
+                        onSelected: onCategorySelected,
+                      ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: _SectionHeader(
+                        title: 'Todas las propiedades',
+                        colorScheme: colorScheme,
+                        textTheme: textTheme,
+                      ),
                     ),
                   ),
                   properties.isEmpty
                       ? SliverFillRemaining(
                     hasScrollBody: false,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.1,
-                      ),
-                      child: const EmptyPropertiesState(),
-                    ),
+                    child: const EmptyPropertiesState(),
                   )
                       : SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    sliver: SliverList(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 14,
+                        childAspectRatio: 0.78,
+                      ),
                       delegate: SliverChildBuilderDelegate(
-                            (context, index) => const SizedBox(),
+                            (context, index) => PropertyCard(
+                          property: properties[index],
+                        ),
                         childCount: properties.length,
                       ),
                     ),

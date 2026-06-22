@@ -81,6 +81,10 @@ flutter:
     - assets/icons/filter_icon.svg
     - assets/states/empty_state.png
     - assets/states/
+    - assets/icons/bath_icon.svg
+    - assets/icons/bed_icon.svg
+    - assets/icons/area_icon.svg
+    - assets/icons/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
