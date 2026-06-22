@@ -5,6 +5,8 @@ import 'package:vivia_mobile/features/auth/presentation/pages/location_permissio
 import 'package:vivia_mobile/features/auth/presentation/pages/register_page.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/splash_page.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/home_page.dart';
+import 'package:vivia_mobile/features/lessor/presentation/pages/add_property_page.dart';
+import 'package:vivia_mobile/features/lessor/presentation/pages/property_details_page.dart';
 import 'package:vivia_mobile/shared/theme/theme.dart';
 import 'package:vivia_mobile/shared/theme/util.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/login_page.dart';
@@ -24,7 +26,7 @@ class MyApp extends StatelessWidget {
       theme: materialTheme.light(),
       darkTheme: materialTheme.dark(),
       themeMode: ThemeMode.light,
-      home: HomePage(userName: 'Limberg', role: UserRole.lessee),
+      home: PropertyDetailsPage(),
     );
   }
 }

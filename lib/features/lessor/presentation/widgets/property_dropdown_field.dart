@@ -25,6 +25,8 @@ class PropertyDropdownField<T> extends StatelessWidget {
       value: value,
       onChanged: onChanged,
       validator: validator,
+      isExpanded: true,
+      isDense: true,
       icon: Icon(
         Icons.keyboard_arrow_down_rounded,
         color: colorScheme.onSurfaceVariant,
@@ -40,9 +42,10 @@ class PropertyDropdownField<T> extends StatelessWidget {
         ),
         filled: true,
         fillColor: colorScheme.surfaceContainerLowest,
+        isDense: true,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 16,
+          vertical: 14,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -62,6 +65,10 @@ class PropertyDropdownField<T> extends StatelessWidget {
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: colorScheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.error, width: 1.5),
         ),
       ),
       items: items,
