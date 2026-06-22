@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
-import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/dashed_upload_zone.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/property_app_mockup.dart';
+import 'package:vivia_mobile/features/lessor/presentation/widgets/property_preview_card.dart';
 
 class PropertyPhotosPage extends StatefulWidget {
   const PropertyPhotosPage({super.key});
@@ -16,7 +16,6 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
   HomeNavItem _selectedNav = HomeNavItem.add;
   String? _selectedImagePath;
 
-  // TODO: reemplazar con imagen real seleccionada por el usuario
   final PropertyModel _previewProperty = PropertyModel(
     id: 'preview',
     title: 'Modernica Apartment',
@@ -26,20 +25,16 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
     area: 2000,
     bedrooms: 4,
     bathrooms: 1,
-    imageUrl: '',
+    imageUrl:
+    'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400',
   );
 
   void _onPickFromGallery() {
-    // TODO: implementar image_picker para galería
+    // TODO: image_picker — ImageSource.gallery
   }
 
   void _onTakePhoto() {
-    // TODO: implementar image_picker con cámara
-  }
-
-  void _onChangePhoto() {
-    // TODO: implementar cambio de imagen
-    _onPickFromGallery();
+    // TODO: image_picker — ImageSource.camera
   }
 
   void _onNext() {
@@ -52,6 +47,7 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
     final textTheme = Theme.of(context).textTheme;
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
+    final horizontalPadding = isLandscape ? 32.0 : 20.0;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -81,15 +77,14 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
-          isLandscape ? 32 : 20,
+          horizontalPadding,
           16,
-          isLandscape ? 32 : 20,
+          horizontalPadding,
           32,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Descripción ────────────────────────────────────
             Text(
               'Agrega la fotografía principal de tu propiedad, será la primera impresión que llamará a tus clientes.',
               style: textTheme.bodyMedium?.copyWith(
@@ -100,21 +95,22 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
             ),
             const SizedBox(height: 20),
 
-            // ── Zona de upload ──────────────────────────────────
             DashedUploadZone(
               imagePath: _selectedImagePath,
               onTap: _onPickFromGallery,
             ),
             const SizedBox(height: 14),
 
-            // ── Botón Tomar Foto ───────────────────────────────
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton.icon(
                 onPressed: _onTakePhoto,
-                icon: const Icon(Icons.camera_alt_outlined,
-                    color: Colors.white, size: 20),
+                icon: const Icon(
+                  Icons.camera_alt_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 label: Text(
                   'Tomar Foto',
                   style: textTheme.labelLarge?.copyWith(
@@ -134,12 +130,11 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
             ),
             const SizedBox(height: 10),
 
-            // ── Botón Cambiar ──────────────────────────────────
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: _onChangePhoto,
+                onPressed: _onPickFromGallery,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF04364A),
                   foregroundColor: Colors.white,
@@ -159,7 +154,6 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
             ),
             const SizedBox(height: 28),
 
-            // ── Vistas Previas ─────────────────────────────────
             Text(
               'Vistas Previas',
               style: textTheme.titleSmall?.copyWith(
@@ -169,29 +163,39 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
             ),
             const SizedBox(height: 14),
 
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Card del lessor (vista de lista)
-                Expanded(
-                  child: PropertyCard(property: _previewProperty),
-                ),
-                const SizedBox(width: 14),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final totalWidth = constraints.maxWidth;
+                const gap = 12.0;
+                const mockupWidth = 170.0;
+                final cardWidth = totalWidth - gap - mockupWidth;
 
-                // Mockup de cómo se ve en el detalle
-                PropertyAppMockup(
-                  imageUrl: _selectedImagePath,
-                  title: 'Modernica Apartment',
-                  category: 'Departamento',
-                  price: '\$4,000,000',
-                  description:
-                  'Sleek, modern 2-bedroom apartment with open living space, high-end finishes, and city views. Minutes from downtown, dining, and transit.',
-                ),
-              ],
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: cardWidth,
+                      height: 260,
+                      child: PropertyPreviewCard(property: _previewProperty),
+                    ),
+                    const SizedBox(width: gap),
+                    SizedBox(
+                      width: mockupWidth,
+                      child: PropertyAppMockup(
+                        imageUrl: _previewProperty.imageUrl,
+                        title: _previewProperty.title,
+                        category: _previewProperty.type,
+                        price: '\$4,000,000',
+                        description:
+                        'Sleek, modern 2-bedroom apartment with open living space, high-end finishes, and city views. Minutes from downtown, dining, and transit.',
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 28),
 
-            // ── Botón Fotografías De Los Espacios ─────────────
             SizedBox(
               width: double.infinity,
               height: 52,

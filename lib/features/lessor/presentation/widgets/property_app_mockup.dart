@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class PropertyAppMockup extends StatelessWidget {
-  final String? imageUrl;
+  final String imageUrl;
   final String title;
   final String category;
   final String price;
@@ -9,7 +9,7 @@ class PropertyAppMockup extends StatelessWidget {
 
   const PropertyAppMockup({
     super.key,
-    this.imageUrl,
+    required this.imageUrl,
     required this.title,
     required this.category,
     required this.price,
@@ -39,7 +39,6 @@ class PropertyAppMockup extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Mini status bar simulada
           Container(
             height: 22,
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -75,8 +74,6 @@ class PropertyAppMockup extends StatelessWidget {
               ],
             ),
           ),
-
-          // Mini AppBar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
@@ -99,19 +96,21 @@ class PropertyAppMockup extends StatelessWidget {
               ],
             ),
           ),
-
-          // Imagen
           ClipRRect(
             child: SizedBox(
               height: 90,
               width: double.infinity,
-              child: imageUrl != null
-                  ? Image.asset(imageUrl!, fit: BoxFit.cover)
+              child: imageUrl.isNotEmpty
+                  ? Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: colorScheme.surfaceContainerHigh,
+                ),
+              )
                   : Container(color: colorScheme.surfaceContainerHigh),
             ),
           ),
-
-          // Contenido
           Padding(
             padding: const EdgeInsets.all(8),
             child: Column(
@@ -129,8 +128,8 @@ class PropertyAppMockup extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 4, vertical: 1),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0095FF).withOpacity(0.12),
                     borderRadius: BorderRadius.circular(3),
@@ -157,11 +156,11 @@ class PropertyAppMockup extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    _MiniStat(label: '8 Beds', colorScheme: colorScheme),
+                    _MiniStat(label: '8 Beds'),
                     const SizedBox(width: 6),
-                    _MiniStat(label: '3 bath', colorScheme: colorScheme),
+                    _MiniStat(label: '3 bath'),
                     const SizedBox(width: 6),
-                    _MiniStat(label: '2000 sqft', colorScheme: colorScheme),
+                    _MiniStat(label: '2000 sqft'),
                   ],
                 ),
                 const SizedBox(height: 5),
@@ -195,17 +194,17 @@ class PropertyAppMockup extends StatelessWidget {
 
 class _MiniStat extends StatelessWidget {
   final String label;
-  final ColorScheme colorScheme;
 
-  const _MiniStat({required this.label, required this.colorScheme});
+  const _MiniStat({required this.label});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.square_foot,
-            size: 6, color: const Color(0xFF0095FF)),
+        Icon(Icons.square_foot, size: 6, color: const Color(0xFF0095FF)),
         const SizedBox(width: 2),
         Text(
           label,
