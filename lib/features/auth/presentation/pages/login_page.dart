@@ -11,10 +11,8 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthViewModel(),
-      child: _LoginView(role: role),
-    );
+    // Usa el ViewModel inyectado desde main.dart en lugar de crear uno nuevo
+    return _LoginView(role: role);
   }
 }
 
@@ -34,8 +32,10 @@ class _LoginView extends StatelessWidget {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: isLandscape
-          ? _LandscapeLayout(viewModel: viewModel, isLoading: isLoading)
-          : _PortraitLayout(viewModel: viewModel, isLoading: isLoading),
+          ? _LandscapeLayout(
+              viewModel: viewModel, isLoading: isLoading, role: role)
+          : _PortraitLayout(
+              viewModel: viewModel, isLoading: isLoading, role: role),
     );
   }
 }
@@ -44,8 +44,13 @@ class _LoginView extends StatelessWidget {
 class _PortraitLayout extends StatelessWidget {
   final AuthViewModel viewModel;
   final bool isLoading;
+  final UserRole role;
 
-  const _PortraitLayout({required this.viewModel, required this.isLoading});
+  const _PortraitLayout({
+    required this.viewModel,
+    required this.isLoading,
+    required this.role,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -98,8 +103,7 @@ class _PortraitLayout extends StatelessWidget {
                     prefixIcon: Icons.lock_outline,
                     isPassword: true,
                     passwordVisible: viewModel.loginPasswordVisible,
-                    onToggleVisibility:
-                    viewModel.toggleLoginPasswordVisibility,
+                    onToggleVisibility: viewModel.toggleLoginPasswordVisibility,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Ingresa tu contraseña';
@@ -118,9 +122,8 @@ class _PortraitLayout extends StatelessWidget {
                   const AuthDivider(),
                   const SizedBox(height: 16),
                   AuthGoogleButton(
-                    onPressed: isLoading
-                        ? null
-                        : () => viewModel.loginWithGoogle(),
+                    onPressed:
+                        isLoading ? null : () => viewModel.loginWithGoogle(role),
                   ),
                   const Spacer(),
                   Padding(
@@ -153,8 +156,13 @@ class _PortraitLayout extends StatelessWidget {
 class _LandscapeLayout extends StatelessWidget {
   final AuthViewModel viewModel;
   final bool isLoading;
+  final UserRole role;
 
-  const _LandscapeLayout({required this.viewModel, required this.isLoading});
+  const _LandscapeLayout({
+    required this.viewModel,
+    required this.isLoading,
+    required this.role,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +173,6 @@ class _LandscapeLayout extends StatelessWidget {
     return SafeArea(
       child: Row(
         children: [
-          // Logo + título
           SizedBox(
             width: screenWidth * 0.35,
             child: Center(
@@ -187,13 +194,9 @@ class _LandscapeLayout extends StatelessWidget {
             ),
           ),
           VerticalDivider(width: 1, color: colorScheme.outlineVariant),
-          // Formulario scrolleable
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: 20,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
               child: Form(
                 key: viewModel.loginFormKey,
                 child: Column(
@@ -224,7 +227,7 @@ class _LandscapeLayout extends StatelessWidget {
                       isPassword: true,
                       passwordVisible: viewModel.loginPasswordVisible,
                       onToggleVisibility:
-                      viewModel.toggleLoginPasswordVisibility,
+                          viewModel.toggleLoginPasswordVisibility,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Ingresa tu contraseña';
@@ -245,7 +248,7 @@ class _LandscapeLayout extends StatelessWidget {
                     AuthGoogleButton(
                       onPressed: isLoading
                           ? null
-                          : () => viewModel.loginWithGoogle(),
+                          : () => viewModel.loginWithGoogle(role),
                     ),
                     const SizedBox(height: 16),
                     GestureDetector(

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:vivia_mobile/features/auth/presentation/pages/location_permissions_page.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/role_selector_page.dart';
 
 class SplashPage extends StatefulWidget {
-  const SplashPage({super.key});
+  final bool isLoggedIn;
+
+  const SplashPage({super.key, this.isLoggedIn = false});
 
   @override
   State<SplashPage> createState() => _SplashPageState();
@@ -78,7 +79,10 @@ class _SplashPageState extends State<SplashPage>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (_, __, ___) => const RoleSelectorPage(),
+        pageBuilder: (_, __, ___) => widget.isLoggedIn
+            // TODO: Reemplazar con tu HomePage real post-login
+            ? const Scaffold(body: Center(child: Text('Home — sesión activa')))
+            : const RoleSelectorPage(),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);
         },

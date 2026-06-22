@@ -1,14 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
+import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/login_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/login_google_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/register_lessee_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/register_lessor_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/register_lessee_google_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/register_lessor_google_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/logout_usecase.dart';
 
 enum AuthStatus { idle, loading, success, error }
 
 class AuthViewModel extends ChangeNotifier {
+  // ── Use Cases inyectados ──────────────────────────────────────────────
+  final LoginUseCase _loginUseCase;
+  final LoginGoogleUseCase _loginGoogleUseCase;
+  final RegisterLesseeUseCase _registerLesseeUseCase;
+  final RegisterLessorUseCase _registerLessorUseCase;
+  final RegisterLesseeGoogleUseCase _registerLesseeGoogleUseCase;
+  final RegisterLessorGoogleUseCase _registerLessorGoogleUseCase;
+  final LogoutUseCase _logoutUseCase;
+
+  AuthViewModel({
+    required LoginUseCase loginUseCase,
+    required LoginGoogleUseCase loginGoogleUseCase,
+    required RegisterLesseeUseCase registerLesseeUseCase,
+    required RegisterLessorUseCase registerLessorUseCase,
+    required RegisterLesseeGoogleUseCase registerLesseeGoogleUseCase,
+    required RegisterLessorGoogleUseCase registerLessorGoogleUseCase,
+    required LogoutUseCase logoutUseCase,
+  })  : _loginUseCase = loginUseCase,
+        _loginGoogleUseCase = loginGoogleUseCase,
+        _registerLesseeUseCase = registerLesseeUseCase,
+        _registerLessorUseCase = registerLessorUseCase,
+        _registerLesseeGoogleUseCase = registerLesseeGoogleUseCase,
+        _registerLessorGoogleUseCase = registerLessorGoogleUseCase,
+        _logoutUseCase = logoutUseCase;
+
+  // ── Estado ────────────────────────────────────────────────────────────
   AuthStatus _status = AuthStatus.idle;
   String? _errorMessage;
 
   AuthStatus get status => _status;
   String? get errorMessage => _errorMessage;
 
+  void _setLoading() {
+    _status = AuthStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  // ── Controllers de Login ──────────────────────────────────────────────
   final TextEditingController loginEmailController = TextEditingController();
   final TextEditingController loginPasswordController = TextEditingController();
   final GlobalKey<FormState> loginFormKey = GlobalKey<FormState>();
@@ -21,10 +64,17 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Controllers de Registro ───────────────────────────────────────────
   final TextEditingController registerNameController = TextEditingController();
-  final TextEditingController registerLastNameController = TextEditingController();
-  final TextEditingController registerPasswordController = TextEditingController();
-  final TextEditingController registerConfirmPasswordController = TextEditingController();
+  final TextEditingController registerLastNameController =
+      TextEditingController();
+  final TextEditingController registerMaternalSurnameController =
+      TextEditingController();
+  final TextEditingController registerPhoneController = TextEditingController();
+  final TextEditingController registerPasswordController =
+      TextEditingController();
+  final TextEditingController registerConfirmPasswordController =
+      TextEditingController();
   final TextEditingController registerEmailController = TextEditingController();
   final GlobalKey<FormState> registerFormKey = GlobalKey<FormState>();
 
@@ -43,45 +93,106 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Login con contraseña ──────────────────────────────────────────────
   Future<void> login() async {
     if (!loginFormKey.currentState!.validate()) return;
-
-    _status = AuthStatus.loading;
-    _errorMessage = null;
-    notifyListeners();
-
-    // TODO: Conectar con el UseCase de login
-    await Future.delayed(const Duration(seconds: 2)); // simulación
-
-    _status = AuthStatus.success;
-    notifyListeners();
+    _setLoading();
+    try {
+      await _loginUseCase.execute(
+        loginEmailController.text.trim(),
+        loginPasswordController.text,
+      );
+      _status = AuthStatus.success;
+    } catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      notifyListeners();
+    }
   }
 
-  Future<void> register() async {
+  // ── Registro (recibe el rol) ──────────────────────────────────────────
+  Future<void> register(UserRole role) async {
     if (!registerFormKey.currentState!.validate()) return;
-
-    _status = AuthStatus.loading;
-    _errorMessage = null;
-    notifyListeners();
-
-    // TODO: Conectar con el UseCase de registro
-    await Future.delayed(const Duration(seconds: 2)); // simulación
-
-    _status = AuthStatus.success;
-    notifyListeners();
+    _setLoading();
+    try {
+      if (role == UserRole.lessee) {
+        await _registerLesseeUseCase.execute(
+          name: registerNameController.text.trim(),
+          paternalSurname: registerLastNameController.text.trim(),
+          maternalSurname: registerMaternalSurnameController.text.trim(),
+          email: registerEmailController.text.trim(),
+          password: registerPasswordController.text,
+        );
+      } else {
+        await _registerLessorUseCase.execute(
+          name: registerNameController.text.trim(),
+          paternalSurname: registerLastNameController.text.trim(),
+          maternalSurname: registerMaternalSurnameController.text.trim(),
+          email: registerEmailController.text.trim(),
+          phoneNumber: registerPhoneController.text.trim(),
+          password: registerPasswordController.text,
+        );
+      }
+      _status = AuthStatus.success;
+    } catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      notifyListeners();
+    }
   }
 
-  Future<void> loginWithGoogle() async {
-    _status = AuthStatus.loading;
-    notifyListeners();
+  // ── Login / Registro con Google ───────────────────────────────────────
+  Future<void> loginWithGoogle(UserRole role) async {
+    _setLoading();
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        // El usuario canceló el flujo
+        _status = AuthStatus.idle;
+        notifyListeners();
+        return;
+      }
 
-    // TODO: Conectar con Google Sign-In
-    await Future.delayed(const Duration(seconds: 1));
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken ?? '';
 
-    _status = AuthStatus.idle;
-    notifyListeners();
+      try {
+        // Intentar login primero (usuario ya registrado)
+        await _loginGoogleUseCase.execute(idToken, role);
+      } catch (_) {
+        // Si falla (usuario no registrado), intentar registro
+        if (role == UserRole.lessee) {
+          await _registerLesseeGoogleUseCase.execute(idToken);
+        } else {
+          await _registerLessorGoogleUseCase.execute(idToken);
+        }
+      }
+      _status = AuthStatus.success;
+    } catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      notifyListeners();
+    }
   }
 
+  // ── Logout ────────────────────────────────────────────────────────────
+  Future<void> logout() async {
+    _setLoading();
+    try {
+      await _logoutUseCase.execute();
+      _status = AuthStatus.idle;
+    } catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  // ── Resetear estado ───────────────────────────────────────────────────
   void resetStatus() {
     _status = AuthStatus.idle;
     _errorMessage = null;
@@ -94,6 +205,8 @@ class AuthViewModel extends ChangeNotifier {
     loginPasswordController.dispose();
     registerNameController.dispose();
     registerLastNameController.dispose();
+    registerMaternalSurnameController.dispose();
+    registerPhoneController.dispose();
     registerPasswordController.dispose();
     registerConfirmPasswordController.dispose();
     registerEmailController.dispose();
