@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/home/domain/enums/property_category.dart';
-import 'package:vivia_mobile/features/home/presentation/widgets/bottom_nav_bar.dart';
-import 'package:vivia_mobile/features/home/presentation/widgets/category_chip_list.dart';
-import 'package:vivia_mobile/features/home/presentation/widgets/empty_properties_state.dart';
-import 'package:vivia_mobile/features/home/presentation/widgets/home_header.dart';
-import 'package:vivia_mobile/features/home/presentation/widgets/home_search_bar.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/shared/category_chip_list.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/shared/empty_properties_state.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_header.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_search_bar.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
