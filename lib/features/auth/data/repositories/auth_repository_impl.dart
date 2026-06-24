@@ -18,16 +18,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   // ── Helpers ───────────────────────────────────────────────────────────
 
-  Future<void> _saveFromResponse(AuthResponseModel model, UserRole role) async {
-    final roleStr = role == UserRole.lessee ? 'ROLE_LESSEE' : 'ROLE_LESSOR';
-    await _local.saveSession(
-      accessToken: model.accessToken,
-      refreshToken: model.refreshToken,
-      role: roleStr,
-    );
-  }
-
-  /// Decodifica el payload del JWT (sin validar firma) para leer el claim "role".
   String _extractRoleFromJwt(String token) {
     try {
       final parts = token.split('.');
@@ -41,16 +31,33 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  String _extractNameFromJwt(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return '';
+      final payload =
+          utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+      final json = jsonDecode(payload) as Map<String, dynamic>;
+      return json['name'] as String? ??
+          json['sub'] as String? ??
+          '';
+    } catch (_) {
+      return '';
+    }
+  }
+
   // ── Password ──────────────────────────────────────────────────────────
 
   @override
   Future<void> login(String identifier, String password) async {
     final result = await _remote.login(identifier, password);
     final role = _extractRoleFromJwt(result.accessToken);
+    final name = _extractNameFromJwt(result.accessToken);
     await _local.saveSession(
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       role: role,
+      userName: name.isNotEmpty ? name : identifier.split('@').first,
     );
   }
 
@@ -73,6 +80,7 @@ class AuthRepositoryImpl implements AuthRepository {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       role: 'ROLE_LESSEE',
+      userName: '$name $paternalSurname',
     );
   }
 
@@ -97,24 +105,37 @@ class AuthRepositoryImpl implements AuthRepository {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       role: 'ROLE_LESSOR',
+      userName: '$name $paternalSurname',
     );
   }
 
   // ── Google ────────────────────────────────────────────────────────────
 
   @override
-  Future<void> loginWithGoogle(String idToken, UserRole role) async {
+  Future<void> loginWithGoogle({
+    required String idToken,
+    required UserRole role,
+    required String displayName,
+    String? avatarUrl,
+  }) async {
     final roleStr = role == UserRole.lessee ? 'ROLE_LESSEE' : 'ROLE_LESSOR';
     final result = await _remote.loginWithGoogle(idToken, roleStr);
     await _local.saveSession(
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       role: roleStr,
+      userName: displayName,
+      avatarUrl: avatarUrl,
     );
   }
 
   @override
-  Future<void> registerWithGoogle(String idToken, UserRole role) async {
+  Future<void> registerWithGoogle({
+    required String idToken,
+    required UserRole role,
+    required String displayName,
+    String? avatarUrl,
+  }) async {
     final result = role == UserRole.lessee
         ? await _remote.registerLesseeWithGoogle(idToken)
         : await _remote.registerLessorWithGoogle(idToken);
@@ -122,63 +143,8 @@ class AuthRepositoryImpl implements AuthRepository {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       role: role == UserRole.lessee ? 'ROLE_LESSEE' : 'ROLE_LESSOR',
-    );
-  }
-
-  // ── Biométrico ────────────────────────────────────────────────────────
-
-  @override
-  Future<String> requestLoginChallenge(String email) =>
-      _remote.requestLoginChallenge(email);
-
-  @override
-  Future<void> verifyLoginChallenge(String credentialResponseJson) async {
-    final result = await _remote.verifyLoginChallenge(credentialResponseJson);
-    final role = _extractRoleFromJwt(result.accessToken);
-    await _local.saveSession(
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      role: role,
-    );
-  }
-
-  @override
-  Future<String> requestRegisterChallenge({
-    required UserRole role,
-    required String email,
-    required String name,
-    required String paternalSurname,
-    required String maternalSurname,
-    String? phoneNumber,
-  }) {
-    if (role == UserRole.lessee) {
-      return _remote.requestLesseeBiometricChallenge(
-        email: email,
-        name: name,
-        paternalSurname: paternalSurname,
-        maternalSurname: maternalSurname,
-      );
-    } else {
-      return _remote.requestLessorBiometricChallenge(
-        email: email,
-        name: name,
-        paternalSurname: paternalSurname,
-        maternalSurname: maternalSurname,
-        phoneNumber: phoneNumber ?? '',
-      );
-    }
-  }
-
-  @override
-  Future<void> verifyRegisterChallenge(
-      String credentialResponseJson, UserRole role) async {
-    final result = role == UserRole.lessee
-        ? await _remote.verifyLesseeBiometricChallenge(credentialResponseJson)
-        : await _remote.verifyLessorBiometricChallenge(credentialResponseJson);
-    await _local.saveSession(
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      role: role == UserRole.lessee ? 'ROLE_LESSEE' : 'ROLE_LESSOR',
+      userName: displayName,
+      avatarUrl: avatarUrl,
     );
   }
 
@@ -190,9 +156,7 @@ class AuthRepositoryImpl implements AuthRepository {
     if (token != null) {
       try {
         await _remote.logout(token);
-      } catch (_) {
-        // Silenciar error de red en logout; la sesión local se limpia igual
-      }
+      } catch (_) {}
     }
     await _local.clearSession();
   }
@@ -202,4 +166,10 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   String? get savedRole => _local.getRole();
+
+  @override
+  String? get savedUserName => _local.getUserName();
+
+  @override
+  String? get savedAvatarUrl => _local.getAvatarUrl();
 }

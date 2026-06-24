@@ -20,25 +20,23 @@ abstract class AuthRepository {
   });
 
   // Google
-  Future<void> loginWithGoogle(String idToken, UserRole role);
-  Future<void> registerWithGoogle(String idToken, UserRole role);
-
-  // Biométrico
-  Future<String> requestLoginChallenge(String email);
-  Future<void> verifyLoginChallenge(String credentialResponseJson);
-  Future<String> requestRegisterChallenge({
+  Future<void> loginWithGoogle({
+    required String idToken,
     required UserRole role,
-    required String email,
-    required String name,
-    required String paternalSurname,
-    required String maternalSurname,
-    String? phoneNumber,
+    required String displayName,
+    String? avatarUrl,
   });
-  Future<void> verifyRegisterChallenge(
-      String credentialResponseJson, UserRole role);
+  Future<void> registerWithGoogle({
+    required String idToken,
+    required UserRole role,
+    required String displayName,
+    String? avatarUrl,
+  });
 
   // Sesión
   Future<void> logout();
   bool get isLoggedIn;
   String? get savedRole;
+  String? get savedUserName;
+  String? get savedAvatarUrl;
 }

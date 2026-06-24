@@ -42,8 +42,16 @@ class AuthViewModel extends ChangeNotifier {
   AuthStatus _status = AuthStatus.idle;
   String? _errorMessage;
 
+  // Datos del usuario post-login (para navegar a HomePage)
+  String _userName = '';
+  String? _avatarUrl;
+  UserRole _lastRole = UserRole.lessee;
+
   AuthStatus get status => _status;
   String? get errorMessage => _errorMessage;
+  String get userName => _userName;
+  String? get avatarUrl => _avatarUrl;
+  UserRole get lastRole => _lastRole;
 
   void _setLoading() {
     _status = AuthStatus.loading;
@@ -94,7 +102,7 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   // ── Login con contraseña ──────────────────────────────────────────────
-  Future<void> login() async {
+  Future<void> login(UserRole role) async {
     if (!loginFormKey.currentState!.validate()) return;
     _setLoading();
     try {
@@ -102,6 +110,9 @@ class AuthViewModel extends ChangeNotifier {
         loginEmailController.text.trim(),
         loginPasswordController.text,
       );
+      _userName = loginEmailController.text.split('@').first;
+      _lastRole = role;
+      _avatarUrl = null;
       _status = AuthStatus.success;
     } catch (e) {
       _status = AuthStatus.error;
@@ -116,24 +127,30 @@ class AuthViewModel extends ChangeNotifier {
     if (!registerFormKey.currentState!.validate()) return;
     _setLoading();
     try {
+      final name = registerNameController.text.trim();
+      final paternalSurname = registerLastNameController.text.trim();
+
       if (role == UserRole.lessee) {
         await _registerLesseeUseCase.execute(
-          name: registerNameController.text.trim(),
-          paternalSurname: registerLastNameController.text.trim(),
+          name: name,
+          paternalSurname: paternalSurname,
           maternalSurname: registerMaternalSurnameController.text.trim(),
           email: registerEmailController.text.trim(),
           password: registerPasswordController.text,
         );
       } else {
         await _registerLessorUseCase.execute(
-          name: registerNameController.text.trim(),
-          paternalSurname: registerLastNameController.text.trim(),
+          name: name,
+          paternalSurname: paternalSurname,
           maternalSurname: registerMaternalSurnameController.text.trim(),
           email: registerEmailController.text.trim(),
           phoneNumber: registerPhoneController.text.trim(),
           password: registerPasswordController.text,
         );
       }
+      _userName = '$name $paternalSurname';
+      _lastRole = role;
+      _avatarUrl = null;
       _status = AuthStatus.success;
     } catch (e) {
       _status = AuthStatus.error;
@@ -161,16 +178,34 @@ class AuthViewModel extends ChangeNotifier {
 
       final googleAuth = await googleUser.authentication;
       final idToken = googleAuth.idToken ?? '';
+      final displayName = googleUser.displayName ?? googleUser.email.split('@').first;
+      final photoUrl = googleUser.photoUrl;
 
       try {
-        await _loginGoogleUseCase.execute(idToken, role);
+        await _loginGoogleUseCase.execute(
+          idToken: idToken,
+          role: role,
+          displayName: displayName,
+          avatarUrl: photoUrl,
+        );
       } catch (_) {
         if (role == UserRole.lessee) {
-          await _registerLesseeGoogleUseCase.execute(idToken);
+          await _registerLesseeGoogleUseCase.execute(
+            idToken: idToken,
+            displayName: displayName,
+            avatarUrl: photoUrl,
+          );
         } else {
-          await _registerLessorGoogleUseCase.execute(idToken);
+          await _registerLessorGoogleUseCase.execute(
+            idToken: idToken,
+            displayName: displayName,
+            avatarUrl: photoUrl,
+          );
         }
       }
+      _userName = displayName;
+      _lastRole = role;
+      _avatarUrl = photoUrl;
       _status = AuthStatus.success;
     } catch (e) {
       _status = AuthStatus.error;
@@ -185,6 +220,8 @@ class AuthViewModel extends ChangeNotifier {
     _setLoading();
     try {
       await _logoutUseCase.execute();
+      _userName = '';
+      _avatarUrl = null;
       _status = AuthStatus.idle;
     } catch (e) {
       _status = AuthStatus.error;
@@ -194,7 +231,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // ── Resetear estado ───────────────────────────────────────────────────
   void resetStatus() {
     _status = AuthStatus.idle;
     _errorMessage = null;

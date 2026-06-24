@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/widgets.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/home_page.dart';
 
 class LoginPage extends StatelessWidget {
   final UserRole role;
@@ -33,10 +34,16 @@ class _LoginViewState extends State<_LoginView> {
   void _onAuthChanged() {
     final vm = context.read<AuthViewModel>();
     if (vm.status == AuthStatus.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login exitoso')),
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => HomePage(
+            userName: vm.userName,
+            role: vm.lastRole,
+            avatarUrl: vm.avatarUrl,
+          ),
+        ),
+        (_) => false,
       );
-      vm.resetStatus();
     } else if (vm.status == AuthStatus.error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(vm.errorMessage ?? 'Error desconocido')),
@@ -141,7 +148,7 @@ class _PortraitLayout extends StatelessWidget {
                   AuthPrimaryButton(
                     label: 'Iniciar Sesión',
                     isLoading: isLoading,
-                    onPressed: () => viewModel.login(),
+                    onPressed: () => viewModel.login(role),
                   ),
                   const SizedBox(height: 16),
                   const AuthDivider(),
@@ -258,7 +265,7 @@ class _LandscapeLayout extends StatelessWidget {
                     AuthPrimaryButton(
                       label: 'Iniciar Sesión',
                       isLoading: isLoading,
-                      onPressed: () => viewModel.login(),
+                      onPressed: () => viewModel.login(role),
                     ),
                     const SizedBox(height: 14),
                     const AuthDivider(),

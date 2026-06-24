@@ -5,12 +5,16 @@ abstract class AuthLocalDatasource {
   Future<void> saveSession({
     required String accessToken,
     required String refreshToken,
-    required String role, // "ROLE_LESSEE" o "ROLE_LESSOR"
+    required String role,
+    required String userName,
+    String? avatarUrl,
   });
 
   String? getAccessToken();
   String? getRefreshToken();
   String? getRole();
+  String? getUserName();
+  String? getAvatarUrl();
   bool get isLoggedIn;
   Future<void> clearSession();
 }
@@ -22,6 +26,8 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
   static const _accessKey = 'access_token';
   static const _refreshKey = 'refresh_token';
   static const _roleKey = 'user_role';
+  static const _userNameKey = 'user_name';
+  static const _avatarKey = 'user_avatar_url';
 
   AuthLocalDatasourceImpl(this._prefs);
 
@@ -30,10 +36,18 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
     required String accessToken,
     required String refreshToken,
     required String role,
+    required String userName,
+    String? avatarUrl,
   }) async {
     await _prefs.setString(_accessKey, accessToken);
     await _prefs.setString(_refreshKey, refreshToken);
     await _prefs.setString(_roleKey, role);
+    await _prefs.setString(_userNameKey, userName);
+    if (avatarUrl != null) {
+      await _prefs.setString(_avatarKey, avatarUrl);
+    } else {
+      await _prefs.remove(_avatarKey);
+    }
   }
 
   @override
@@ -46,6 +60,12 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
   String? getRole() => _prefs.getString(_roleKey);
 
   @override
+  String? getUserName() => _prefs.getString(_userNameKey);
+
+  @override
+  String? getAvatarUrl() => _prefs.getString(_avatarKey);
+
+  @override
   bool get isLoggedIn => getAccessToken() != null;
 
   @override
@@ -53,5 +73,7 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
     await _prefs.remove(_accessKey);
     await _prefs.remove(_refreshKey);
     await _prefs.remove(_roleKey);
+    await _prefs.remove(_userNameKey);
+    await _prefs.remove(_avatarKey);
   }
 }

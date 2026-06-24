@@ -45,7 +45,11 @@ void main() async {
       RegisterLessorGoogleUseCase(authRepository);
   final logoutUseCase = LogoutUseCase(authRepository);
 
+  // Datos de sesión guardados
   final isLoggedIn = authRepository.isLoggedIn;
+  final savedUserName = authRepository.savedUserName;
+  final savedRole = authRepository.savedRole;
+  final savedAvatarUrl = authRepository.savedAvatarUrl;
 
   runApp(
     ChangeNotifierProvider(
@@ -60,7 +64,12 @@ void main() async {
       ),
       child: DevicePreview(
         enabled: kIsWeb,
-        builder: (context) => MyApp(isLoggedIn: isLoggedIn),
+        builder: (context) => MyApp(
+          isLoggedIn: isLoggedIn,
+          savedUserName: savedUserName,
+          savedRole: savedRole,
+          savedAvatarUrl: savedAvatarUrl,
+        ),
       ),
     ),
   );

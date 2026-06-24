@@ -10,8 +10,17 @@ import 'package:vivia_mobile/shared/theme/util.dart';
 
 class MyApp extends StatelessWidget {
   final bool isLoggedIn;
+  final String? savedUserName;
+  final String? savedRole;
+  final String? savedAvatarUrl;
 
-  const MyApp({super.key, required this.isLoggedIn});
+  const MyApp({
+    super.key,
+    required this.isLoggedIn,
+    this.savedUserName,
+    this.savedRole,
+    this.savedAvatarUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +34,12 @@ class MyApp extends StatelessWidget {
       theme: materialTheme.light(),
       darkTheme: materialTheme.dark(),
       themeMode: ThemeMode.light,
-      home: SplashPage(isLoggedIn: isLoggedIn),
+      home: SplashPage(
+        isLoggedIn: isLoggedIn,
+        savedUserName: savedUserName,
+        savedRole: savedRole,
+        savedAvatarUrl: savedAvatarUrl,
+      ),
     );
   }
 }

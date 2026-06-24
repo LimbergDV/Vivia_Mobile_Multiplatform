@@ -6,6 +6,15 @@ class RegisterLesseeGoogleUseCase {
 
   RegisterLesseeGoogleUseCase(this._repository);
 
-  Future<void> execute(String idToken) =>
-      _repository.registerWithGoogle(idToken, UserRole.lessee);
+  Future<void> execute({
+    required String idToken,
+    required String displayName,
+    String? avatarUrl,
+  }) =>
+      _repository.registerWithGoogle(
+        idToken: idToken,
+        role: UserRole.lessee,
+        displayName: displayName,
+        avatarUrl: avatarUrl,
+      );
 }

@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/role_selector_page.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/home_page.dart';
 
 class SplashPage extends StatefulWidget {
   final bool isLoggedIn;
+  final String? savedUserName;
+  final String? savedRole;
+  final String? savedAvatarUrl;
 
-  const SplashPage({super.key, this.isLoggedIn = false});
+
+  const SplashPage({
+    super.key,
+    this.isLoggedIn = false,
+    this.savedUserName,
+    this.savedRole,
+    this.savedAvatarUrl,
+  });
 
   @override
   State<SplashPage> createState() => _SplashPageState();
@@ -76,12 +88,25 @@ class _SplashPageState extends State<SplashPage>
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
 
+    final Widget destination;
+
+    if (widget.isLoggedIn) {
+      final role = widget.savedRole == 'ROLE_LESSOR'
+          ? UserRole.lessor
+          : UserRole.lessee;
+      destination = HomePage(
+        userName: widget.savedUserName ?? 'Usuario',
+        role: role,
+        avatarUrl: widget.savedAvatarUrl,
+      );
+    } else {
+      destination = const RoleSelectorPage();
+    }
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (_, __, ___) => widget.isLoggedIn
-            ? const RoleSelectorPage()
-            : const RoleSelectorPage(),
+        pageBuilder: (_, __, ___) => destination,
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);
         },
