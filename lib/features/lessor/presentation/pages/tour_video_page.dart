@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
+import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/dashed_upload_zone.dart';
 
 class TourVideoPage extends StatefulWidget {
-  const TourVideoPage({super.key});
+  final NewPropertyForm form;
+
+  const TourVideoPage({super.key, required this.form});
 
   @override
   State<TourVideoPage> createState() => _TourVideoPageState();
@@ -22,7 +25,12 @@ class _TourVideoPageState extends State<TourVideoPage> {
   }
 
   void _onReview() {
-    // TODO: navegar a revisar publicación
+    final finalForm = widget.form.copyWith(
+      videoPath: _selectedVideoPath,
+    );
+
+    // TODO: Navigator.push a ReviewPropertyPage(form: finalForm)
+    // o llamar al ViewModel: viewModel.submitProperty(finalForm)
   }
 
   @override
@@ -39,11 +47,8 @@ class _TourVideoPageState extends State<TourVideoPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: colorScheme.onSurface,
-            size: 20,
-          ),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -88,11 +93,8 @@ class _TourVideoPageState extends State<TourVideoPage> {
               height: 52,
               child: ElevatedButton.icon(
                 onPressed: _onRecordVideo,
-                icon: const Icon(
-                  Icons.camera_alt_outlined,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                icon: const Icon(Icons.camera_alt_outlined,
+                    color: Colors.white, size: 20),
                 label: Text(
                   'Grabar Video',
                   style: textTheme.labelLarge?.copyWith(

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
+import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/tour_video_page.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/space_category_section.dart';
 
 class SpacePhotosPage extends StatefulWidget {
-  const SpacePhotosPage({super.key});
+  final NewPropertyForm form;
+
+  const SpacePhotosPage({super.key, required this.form});
 
   @override
   State<SpacePhotosPage> createState() => _SpacePhotosPageState();
@@ -39,6 +42,22 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
     // TODO: image_picker — ImageSource.camera
   }
 
+  void _onNext() {
+    final spacePhotos = <String, List<String>>{};
+    for (final cat in _categories) {
+      spacePhotos[cat.label] = cat.imagePaths;
+    }
+
+    final updatedForm = widget.form.copyWith(spacePhotos: spacePhotos);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TourVideoPage(form: updatedForm),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -53,11 +72,8 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: colorScheme.onSurface,
-            size: 20,
-          ),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -113,12 +129,7 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const TourVideoPage(),
-                  ),
-                ),
+                onPressed: _onNext,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0095FF),
                   foregroundColor: Colors.white,

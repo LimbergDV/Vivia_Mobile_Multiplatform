@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
+import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
+import 'package:vivia_mobile/features/lessor/presentation/pages/space_photos_page.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/dashed_upload_zone.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/property_app_mockup.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/property_preview_card.dart';
 
 class PropertyPhotosPage extends StatefulWidget {
-  const PropertyPhotosPage({super.key});
+  final NewPropertyForm form;
+
+  const PropertyPhotosPage({super.key, required this.form});
 
   @override
   State<PropertyPhotosPage> createState() => _PropertyPhotosPageState();
@@ -25,8 +29,7 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
     area: 2000,
     bedrooms: 4,
     bathrooms: 1,
-    imageUrl:
-    'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400',
   );
 
   void _onPickFromGallery() {
@@ -38,7 +41,16 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
   }
 
   void _onNext() {
-    // TODO: navegar a fotografías de espacios
+    final updatedForm = widget.form.copyWith(
+      mainPhotoPath: _selectedImagePath,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SpacePhotosPage(form: updatedForm),
+      ),
+    );
   }
 
   @override
@@ -56,11 +68,8 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: colorScheme.onSurface,
-            size: 20,
-          ),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -76,12 +85,7 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
         onItemSelected: (item) => setState(() => _selectedNav = item),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          horizontalPadding,
-          16,
-          horizontalPadding,
-          32,
-        ),
+        padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -95,10 +99,7 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
             ),
             const SizedBox(height: 20),
 
-            DashedUploadZone(
-              imagePath: _selectedImagePath,
-              onTap: _onPickFromGallery,
-            ),
+            DashedUploadZone(imagePath: _selectedImagePath, onTap: _onPickFromGallery),
             const SizedBox(height: 14),
 
             SizedBox(
@@ -106,11 +107,7 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
               height: 52,
               child: ElevatedButton.icon(
                 onPressed: _onTakePhoto,
-                icon: const Icon(
-                  Icons.camera_alt_outlined,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                icon: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 20),
                 label: Text(
                   'Tomar Foto',
                   style: textTheme.labelLarge?.copyWith(
@@ -122,9 +119,7 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
                   backgroundColor: const Color(0xFF04364A),
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
               ),
             ),
@@ -139,9 +134,7 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
                   backgroundColor: const Color(0xFF04364A),
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 child: Text(
                   'Cambiar',
@@ -165,10 +158,9 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
 
             LayoutBuilder(
               builder: (context, constraints) {
-                final totalWidth = constraints.maxWidth;
                 const gap = 12.0;
                 const mockupWidth = 170.0;
-                final cardWidth = totalWidth - gap - mockupWidth;
+                final cardWidth = constraints.maxWidth - gap - mockupWidth;
 
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,9 +197,7 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
                   backgroundColor: const Color(0xFF0095FF),
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 child: Text(
                   'Fotografías De Los Espacios',

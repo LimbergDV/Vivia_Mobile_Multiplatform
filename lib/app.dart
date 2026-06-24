@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
       theme: materialTheme.light(),
       darkTheme: materialTheme.dark(),
       themeMode: ThemeMode.light,
-      home: PropertyPhotosPage(),
+      home: AddPropertyPage(),
     );
   }
 }

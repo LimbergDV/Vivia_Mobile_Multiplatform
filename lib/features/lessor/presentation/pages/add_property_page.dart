@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
+import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
+import 'package:vivia_mobile/features/lessor/presentation/pages/property_details_page.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/form_section_header.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/property_dropdown_field.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/property_text_field.dart';
@@ -67,7 +69,23 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
   void _onNext() {
     if (_formKey.currentState!.validate()) {
-      // TODO: navegar a detalles de la propiedad
+      final form = NewPropertyForm(
+        listingType: _listingType.name,
+        postalCode: _postalCodeController.text,
+        city: _selectedCity,
+        state: _selectedState,
+        colonia: _selectedColonia,
+        propertyType: _selectedPropertyType,
+        price: _priceController.text,
+        area: _areaController.text,
+      );
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PropertyDetailsPage(form: form),
+        ),
+      );
     }
   }
 
