@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:device_preview/device_preview.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,20 +23,18 @@ import 'app.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ── SharedPreferences ─────────────────────────────────────────────────
+  await dotenv.load(fileName: '.env');
+
   final prefs = await SharedPreferences.getInstance();
 
-  // ── Datasources ───────────────────────────────────────────────────────
   final localDatasource = AuthLocalDatasourceImpl(prefs);
   final remoteDatasource = AuthRemoteDatasourceImpl(http.Client());
 
-  // ── Repository ────────────────────────────────────────────────────────
   final authRepository = AuthRepositoryImpl(
     remote: remoteDatasource,
     local: localDatasource,
   );
 
-  // ── Use Cases ─────────────────────────────────────────────────────────
   final loginUseCase = LoginUseCase(authRepository);
   final loginGoogleUseCase = LoginGoogleUseCase(authRepository);
   final registerLesseeUseCase = RegisterLesseeUseCase(authRepository);
@@ -46,10 +45,8 @@ void main() async {
       RegisterLessorGoogleUseCase(authRepository);
   final logoutUseCase = LogoutUseCase(authRepository);
 
-  // ── Verificar sesión existente ────────────────────────────────────────
   final isLoggedIn = authRepository.isLoggedIn;
 
-  // ── Run ───────────────────────────────────────────────────────────────
   runApp(
     ChangeNotifierProvider(
       create: (_) => AuthViewModel(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
@@ -13,7 +14,6 @@ import 'package:vivia_mobile/features/auth/domain/usecases/logout_usecase.dart';
 enum AuthStatus { idle, loading, success, error }
 
 class AuthViewModel extends ChangeNotifier {
-  // ── Use Cases inyectados ──────────────────────────────────────────────
   final LoginUseCase _loginUseCase;
   final LoginGoogleUseCase _loginGoogleUseCase;
   final RegisterLesseeUseCase _registerLesseeUseCase;
@@ -111,7 +111,7 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // ── Registro (recibe el rol) ──────────────────────────────────────────
+  // ── Registro ──────────────────────────────────────────────────────────
   Future<void> register(UserRole role) async {
     if (!registerFormKey.currentState!.validate()) return;
     _setLoading();
@@ -147,9 +147,13 @@ class AuthViewModel extends ChangeNotifier {
   Future<void> loginWithGoogle(UserRole role) async {
     _setLoading();
     try {
-      final googleUser = await GoogleSignIn().signIn();
+      final googleSignIn = GoogleSignIn(
+        serverClientId: dotenv.env['GOOGLE_WEB_CLIENT_ID'] ?? '',
+      );
+      await googleSignIn.signOut();
+      final googleUser = await googleSignIn.signIn();
+
       if (googleUser == null) {
-        // El usuario canceló el flujo
         _status = AuthStatus.idle;
         notifyListeners();
         return;
@@ -159,10 +163,8 @@ class AuthViewModel extends ChangeNotifier {
       final idToken = googleAuth.idToken ?? '';
 
       try {
-        // Intentar login primero (usuario ya registrado)
         await _loginGoogleUseCase.execute(idToken, role);
       } catch (_) {
-        // Si falla (usuario no registrado), intentar registro
         if (role == UserRole.lessee) {
           await _registerLesseeGoogleUseCase.execute(idToken);
         } else {

@@ -1,32 +1,32 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class AuthApiConstants {
   AuthApiConstants._();
 
-  // ── Base ──────────────────────────────────────────────────────────────
-  // TODO: Reemplazar con la URL real de tu servidor AWS
-  static const String baseUrl = 'https://TU_URL_AWS.com';
+  static String get baseUrl => dotenv.env['API_BASE_URL'] ?? '';
 
   // ── Auth ──────────────────────────────────────────────────────────────
-  static const String login = '$baseUrl/auth/login';
-  static const String loginGoogle = '$baseUrl/auth/login/google';
-  static const String loginChallenge = '$baseUrl/auth/login/challenge';
-  static const String loginVerify = '$baseUrl/auth/login/verify';
-  static const String refresh = '$baseUrl/auth/refresh';
-  static const String logout = '$baseUrl/auth/logout';
+  static String get login => '$baseUrl/auth/login';
+  static String get loginGoogle => '$baseUrl/auth/login/google';
+  static String get loginChallenge => '$baseUrl/auth/login/challenge';
+  static String get loginVerify => '$baseUrl/auth/login/verify';
+  static String get refresh => '$baseUrl/auth/refresh';
+  static String get logout => '$baseUrl/auth/logout';
 
   // ── Lessee ────────────────────────────────────────────────────────────
-  static const String registerLessee = '$baseUrl/lessees/password';
-  static const String registerLesseeGoogle = '$baseUrl/lessees/google';
-  static const String lesseeBiometricChallenge =
+  static String get registerLessee => '$baseUrl/lessees/password';
+  static String get registerLesseeGoogle => '$baseUrl/lessees/google';
+  static String get lesseeBiometricChallenge =>
       '$baseUrl/lessees/biometric/challenge';
-  static const String lesseeBiometricVerify =
+  static String get lesseeBiometricVerify =>
       '$baseUrl/lessees/biometric/verify';
 
   // ── Lessor ────────────────────────────────────────────────────────────
-  static const String registerLessor = '$baseUrl/lessors/password';
-  static const String registerLessorGoogle = '$baseUrl/lessors/google';
-  static const String lessorBiometricChallenge =
+  static String get registerLessor => '$baseUrl/lessors/password';
+  static String get registerLessorGoogle => '$baseUrl/lessors/google';
+  static String get lessorBiometricChallenge =>
       '$baseUrl/lessors/biometric/challenge';
-  static const String lessorBiometricVerify =
+  static String get lessorBiometricVerify =>
       '$baseUrl/lessors/biometric/verify';
 
   // ── Headers ───────────────────────────────────────────────────────────

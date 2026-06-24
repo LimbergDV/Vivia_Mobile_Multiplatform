@@ -80,8 +80,7 @@ class _SplashPageState extends State<SplashPage>
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
         pageBuilder: (_, __, ___) => widget.isLoggedIn
-            // TODO: Reemplazar con tu HomePage real post-login
-            ? const Scaffold(body: Center(child: Text('Home — sesión activa')))
+            ? const RoleSelectorPage()
             : const RoleSelectorPage(),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);

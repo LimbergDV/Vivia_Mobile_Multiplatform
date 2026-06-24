@@ -40,6 +40,9 @@ dependencies:
   provider: ^6.1.5+1
   lottie: ^3.3.3
   google_sign_in: ^6.2.1
+  shared_preferences: ^2.3.4
+  http: ^1.2.2
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -75,6 +78,7 @@ flutter:
     - assets/images/properties/house_7.webp
     - assets/images/properties/house_8.webp
     - assets/images/properties/house_9.webp
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:
