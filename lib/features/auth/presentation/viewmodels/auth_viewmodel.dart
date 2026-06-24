@@ -106,11 +106,27 @@ class AuthViewModel extends ChangeNotifier {
     if (!loginFormKey.currentState!.validate()) return;
     _setLoading();
     try {
-      await _loginUseCase.execute(
+      final result = await _loginUseCase.execute(
         loginEmailController.text.trim(),
         loginPasswordController.text,
       );
-      _userName = loginEmailController.text.split('@').first;
+
+      print('>>> LOGIN RESULT — name: ${result.name}, role: ${result.role}');
+
+      // Rol esperado según la pantalla que eligió el usuario
+      final expectedRole = role == UserRole.lessee ? 'ROLE_LESSEE' : 'ROLE_LESSOR';
+
+      // Bloqueo estricto: si el rol del JWT no coincide, no pasa
+      if (result.role != expectedRole) {
+        _status = AuthStatus.error;
+        _errorMessage = role == UserRole.lessee
+            ? 'Esta cuenta no es de arrendatario'
+            : 'Esta cuenta no es de arrendador';
+        notifyListeners();
+        return;
+      }
+
+      _userName = result.name;
       _lastRole = role;
       _avatarUrl = null;
       _status = AuthStatus.success;
@@ -148,7 +164,7 @@ class AuthViewModel extends ChangeNotifier {
           password: registerPasswordController.text,
         );
       }
-      _userName = '$name $paternalSurname';
+      _userName = name;
       _lastRole = role;
       _avatarUrl = null;
       _status = AuthStatus.success;
@@ -203,7 +219,7 @@ class AuthViewModel extends ChangeNotifier {
           );
         }
       }
-      _userName = displayName;
+      _userName = displayName.split(' ').first;
       _lastRole = role;
       _avatarUrl = photoUrl;
       _status = AuthStatus.success;

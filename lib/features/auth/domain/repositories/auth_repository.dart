@@ -1,8 +1,9 @@
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 
 abstract class AuthRepository {
-  // Password
-  Future<void> login(String identifier, String password);
+  /// Retorna ({name, role}) extraídos del JWT tras login exitoso.
+  Future<({String name, String role})> login(String identifier, String password);
+
   Future<void> registerLessee({
     required String name,
     required String paternalSurname,
@@ -19,7 +20,6 @@ abstract class AuthRepository {
     required String password,
   });
 
-  // Google
   Future<void> loginWithGoogle({
     required String idToken,
     required UserRole role,
@@ -33,7 +33,6 @@ abstract class AuthRepository {
     String? avatarUrl,
   });
 
-  // Sesión
   Future<void> logout();
   bool get isLoggedIn;
   String? get savedRole;

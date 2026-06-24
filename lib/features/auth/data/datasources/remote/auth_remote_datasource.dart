@@ -67,6 +67,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   /// Parsea respuestas exitosas 200/201 con `{ success: true, data: {...} }`.
   /// Para errores lanza [Exception] con el `message` del backend.
   AuthResponseModel _parseSuccess(http.Response response) {
+    print('>>> BACKEND RAW RESPONSE [${response.statusCode}]: ${response.body}');
     final json = jsonDecode(response.body) as Map<String, dynamic>;
     if ((response.statusCode == 200 || response.statusCode == 201) &&
         json['success'] == true) {

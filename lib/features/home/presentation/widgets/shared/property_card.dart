@@ -20,6 +20,7 @@ class PropertyCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(16),
@@ -34,80 +35,90 @@ class PropertyCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-              child: AspectRatio(
-                aspectRatio: 1.1,
-                child: Image.network(
-                  property.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: colorScheme.surfaceContainerHigh,
-                    child: Icon(
-                      Icons.home_outlined,
-                      size: 40,
-                      color: colorScheme.onSurfaceVariant.withOpacity(0.3),
+            Expanded(
+              flex: 3,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                child: SizedBox.expand(
+                  child: Image.network(
+                    property.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: colorScheme.surfaceContainerHigh,
+                      child: Icon(
+                        Icons.home_outlined,
+                        size: 40,
+                        color: colorScheme.onSurfaceVariant.withOpacity(0.3),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
 
-            Padding(
-                padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       property.type,
-                      style: textTheme.bodyLarge?.copyWith(
+                      style: textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: colorScheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
 
-                    Text(
-                      '\$${_formatPrice(property.price)}',
-                      style: textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF04364A),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '\$${_formatPrice(property.price)}',
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF04364A),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
 
-                    Row(
-                      children: [
-                        _PropertyStat(
-                          svgPath: 'assets/icons/area_icon.svg',
-                          label: '${property.area.toInt()}m²',
-                          textTheme: textTheme,
-                          colorScheme: colorScheme,
-                        ),
-                        const SizedBox(width: 8),
-                        _PropertyStat(
-                          svgPath: 'assets/icons/bath_icon.svg',
-                          label: '${property.bedrooms}',
-                          textTheme: textTheme,
-                          colorScheme: colorScheme,
-                        ),
-                        const SizedBox(width: 8),
-                        _PropertyStat(
-                          svgPath: 'assets/icons/bed_icon.svg',
-                          label: '${property.bathrooms}',
-                          textTheme: textTheme,
-                          colorScheme: colorScheme,
-                        ),
-                      ],
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        children: [
+                          _PropertyStat(
+                            svgPath: 'assets/icons/area_icon.svg',
+                            label: '${property.area.toInt()}m²',
+                            textTheme: textTheme,
+                            colorScheme: colorScheme,
+                          ),
+                          const SizedBox(width: 8),
+                          _PropertyStat(
+                            svgPath: 'assets/icons/bath_icon.svg',
+                            label: '${property.bedrooms}',
+                            textTheme: textTheme,
+                            colorScheme: colorScheme,
+                          ),
+                          const SizedBox(width: 8),
+                          _PropertyStat(
+                            svgPath: 'assets/icons/bed_icon.svg',
+                            label: '${property.bathrooms}',
+                            textTheme: textTheme,
+                            colorScheme: colorScheme,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
+              ),
             ),
           ],
         ),

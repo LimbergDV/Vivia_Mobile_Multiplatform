@@ -67,6 +67,7 @@ class _LoginViewState extends State<_LoginView> {
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: colorScheme.surface,
       body: isLandscape
           ? _LandscapeLayout(
@@ -96,8 +97,12 @@ class _PortraitLayout extends StatelessWidget {
 
     return Stack(
       children: [
+        // Blobs como fondo absoluto, no interceptan toques
+        const Positioned.fill(
+          child: IgnorePointer(child: AuthBackgroundBlobs()),
+        ),
         SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Form(
               key: viewModel.loginFormKey,
@@ -156,28 +161,25 @@ class _PortraitLayout extends StatelessWidget {
                   AuthGoogleButton(
                     onPressed: isLoading ? null : () => viewModel.loginWithGoogle(role),
                   ),
-                  const Spacer(),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Text(
-                        'Volver',
-                        style: textTheme.bodyMedium?.copyWith(
-                          decoration: TextDecoration.underline,
-                          decorationColor: colorScheme.onSurface,
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.w500,
-                        ),
+                  const SizedBox(height: 40),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Volver',
+                      style: textTheme.bodyMedium?.copyWith(
+                        decoration: TextDecoration.underline,
+                        decorationColor: colorScheme.onSurface,
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
         ),
-        const AuthBackgroundBlobs(),
       ],
     );
   }

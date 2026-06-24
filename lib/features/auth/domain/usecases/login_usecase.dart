@@ -5,6 +5,7 @@ class LoginUseCase {
 
   LoginUseCase(this._repository);
 
-  Future<void> execute(String identifier, String password) =>
+  Future<({String name, String role})> execute(
+          String identifier, String password) =>
       _repository.login(identifier, password);
 }

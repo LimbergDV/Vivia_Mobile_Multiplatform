@@ -259,7 +259,7 @@ class _PortraitScaffold extends StatelessWidget {
                   crossAxisCount: 2,
                   crossAxisSpacing: 14,
                   mainAxisSpacing: 14,
-                  childAspectRatio: 0.68,
+                  childAspectRatio: 0.62,
                 ),
                 delegate: SliverChildBuilderDelegate(
                       (context, index) => PropertyCard(
@@ -423,7 +423,7 @@ class _LandscapeScaffold extends StatelessWidget {
                         crossAxisCount: 2,
                         crossAxisSpacing: 14,
                         mainAxisSpacing: 14,
-                        childAspectRatio: 0.72,
+                        childAspectRatio: 0.62,
                       ),
                       delegate: SliverChildBuilderDelegate(
                             (context, index) => PropertyCard(

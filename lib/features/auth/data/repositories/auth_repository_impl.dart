@@ -18,47 +18,57 @@ class AuthRepositoryImpl implements AuthRepository {
 
   // ── Helpers ───────────────────────────────────────────────────────────
 
-  String _extractRoleFromJwt(String token) {
+  Map<String, dynamic> _decodeJwtPayload(String token) {
     try {
       final parts = token.split('.');
-      if (parts.length != 3) return 'ROLE_LESSEE';
+      if (parts.length != 3) return {};
       final payload =
           utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
-      final json = jsonDecode(payload) as Map<String, dynamic>;
-      return json['role'] as String? ?? 'ROLE_LESSEE';
+      return jsonDecode(payload) as Map<String, dynamic>;
     } catch (_) {
-      return 'ROLE_LESSEE';
+      return {};
     }
   }
 
-  String _extractNameFromJwt(String token) {
-    try {
-      final parts = token.split('.');
-      if (parts.length != 3) return '';
-      final payload =
-          utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
-      final json = jsonDecode(payload) as Map<String, dynamic>;
-      return json['name'] as String? ??
-          json['sub'] as String? ??
-          '';
-    } catch (_) {
-      return '';
+  String _extractRoleFromClaims(Map<String, dynamic> claims) {
+    return claims['role'] as String? ?? 'ROLE_LESSEE';
+  }
+
+  String _extractFirstNameFromClaims(Map<String, dynamic> claims) {
+    // ⚠️ DEBUG: borrar después de confirmar qué claims trae el JWT
+    print('>>> JWT CLAIMS: $claims');
+
+    final candidates = [
+      'name', 'given_name', 'firstName', 'first_name',
+      'nombre', 'display_name', 'displayName', 'fullName',
+    ];
+    for (final key in candidates) {
+      final val = claims[key] as String?;
+      if (val != null && val.isNotEmpty) {
+        return val.split(' ').first;
+      }
     }
+    return '';
   }
 
   // ── Password ──────────────────────────────────────────────────────────
 
   @override
-  Future<void> login(String identifier, String password) async {
+  Future<({String name, String role})> login(
+      String identifier, String password) async {
     final result = await _remote.login(identifier, password);
-    final role = _extractRoleFromJwt(result.accessToken);
-    final name = _extractNameFromJwt(result.accessToken);
+    final claims = _decodeJwtPayload(result.accessToken);
+    final role = _extractRoleFromClaims(claims);
+    final firstName = _extractFirstNameFromClaims(claims);
+    final name = firstName.isNotEmpty ? firstName : identifier.split('@').first;
+
     await _local.saveSession(
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       role: role,
-      userName: name.isNotEmpty ? name : identifier.split('@').first,
+      userName: name,
     );
+    return (name: name, role: role);
   }
 
   @override
@@ -80,7 +90,7 @@ class AuthRepositoryImpl implements AuthRepository {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       role: 'ROLE_LESSEE',
-      userName: '$name $paternalSurname',
+      userName: name,
     );
   }
 
@@ -105,7 +115,7 @@ class AuthRepositoryImpl implements AuthRepository {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       role: 'ROLE_LESSOR',
-      userName: '$name $paternalSurname',
+      userName: name,
     );
   }
 
@@ -124,7 +134,7 @@ class AuthRepositoryImpl implements AuthRepository {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       role: roleStr,
-      userName: displayName,
+      userName: displayName.split(' ').first,
       avatarUrl: avatarUrl,
     );
   }
@@ -143,7 +153,7 @@ class AuthRepositoryImpl implements AuthRepository {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       role: role == UserRole.lessee ? 'ROLE_LESSEE' : 'ROLE_LESSOR',
-      userName: displayName,
+      userName: displayName.split(' ').first,
       avatarUrl: avatarUrl,
     );
   }
