@@ -56,8 +56,7 @@ class PropertyCard extends StatelessWidget {
               ),
             ),
 
-            Expanded(
-              child: Padding(
+            Padding(
                 padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,6 +71,7 @@ class PropertyCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 6),
 
                     Text(
                       '\$${_formatPrice(property.price)}',
@@ -80,6 +80,7 @@ class PropertyCard extends StatelessWidget {
                         color: const Color(0xFF04364A),
                       ),
                     ),
+                    const SizedBox(height: 8),
 
                     Row(
                       children: [
@@ -107,7 +108,6 @@ class PropertyCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
             ),
           ],
         ),
