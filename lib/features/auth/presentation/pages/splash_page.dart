@@ -80,6 +80,7 @@ class _SplashPageState extends State<SplashPage>
 
   Future<void> _precacheImages() async {
     for (final path in RoleSelectorPage.propertyImages) {
+      if (!mounted) return;
       await precacheImage(AssetImage(path), context);
     }
   }

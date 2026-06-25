@@ -97,7 +97,6 @@ class _PortraitLayout extends StatelessWidget {
 
     return Stack(
       children: [
-        // Blobs como fondo absoluto, no interceptan toques
         const Positioned.fill(
           child: IgnorePointer(child: AuthBackgroundBlobs()),
         ),
