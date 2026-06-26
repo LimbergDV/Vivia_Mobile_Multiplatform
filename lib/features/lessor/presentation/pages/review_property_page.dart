@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/add_property_page.dart';
+import 'package:vivia_mobile/features/lessor/presentation/pages/gallery_page.dart';
 
 class ReviewPropertyPage extends StatefulWidget {
   final NewPropertyForm form;
@@ -16,21 +17,22 @@ class ReviewPropertyPage extends StatefulWidget {
 
 class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
   late final PageController _pageController;
+  late NewPropertyForm _form;
   int _currentPage = 0;
 
   List<String> get _allImages {
     final images = <String>[];
-    if (widget.form.mainPhotoPath != null) {
-      images.add(widget.form.mainPhotoPath!);
+    if (_form.mainPhotoPath != null) {
+      images.add(_form.mainPhotoPath!);
     }
-    widget.form.spacePhotos?.forEach((_, paths) {
+    _form.spacePhotos?.forEach((_, paths) {
       images.addAll(paths);
     });
     return images;
   }
 
   String get _formattedPrice {
-    final raw = widget.form.price ?? '0';
+    final raw = _form.price ?? '0';
     final number = int.tryParse(raw) ?? 0;
     final formatted = number.toString().replaceAllMapped(
       RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
@@ -41,15 +43,16 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
 
   String get _locationText {
     final parts = <String>[];
-    if (widget.form.colonia != null) parts.add(widget.form.colonia!);
-    if (widget.form.city != null) parts.add(widget.form.city!);
-    if (widget.form.state != null) parts.add(widget.form.state!);
+    if (_form.colonia != null) parts.add(_form.colonia!);
+    if (_form.city != null) parts.add(_form.city!);
+    if (_form.state != null) parts.add(_form.state!);
     return parts.isNotEmpty ? parts.join(', ') : 'Ubicación no especificada';
   }
 
   @override
   void initState() {
     super.initState();
+    _form = widget.form;
     _pageController = PageController();
   }
 
@@ -57,6 +60,20 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _onEditImages() async {
+    final result = await Navigator.push<NewPropertyForm>(
+      context,
+      MaterialPageRoute(builder: (_) => GalleryPage(form: _form)),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _form = result;
+        _currentPage = 0;
+        _pageController.jumpToPage(0);
+      });
+    }
   }
 
   void _onEditInfo() {
@@ -93,6 +110,7 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
                 screenWidth: screenWidth,
                 onPageChanged: (i) => setState(() => _currentPage = i),
                 onBack: () => Navigator.of(context).pop(),
+                onEditImages: _onEditImages,
               ),
             ),
             SliverPadding(
@@ -104,7 +122,7 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.form.title ?? 'Sin título',
+                      _form.title ?? 'Sin título',
                       style: textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onSurface,
@@ -112,7 +130,7 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      (widget.form.propertyType ?? 'Propiedad').toUpperCase(),
+                      (_form.propertyType ?? 'Propiedad').toUpperCase(),
                       style: textTheme.labelMedium?.copyWith(
                         color: colorScheme.primary,
                         fontWeight: FontWeight.w600,
@@ -129,15 +147,15 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
                     ),
                     const SizedBox(height: 16),
                     _StatsRow(
-                      rooms: widget.form.rooms ?? 0,
-                      bathrooms: widget.form.bathrooms ?? 0,
-                      area: widget.form.area ?? '0',
+                      rooms: _form.rooms ?? 0,
+                      bathrooms: _form.bathrooms ?? 0,
+                      area: _form.area ?? '0',
                     ),
                     const SizedBox(height: 24),
                     Divider(color: colorScheme.outlineVariant, height: 1),
                     const SizedBox(height: 24),
                     Text(
-                      'Descripción',
+                      'Overview',
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onSurface,
@@ -145,14 +163,14 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      widget.form.description ?? 'Sin descripción',
+                      _form.description ?? 'Sin descripción',
                       style: textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         height: 1.5,
                       ),
                     ),
                     const SizedBox(height: 24),
-                    _GallerySection(spacePhotos: widget.form.spacePhotos),
+                    _GallerySection(spacePhotos: _form.spacePhotos),
                     const SizedBox(height: 24),
                     _LocationSection(locationText: _locationText),
                     const SizedBox(height: 32),
@@ -179,6 +197,7 @@ class _ImageCarousel extends StatelessWidget {
   final double screenWidth;
   final ValueChanged<int> onPageChanged;
   final VoidCallback onBack;
+  final VoidCallback onEditImages;
 
   const _ImageCarousel({
     required this.images,
@@ -187,6 +206,7 @@ class _ImageCarousel extends StatelessWidget {
     required this.screenWidth,
     required this.onPageChanged,
     required this.onBack,
+    required this.onEditImages,
   });
 
   @override
@@ -299,9 +319,7 @@ class _ImageCarousel extends StatelessWidget {
             right: 0,
             child: Center(
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Navegar a editar imágenes
-                },
+                onPressed: onEditImages,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red.shade400,
                   foregroundColor: Colors.white,
@@ -476,15 +494,14 @@ class _GallerySection extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final photos = _allPhotos;
     const maxVisible = 3;
-    final remaining = photos.length > maxVisible
-        ? photos.length - maxVisible
-        : 0;
+    final remaining =
+    photos.length > maxVisible ? photos.length - maxVisible : 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Galería',
+          'Gallery',
           style: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
@@ -512,9 +529,8 @@ class _GallerySection extends StatelessWidget {
             height: 90,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: photos.length > maxVisible
-                  ? maxVisible
-                  : photos.length,
+              itemCount:
+              photos.length > maxVisible ? maxVisible : photos.length,
               separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (context, i) {
                 final isLast = i == maxVisible - 1 && remaining > 0;
@@ -577,7 +593,7 @@ class _LocationSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Ubicación',
+          'Location',
           style: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
@@ -586,11 +602,7 @@ class _LocationSection extends StatelessWidget {
         const SizedBox(height: 10),
         Row(
           children: [
-            Icon(
-              Icons.location_on,
-              size: 18,
-              color: colorScheme.primary,
-            ),
+            Icon(Icons.location_on, size: 18, color: colorScheme.primary),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -612,16 +624,11 @@ class _LocationSection extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Icon(
-                  Icons.map_outlined,
-                  size: 48,
-                  color: colorScheme.onSurfaceVariant.withOpacity(0.3),
-                ),
-                Icon(
-                  Icons.location_on,
-                  size: 36,
-                  color: colorScheme.onSurface,
-                ),
+                Icon(Icons.map_outlined,
+                    size: 48,
+                    color: colorScheme.onSurfaceVariant.withOpacity(0.3)),
+                Icon(Icons.location_on,
+                    size: 36, color: colorScheme.onSurface),
               ],
             ),
           ),
