@@ -40,9 +40,9 @@ void main() async {
   final registerLesseeUseCase = RegisterLesseeUseCase(authRepository);
   final registerLessorUseCase = RegisterLessorUseCase(authRepository);
   final registerLesseeGoogleUseCase =
-      RegisterLesseeGoogleUseCase(authRepository);
+  RegisterLesseeGoogleUseCase(authRepository);
   final registerLessorGoogleUseCase =
-      RegisterLessorGoogleUseCase(authRepository);
+  RegisterLessorGoogleUseCase(authRepository);
   final logoutUseCase = LogoutUseCase(authRepository);
 
   // Datos de sesión guardados
@@ -50,6 +50,13 @@ void main() async {
   final savedUserName = authRepository.savedUserName;
   final savedRole = authRepository.savedRole;
   final savedAvatarUrl = authRepository.savedAvatarUrl;
+
+  final app = MyApp(
+    isLoggedIn: isLoggedIn,
+    savedUserName: savedUserName,
+    savedRole: savedRole,
+    savedAvatarUrl: savedAvatarUrl,
+  );
 
   runApp(
     ChangeNotifierProvider(
@@ -62,15 +69,9 @@ void main() async {
         registerLessorGoogleUseCase: registerLessorGoogleUseCase,
         logoutUseCase: logoutUseCase,
       ),
-      child: DevicePreview(
-        enabled: kIsWeb,
-        builder: (context) => MyApp(
-          isLoggedIn: isLoggedIn,
-          savedUserName: savedUserName,
-          savedRole: savedRole,
-          savedAvatarUrl: savedAvatarUrl,
-        ),
-      ),
+      child: kIsWeb
+          ? DevicePreview(enabled: true, builder: (_) => app)
+          : app,
     ),
   );
 }

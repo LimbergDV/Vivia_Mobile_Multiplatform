@@ -75,14 +75,14 @@ class AuthViewModel extends ChangeNotifier {
   // ── Controllers de Registro ───────────────────────────────────────────
   final TextEditingController registerNameController = TextEditingController();
   final TextEditingController registerLastNameController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController registerMaternalSurnameController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController registerPhoneController = TextEditingController();
   final TextEditingController registerPasswordController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController registerConfirmPasswordController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController registerEmailController = TextEditingController();
   final GlobalKey<FormState> registerFormKey = GlobalKey<FormState>();
 
@@ -110,8 +110,6 @@ class AuthViewModel extends ChangeNotifier {
         loginEmailController.text.trim(),
         loginPasswordController.text,
       );
-
-      print('>>> LOGIN RESULT — name: ${result.name}, role: ${result.role}');
 
       // Rol esperado según la pantalla que eligió el usuario
       final expectedRole = role == UserRole.lessee ? 'ROLE_LESSEE' : 'ROLE_LESSOR';

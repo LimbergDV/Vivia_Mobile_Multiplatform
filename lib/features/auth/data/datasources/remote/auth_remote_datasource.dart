@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -59,6 +60,7 @@ abstract class AuthRemoteDatasource {
 // ── Implementación ────────────────────────────────────────────────────────
 class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   final http.Client _client;
+  static const _timeout = Duration(seconds: 15);
 
   AuthRemoteDatasourceImpl(this._client);
 
@@ -67,13 +69,11 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   /// Parsea respuestas exitosas 200/201 con `{ success: true, data: {...} }`.
   /// Para errores lanza [Exception] con el `message` del backend.
   AuthResponseModel _parseSuccess(http.Response response) {
-    print('>>> BACKEND RAW RESPONSE [${response.statusCode}]: ${response.body}');
     final json = jsonDecode(response.body) as Map<String, dynamic>;
     if ((response.statusCode == 200 || response.statusCode == 201) &&
         json['success'] == true) {
       return AuthResponseModel.fromJson(json);
     }
-    // Errores: { "status": N, "error": "...", "message": "...", "details": [...] }
     throw Exception(json['message'] ?? 'Error ${response.statusCode}');
   }
 
@@ -94,7 +94,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       Uri.parse(AuthApiConstants.login),
       headers: AuthApiConstants.headers(),
       body: jsonEncode({'identifier': identifier, 'password': password}),
-    );
+    ).timeout(_timeout);
     return _parseSuccess(res);
   }
 
@@ -116,7 +116,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
         'email': email,
         'password': password,
       }),
-    );
+    ).timeout(_timeout);
     return _parseSuccess(res);
   }
 
@@ -140,7 +140,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
         'phoneNumber': phoneNumber,
         'password': password,
       }),
-    );
+    ).timeout(_timeout);
     return _parseSuccess(res);
   }
 
@@ -153,7 +153,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       Uri.parse(AuthApiConstants.loginGoogle),
       headers: AuthApiConstants.headers(),
       body: jsonEncode({'idToken': idToken, 'role': role}),
-    );
+    ).timeout(_timeout);
     return _parseSuccess(res);
   }
 
@@ -163,7 +163,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       Uri.parse(AuthApiConstants.registerLesseeGoogle),
       headers: AuthApiConstants.headers(),
       body: jsonEncode({'idToken': idToken}),
-    );
+    ).timeout(_timeout);
     return _parseSuccess(res);
   }
 
@@ -173,7 +173,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       Uri.parse(AuthApiConstants.registerLessorGoogle),
       headers: AuthApiConstants.headers(),
       body: jsonEncode({'idToken': idToken}),
-    );
+    ).timeout(_timeout);
     return _parseSuccess(res);
   }
 
@@ -185,7 +185,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       Uri.parse(AuthApiConstants.loginChallenge),
       headers: AuthApiConstants.headers(),
       body: jsonEncode({'email': email}),
-    );
+    ).timeout(_timeout);
     return _parseChallengeSuccess(res);
   }
 
@@ -196,7 +196,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       Uri.parse(AuthApiConstants.loginVerify),
       headers: AuthApiConstants.headers(),
       body: jsonEncode({'credentialResponseJson': credentialResponseJson}),
-    );
+    ).timeout(_timeout);
     return _parseSuccess(res);
   }
 
@@ -216,7 +216,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
         'paternalSurname': paternalSurname,
         'maternalSurname': maternalSurname,
       }),
-    );
+    ).timeout(_timeout);
     return _parseChallengeSuccess(res);
   }
 
@@ -227,7 +227,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       Uri.parse(AuthApiConstants.lesseeBiometricVerify),
       headers: AuthApiConstants.headers(),
       body: jsonEncode({'credentialResponseJson': credentialResponseJson}),
-    );
+    ).timeout(_timeout);
     return _parseSuccess(res);
   }
 
@@ -249,7 +249,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
         'maternalSurname': maternalSurname,
         'phoneNumber': phoneNumber,
       }),
-    );
+    ).timeout(_timeout);
     return _parseChallengeSuccess(res);
   }
 
@@ -260,7 +260,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       Uri.parse(AuthApiConstants.lessorBiometricVerify),
       headers: AuthApiConstants.headers(),
       body: jsonEncode({'credentialResponseJson': credentialResponseJson}),
-    );
+    ).timeout(_timeout);
     return _parseSuccess(res);
   }
 
@@ -272,7 +272,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
       Uri.parse(AuthApiConstants.refresh),
       headers: AuthApiConstants.headers(),
       body: jsonEncode({'refreshToken': refreshToken}),
-    );
+    ).timeout(_timeout);
     return _parseSuccess(res);
   }
 
@@ -281,6 +281,6 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
     await _client.post(
       Uri.parse(AuthApiConstants.logout),
       headers: AuthApiConstants.headers(accessToken: accessToken),
-    );
+    ).timeout(_timeout);
   }
 }
