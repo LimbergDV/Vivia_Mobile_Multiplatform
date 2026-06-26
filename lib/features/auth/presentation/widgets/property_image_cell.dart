@@ -13,6 +13,8 @@ class PropertyImageCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    final cacheSize = (200 * devicePixelRatio).round();
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
@@ -20,6 +22,7 @@ class PropertyImageCell extends StatelessWidget {
         child: Image.asset(
           imagePath,
           fit: BoxFit.cover,
+          cacheWidth: cacheSize,
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
             if (wasSynchronouslyLoaded || frame != null) return child;
             return _ShimmerPlaceholder(colorScheme: colorScheme);
