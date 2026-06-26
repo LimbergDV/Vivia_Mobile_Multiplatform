@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
-import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/space_photos_page.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/dashed_upload_zone.dart';
@@ -17,7 +16,6 @@ class PropertyPhotosPage extends StatefulWidget {
 }
 
 class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
-  HomeNavItem _selectedNav = HomeNavItem.add;
   String? _selectedImagePath;
 
   final PropertyModel _previewProperty = PropertyModel(
@@ -79,10 +77,6 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
             color: colorScheme.onSurface,
           ),
         ),
-      ),
-      bottomNavigationBar: HomeBottomNavBar(
-        selected: _selectedNav,
-        onItemSelected: (item) => setState(() => _selectedNav = item),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 32),

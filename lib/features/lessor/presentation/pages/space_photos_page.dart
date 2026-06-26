@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/tour_video_page.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/space_category_section.dart';
@@ -14,8 +13,6 @@ class SpacePhotosPage extends StatefulWidget {
 }
 
 class _SpacePhotosPageState extends State<SpacePhotosPage> {
-  HomeNavItem _selectedNav = HomeNavItem.add;
-
   final List<_SpaceCategory> _categories = [
     _SpaceCategory(label: 'Fachada', isExpanded: true),
     _SpaceCategory(label: 'Baños'),
@@ -83,10 +80,6 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
             color: colorScheme.onSurface,
           ),
         ),
-      ),
-      bottomNavigationBar: HomeBottomNavBar(
-        selected: _selectedNav,
-        onItemSelected: (item) => setState(() => _selectedNav = item),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(

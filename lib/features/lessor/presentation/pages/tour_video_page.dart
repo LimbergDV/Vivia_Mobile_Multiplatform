@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/dashed_upload_zone.dart';
 
@@ -13,7 +12,6 @@ class TourVideoPage extends StatefulWidget {
 }
 
 class _TourVideoPageState extends State<TourVideoPage> {
-  HomeNavItem _selectedNav = HomeNavItem.add;
   String? _selectedVideoPath;
 
   void _onPickVideo() {
@@ -58,10 +56,6 @@ class _TourVideoPageState extends State<TourVideoPage> {
             color: colorScheme.onSurface,
           ),
         ),
-      ),
-      bottomNavigationBar: HomeBottomNavBar(
-        selected: _selectedNav,
-        onItemSelected: (item) => setState(() => _selectedNav = item),
       ),
       body: Padding(
         padding: EdgeInsets.fromLTRB(
