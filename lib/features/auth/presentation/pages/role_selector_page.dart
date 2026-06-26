@@ -24,12 +24,16 @@ class RoleSelectorPage extends StatefulWidget {
 }
 
 class _RoleSelectorPageState extends State<RoleSelectorPage> {
+  bool _imagesPrecached = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Pre-cachea las imágenes en cuanto el widget tiene contexto
-    for (final path in RoleSelectorPage.propertyImages) {
-      precacheImage(AssetImage(path), context);
+    if (!_imagesPrecached) {
+      _imagesPrecached = true;
+      for (final path in RoleSelectorPage.propertyImages) {
+        precacheImage(AssetImage(path), context).catchError((_) {});
+      }
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/widgets.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/home_page.dart';
 
 class LoginPage extends StatelessWidget {
   final UserRole role;
@@ -11,17 +12,51 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthViewModel(),
-      child: _LoginView(role: role),
-    );
+    return _LoginView(role: role);
   }
 }
 
-class _LoginView extends StatelessWidget {
+class _LoginView extends StatefulWidget {
   final UserRole role;
-
   const _LoginView({required this.role});
+
+  @override
+  State<_LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<_LoginView> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<AuthViewModel>().addListener(_onAuthChanged);
+  }
+
+  void _onAuthChanged() {
+    final vm = context.read<AuthViewModel>();
+    if (vm.status == AuthStatus.success) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => HomePage(
+            userName: vm.userName,
+            role: vm.lastRole,
+            avatarUrl: vm.avatarUrl,
+          ),
+        ),
+        (_) => false,
+      );
+    } else if (vm.status == AuthStatus.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(vm.errorMessage ?? 'Error desconocido')),
+      );
+      vm.resetStatus();
+    }
+  }
+
+  @override
+  void dispose() {
+    context.read<AuthViewModel>().removeListener(_onAuthChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +67,13 @@ class _LoginView extends StatelessWidget {
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: colorScheme.surface,
       body: isLandscape
-          ? _LandscapeLayout(viewModel: viewModel, isLoading: isLoading)
-          : _PortraitLayout(viewModel: viewModel, isLoading: isLoading),
+          ? _LandscapeLayout(
+              viewModel: viewModel, isLoading: isLoading, role: widget.role)
+          : _PortraitLayout(
+              viewModel: viewModel, isLoading: isLoading, role: widget.role),
     );
   }
 }
@@ -44,8 +82,13 @@ class _LoginView extends StatelessWidget {
 class _PortraitLayout extends StatelessWidget {
   final AuthViewModel viewModel;
   final bool isLoading;
+  final UserRole role;
 
-  const _PortraitLayout({required this.viewModel, required this.isLoading});
+  const _PortraitLayout({
+    required this.viewModel,
+    required this.isLoading,
+    required this.role,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -54,8 +97,11 @@ class _PortraitLayout extends StatelessWidget {
 
     return Stack(
       children: [
+        const Positioned.fill(
+          child: IgnorePointer(child: AuthBackgroundBlobs()),
+        ),
         SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Form(
               key: viewModel.loginFormKey,
@@ -80,11 +126,8 @@ class _PortraitLayout extends StatelessWidget {
                     prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Ingresa tu correo';
-                      }
-                      if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$')
-                          .hasMatch(value)) {
+                      if (value == null || value.isEmpty) return 'Ingresa tu correo';
+                      if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                         return 'Correo no válido';
                       }
                       return null;
@@ -98,12 +141,9 @@ class _PortraitLayout extends StatelessWidget {
                     prefixIcon: Icons.lock_outline,
                     isPassword: true,
                     passwordVisible: viewModel.loginPasswordVisible,
-                    onToggleVisibility:
-                    viewModel.toggleLoginPasswordVisibility,
+                    onToggleVisibility: viewModel.toggleLoginPasswordVisibility,
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Ingresa tu contraseña';
-                      }
+                      if (value == null || value.isEmpty) return 'Ingresa tu contraseña';
                       if (value.length < 6) return 'Mínimo 6 caracteres';
                       return null;
                     },
@@ -112,38 +152,33 @@ class _PortraitLayout extends StatelessWidget {
                   AuthPrimaryButton(
                     label: 'Iniciar Sesión',
                     isLoading: isLoading,
-                    onPressed: () => viewModel.login(),
+                    onPressed: () => viewModel.login(role),
                   ),
                   const SizedBox(height: 16),
                   const AuthDivider(),
                   const SizedBox(height: 16),
                   AuthGoogleButton(
-                    onPressed: isLoading
-                        ? null
-                        : () => viewModel.loginWithGoogle(),
+                    onPressed: isLoading ? null : () => viewModel.loginWithGoogle(role),
                   ),
-                  const Spacer(),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Text(
-                        'Volver',
-                        style: textTheme.bodyMedium?.copyWith(
-                          decoration: TextDecoration.underline,
-                          decorationColor: colorScheme.onSurface,
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.w500,
-                        ),
+                  const SizedBox(height: 40),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Volver',
+                      style: textTheme.bodyMedium?.copyWith(
+                        decoration: TextDecoration.underline,
+                        decorationColor: colorScheme.onSurface,
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
         ),
-        const AuthBackgroundBlobs(),
       ],
     );
   }
@@ -153,8 +188,13 @@ class _PortraitLayout extends StatelessWidget {
 class _LandscapeLayout extends StatelessWidget {
   final AuthViewModel viewModel;
   final bool isLoading;
+  final UserRole role;
 
-  const _LandscapeLayout({required this.viewModel, required this.isLoading});
+  const _LandscapeLayout({
+    required this.viewModel,
+    required this.isLoading,
+    required this.role,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +205,6 @@ class _LandscapeLayout extends StatelessWidget {
     return SafeArea(
       child: Row(
         children: [
-          // Logo + título
           SizedBox(
             width: screenWidth * 0.35,
             child: Center(
@@ -187,13 +226,9 @@ class _LandscapeLayout extends StatelessWidget {
             ),
           ),
           VerticalDivider(width: 1, color: colorScheme.outlineVariant),
-          // Formulario scrolleable
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: 20,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
               child: Form(
                 key: viewModel.loginFormKey,
                 child: Column(
@@ -205,11 +240,8 @@ class _LandscapeLayout extends StatelessWidget {
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Ingresa tu correo';
-                        }
-                        if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$')
-                            .hasMatch(value)) {
+                        if (value == null || value.isEmpty) return 'Ingresa tu correo';
+                        if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                           return 'Correo no válido';
                         }
                         return null;
@@ -223,12 +255,9 @@ class _LandscapeLayout extends StatelessWidget {
                       prefixIcon: Icons.lock_outline,
                       isPassword: true,
                       passwordVisible: viewModel.loginPasswordVisible,
-                      onToggleVisibility:
-                      viewModel.toggleLoginPasswordVisibility,
+                      onToggleVisibility: viewModel.toggleLoginPasswordVisibility,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Ingresa tu contraseña';
-                        }
+                        if (value == null || value.isEmpty) return 'Ingresa tu contraseña';
                         if (value.length < 6) return 'Mínimo 6 caracteres';
                         return null;
                       },
@@ -237,15 +266,13 @@ class _LandscapeLayout extends StatelessWidget {
                     AuthPrimaryButton(
                       label: 'Iniciar Sesión',
                       isLoading: isLoading,
-                      onPressed: () => viewModel.login(),
+                      onPressed: () => viewModel.login(role),
                     ),
                     const SizedBox(height: 14),
                     const AuthDivider(),
                     const SizedBox(height: 14),
                     AuthGoogleButton(
-                      onPressed: isLoading
-                          ? null
-                          : () => viewModel.loginWithGoogle(),
+                      onPressed: isLoading ? null : () => viewModel.loginWithGoogle(role),
                     ),
                     const SizedBox(height: 16),
                     GestureDetector(
