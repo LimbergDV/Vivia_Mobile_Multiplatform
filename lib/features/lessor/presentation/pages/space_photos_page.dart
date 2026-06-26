@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
+import 'package:vivia_mobile/features/lessor/presentation/helpers/media_picker_helper.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/tour_video_page.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/space_category_section.dart';
 
@@ -14,8 +14,6 @@ class SpacePhotosPage extends StatefulWidget {
 }
 
 class _SpacePhotosPageState extends State<SpacePhotosPage> {
-  HomeNavItem _selectedNav = HomeNavItem.add;
-
   final List<_SpaceCategory> _categories = [
     _SpaceCategory(label: 'Fachada', isExpanded: true),
     _SpaceCategory(label: 'Baños'),
@@ -28,18 +26,50 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
         _categories[i] = _SpaceCategory(
           label: _categories[i].label,
           isExpanded: i == index ? !_categories[i].isExpanded : false,
-          imagePaths: _categories[i].imagePaths,
+          imagePaths: List.of(_categories[i].imagePaths),
         );
       }
     });
   }
 
-  void _onPickFromGallery(int index) {
-    // TODO: image_picker — ImageSource.gallery
+  Future<void> _onPickFromGallery(int index) async {
+    final paths = await MediaPickerHelper.pickMultipleImages();
+    if (paths.isNotEmpty && mounted) {
+      setState(() {
+        _categories[index] = _SpaceCategory(
+          label: _categories[index].label,
+          isExpanded: _categories[index].isExpanded,
+          imagePaths: [..._categories[index].imagePaths, ...paths],
+        );
+      });
+    }
   }
 
-  void _onTakePhoto(int index) {
-    // TODO: image_picker — ImageSource.camera
+  Future<void> _onTakePhoto(int index) async {
+    final result = await MediaPickerHelper.takePhoto();
+    if (result.isSuccess && mounted) {
+      setState(() {
+        _categories[index] = _SpaceCategory(
+          label: _categories[index].label,
+          isExpanded: _categories[index].isExpanded,
+          imagePaths: [..._categories[index].imagePaths, result.path!],
+        );
+      });
+    } else if (result.isCameraDenied && mounted) {
+      _showSnack('Permiso de cámara denegado. Usa la galería para subir fotos.');
+    }
+  }
+
+  void _onDeleteImage(int categoryIndex, int imageIndex) {
+    setState(() {
+      final updated = List<String>.of(_categories[categoryIndex].imagePaths);
+      updated.removeAt(imageIndex);
+      _categories[categoryIndex] = _SpaceCategory(
+        label: _categories[categoryIndex].label,
+        isExpanded: _categories[categoryIndex].isExpanded,
+        imagePaths: updated,
+      );
+    });
   }
 
   void _onNext() {
@@ -54,6 +84,16 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
       context,
       MaterialPageRoute(
         builder: (_) => TourVideoPage(form: updatedForm),
+      ),
+    );
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -84,10 +124,6 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
           ),
         ),
       ),
-      bottomNavigationBar: HomeBottomNavBar(
-        selected: _selectedNav,
-        onItemSelected: (item) => setState(() => _selectedNav = item),
-      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
           isLandscape ? 32 : 20,
@@ -107,7 +143,6 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
               textAlign: TextAlign.justify,
             ),
             const SizedBox(height: 20),
-
             ...List.generate(_categories.length, (i) {
               final cat = _categories[i];
               return Padding(
@@ -119,12 +154,11 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
                   onTap: () => _toggleCategory(i),
                   onPickFromGallery: () => _onPickFromGallery(i),
                   onTakePhoto: () => _onTakePhoto(i),
+                  onDeleteImage: (imageIndex) => _onDeleteImage(i, imageIndex),
                 ),
               );
             }),
-
             const SizedBox(height: 8),
-
             SizedBox(
               width: double.infinity,
               height: 52,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/property_photos_page.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/form_section_header.dart';
@@ -17,7 +16,6 @@ class PropertyDetailsPage extends StatefulWidget {
 
 class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
   final _formKey = GlobalKey<FormState>();
-  HomeNavItem _selectedNav = HomeNavItem.add;
 
   int? _selectedRooms;
   int? _selectedBathrooms;
@@ -104,10 +102,6 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
             color: colorScheme.onSurface,
           ),
         ),
-      ),
-      bottomNavigationBar: HomeBottomNavBar(
-        selected: _selectedNav,
-        onItemSelected: (item) => setState(() => _selectedNav = item),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(

@@ -1,12 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 class DashedUploadZone extends StatelessWidget {
   final String? imagePath;
+  final bool isVideo;
   final VoidCallback onTap;
 
   const DashedUploadZone({
     super.key,
     this.imagePath,
+    this.isVideo = false,
     required this.onTap,
   });
 
@@ -29,18 +33,27 @@ class DashedUploadZone extends StatelessWidget {
           child: imagePath != null
               ? ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.asset(
-              imagePath!,
+            child: isVideo
+                ? _VideoSelectedIndicator(
+              fileName: imagePath!.split('/').last,
+              colorScheme: colorScheme,
+              textTheme: textTheme,
+            )
+                : Image.file(
+              File(imagePath!),
               fit: BoxFit.cover,
               width: double.infinity,
               height: double.infinity,
+              errorBuilder: (_, __, ___) => _ErrorPlaceholder(
+                colorScheme: colorScheme,
+              ),
             ),
           )
               : Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.image_outlined,
+                isVideo ? Icons.videocam_outlined : Icons.image_outlined,
                 size: 42,
                 color: colorScheme.onSurfaceVariant.withOpacity(0.4),
               ),
@@ -60,6 +73,70 @@ class DashedUploadZone extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VideoSelectedIndicator extends StatelessWidget {
+  final String fileName;
+  final ColorScheme colorScheme;
+  final TextTheme textTheme;
+
+  const _VideoSelectedIndicator({
+    required this.fileName,
+    required this.colorScheme,
+    required this.textTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: colorScheme.surfaceContainerHighest,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.videocam_rounded,
+            size: 48,
+            color: colorScheme.primary,
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              fileName,
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorPlaceholder extends StatelessWidget {
+  final ColorScheme colorScheme;
+
+  const _ErrorPlaceholder({required this.colorScheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: colorScheme.surfaceContainerHighest,
+      child: Center(
+        child: Icon(
+          Icons.broken_image_outlined,
+          size: 42,
+          color: colorScheme.onSurfaceVariant.withOpacity(0.4),
         ),
       ),
     );

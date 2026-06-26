@@ -9,6 +9,7 @@ import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_head
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_search_bar.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_property_card.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
+import 'package:vivia_mobile/features/lessor/presentation/pages/add_property_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -85,6 +86,17 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  void _onNavSelected(HomeNavItem item) {
+    if (item == HomeNavItem.add && widget.role == UserRole.lessor) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AddPropertyPage()),
+      );
+      return;
+    }
+    setState(() => _selectedNav = item);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isLandscape =
@@ -100,7 +112,7 @@ class _HomePageState extends State<HomePage> {
         searchController: _searchController,
         properties: _properties,
         onCategorySelected: (c) => setState(() => _selectedCategory = c),
-        onNavSelected: (n) => setState(() => _selectedNav = n),
+        onNavSelected: _onNavSelected,
       );
     }
 
@@ -113,7 +125,7 @@ class _HomePageState extends State<HomePage> {
       searchController: _searchController,
       properties: _properties,
       onCategorySelected: (c) => setState(() => _selectedCategory = c),
-      onNavSelected: (n) => setState(() => _selectedNav = n),
+      onNavSelected: _onNavSelected,
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 class SpaceCategorySection extends StatelessWidget {
@@ -7,7 +9,7 @@ class SpaceCategorySection extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onPickFromGallery;
   final VoidCallback onTakePhoto;
-  final VoidCallback? onDeleteImage;
+  final ValueChanged<int>? onDeleteImage;
 
   const SpaceCategorySection({
     super.key,
@@ -48,7 +50,7 @@ class SpaceCategorySection extends StatelessWidget {
                   ),
                 ),
                 if (!isExpanded)
-                  Icon(
+                  const Icon(
                     Icons.add_photo_alternate_outlined,
                     color: Colors.white,
                     size: 22,
@@ -157,7 +159,7 @@ class _DashedUploadZone extends StatelessWidget {
 class _ImageGrid extends StatelessWidget {
   final List<String> imagePaths;
   final ColorScheme colorScheme;
-  final VoidCallback? onDeleteImage;
+  final ValueChanged<int>? onDeleteImage;
 
   const _ImageGrid({
     required this.imagePaths,
@@ -174,59 +176,31 @@ class _ImageGrid extends StatelessWidget {
         itemCount: imagePaths.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
-          final path = imagePaths[i];
-          final isLoading = path == '__loading__';
-
           return Stack(
             children: [
-              Container(
-                width: 80,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: isLoading
-                    ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Cargando 60%',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                )
-                    : ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.asset(
-                    path,
-                    fit: BoxFit.cover,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.file(
+                  File(imagePaths[i]),
+                  width: 80,
+                  height: 90,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
                     width: 80,
                     height: 90,
-                    errorBuilder: (_, __, ___) => Container(
+                    decoration: BoxDecoration(
                       color: colorScheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                 ),
               ),
-              if (!isLoading && onDeleteImage != null)
+              if (onDeleteImage != null)
                 Positioned(
                   top: 4,
                   right: 4,
                   child: GestureDetector(
-                    onTap: onDeleteImage,
+                    onTap: () => onDeleteImage!(i),
                     child: Container(
                       width: 24,
                       height: 24,
@@ -274,8 +248,7 @@ class _DashedBorderPainter extends CustomPainter {
     for (final metric in path.computeMetrics()) {
       double distance = 0;
       while (distance < metric.length) {
-        final end =
-        (distance + dashWidth).clamp(0.0, metric.length);
+        final end = (distance + dashWidth).clamp(0.0, metric.length);
         canvas.drawPath(metric.extractPath(distance, end), paint);
         distance += dashWidth + dashSpace;
       }
