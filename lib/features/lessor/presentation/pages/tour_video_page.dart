@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/dashed_upload_zone.dart';
+import 'package:vivia_mobile/features/lessor/presentation/pages/review_property_page.dart';
 
 class TourVideoPage extends StatefulWidget {
   final NewPropertyForm form;
@@ -27,8 +28,12 @@ class _TourVideoPageState extends State<TourVideoPage> {
       videoPath: _selectedVideoPath,
     );
 
-    // TODO: Navigator.push a ReviewPropertyPage(form: finalForm)
-    // o llamar al ViewModel: viewModel.submitProperty(finalForm)
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReviewPropertyPage(form: finalForm),
+      ),
+    );
   }
 
   @override
