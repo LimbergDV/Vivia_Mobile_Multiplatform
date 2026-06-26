@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
+import 'package:vivia_mobile/features/lessor/presentation/helpers/media_picker_helper.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/space_photos_page.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/dashed_upload_zone.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/property_app_mockup.dart';
@@ -30,12 +31,20 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
     imageUrl: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400',
   );
 
-  void _onPickFromGallery() {
-    // TODO: image_picker — ImageSource.gallery
+  Future<void> _onPickFromGallery() async {
+    final result = await MediaPickerHelper.pickImageFromGallery();
+    if (result.isSuccess && mounted) {
+      setState(() => _selectedImagePath = result.path);
+    }
   }
 
-  void _onTakePhoto() {
-    // TODO: image_picker — ImageSource.camera
+  Future<void> _onTakePhoto() async {
+    final result = await MediaPickerHelper.takePhoto();
+    if (result.isSuccess && mounted) {
+      setState(() => _selectedImagePath = result.path);
+    } else if (result.isCameraDenied && mounted) {
+      _showSnack('Permiso de cámara denegado. Usa la galería para subir fotos.');
+    }
   }
 
   void _onNext() {
@@ -47,6 +56,16 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
       context,
       MaterialPageRoute(
         builder: (_) => SpacePhotosPage(form: updatedForm),
+      ),
+    );
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -92,10 +111,8 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
               textAlign: TextAlign.justify,
             ),
             const SizedBox(height: 20),
-
             DashedUploadZone(imagePath: _selectedImagePath, onTap: _onPickFromGallery),
             const SizedBox(height: 14),
-
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -118,7 +135,6 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
               ),
             ),
             const SizedBox(height: 10),
-
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -140,7 +156,6 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
               ),
             ),
             const SizedBox(height: 28),
-
             Text(
               'Vistas Previas',
               style: textTheme.titleSmall?.copyWith(
@@ -149,7 +164,6 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
               ),
             ),
             const SizedBox(height: 14),
-
             LayoutBuilder(
               builder: (context, constraints) {
                 const gap = 12.0;
@@ -181,7 +195,6 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
               },
             ),
             const SizedBox(height: 28),
-
             SizedBox(
               width: double.infinity,
               height: 52,

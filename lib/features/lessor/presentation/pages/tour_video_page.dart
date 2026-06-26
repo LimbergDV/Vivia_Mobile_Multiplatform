@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
-import 'package:vivia_mobile/features/lessor/presentation/widgets/dashed_upload_zone.dart';
+import 'package:vivia_mobile/features/lessor/presentation/helpers/media_picker_helper.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/review_property_page.dart';
+import 'package:vivia_mobile/features/lessor/presentation/widgets/dashed_upload_zone.dart';
 
 class TourVideoPage extends StatefulWidget {
   final NewPropertyForm form;
@@ -15,12 +16,20 @@ class TourVideoPage extends StatefulWidget {
 class _TourVideoPageState extends State<TourVideoPage> {
   String? _selectedVideoPath;
 
-  void _onPickVideo() {
-    // TODO: image_picker — ImageSource.gallery + video
+  Future<void> _onPickVideo() async {
+    final result = await MediaPickerHelper.pickVideoFromGallery();
+    if (result.isSuccess && mounted) {
+      setState(() => _selectedVideoPath = result.path);
+    }
   }
 
-  void _onRecordVideo() {
-    // TODO: image_picker — ImageSource.camera + video
+  Future<void> _onRecordVideo() async {
+    final result = await MediaPickerHelper.recordVideo();
+    if (result.isSuccess && mounted) {
+      setState(() => _selectedVideoPath = result.path);
+    } else if (result.isCameraDenied && mounted) {
+      _showSnack('Permiso de cámara denegado. Usa la galería para subir videos.');
+    }
   }
 
   void _onReview() {
@@ -32,6 +41,16 @@ class _TourVideoPageState extends State<TourVideoPage> {
       context,
       MaterialPageRoute(
         builder: (_) => ReviewPropertyPage(form: finalForm),
+      ),
+    );
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -80,13 +99,12 @@ class _TourVideoPageState extends State<TourVideoPage> {
               ),
             ),
             const SizedBox(height: 20),
-
             DashedUploadZone(
               imagePath: _selectedVideoPath,
+              isVideo: true,
               onTap: _onPickVideo,
             ),
             const SizedBox(height: 14),
-
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -112,7 +130,6 @@ class _TourVideoPageState extends State<TourVideoPage> {
               ),
             ),
             const SizedBox(height: 8),
-
             Center(
               child: Text(
                 'El video no puede ser mayor a 3 minutos.',
@@ -121,9 +138,7 @@ class _TourVideoPageState extends State<TourVideoPage> {
                 ),
               ),
             ),
-
             const Spacer(),
-
             SizedBox(
               width: double.infinity,
               height: 52,
