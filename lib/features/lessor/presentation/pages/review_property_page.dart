@@ -1,10 +1,9 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vivia_mobile/features/lessor/presentation/pages/gallery_page.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/add_property_page.dart';
-import 'package:vivia_mobile/features/lessor/presentation/pages/gallery_page.dart';
 
 class ReviewPropertyPage extends StatefulWidget {
   final NewPropertyForm form;
