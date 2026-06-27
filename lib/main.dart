@@ -24,7 +24,9 @@ import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/features/user/data/datasources/remote/user_remote_datasource.dart';
 import 'package:vivia_mobile/features/user/data/repositories/user_repository_impl.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/get_me_usecase.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/register_fcm_token_usecase.dart';
+import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 import 'package:vivia_mobile/firebase_options.dart';
 
 import 'app.dart';
@@ -130,12 +132,10 @@ void main() async {
   final setLocationPermissionShownUseCase = SetLocationPermissionShownUseCase(authRepository);
   final putUbicationUseCase = PutUbicationUseCase(authRepository);
 
-  final userRemoteDatasource = UserRemoteDatasourceImpl(http.Client());
-  final userRepository = UserRepositoryImpl(
-    remote: userRemoteDatasource,
-    local: localDatasource,
-  );
+  final userRemoteDatasource = UserRemoteDatasourceImpl(authHttpClient);
+  final userRepository = UserRepositoryImpl(remote: userRemoteDatasource);
   final registerFcmTokenUseCase = RegisterFcmTokenUseCase(userRepository);
+  final getMeUseCase = GetMeUseCase(userRepository);
 
   final authViewModel = AuthViewModel(
     loginUseCase: loginUseCase,
@@ -152,6 +152,8 @@ void main() async {
   );
   authViewModelRef = authViewModel;
 
+  final userViewModel = UserViewModel(getMeUseCase: getMeUseCase);
+
   // Datos de sesión guardados
   final isLoggedIn = authRepository.isLoggedIn;
   final savedUserName = authRepository.savedUserName;
@@ -166,8 +168,11 @@ void main() async {
   );
 
   runApp(
-    ChangeNotifierProvider.value(
-      value: authViewModel,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: authViewModel),
+        ChangeNotifierProvider.value(value: userViewModel),
+      ],
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)
           : app,
