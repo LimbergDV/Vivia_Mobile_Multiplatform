@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:device_preview/device_preview.dart';
@@ -17,6 +18,10 @@ import 'package:vivia_mobile/features/auth/domain/usecases/register_lessee_googl
 import 'package:vivia_mobile/features/auth/domain/usecases/register_lessor_google_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
+import 'package:vivia_mobile/features/user/data/datasources/remote/user_remote_datasource.dart';
+import 'package:vivia_mobile/features/user/data/repositories/user_repository_impl.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/register_fcm_token_usecase.dart';
+import 'package:vivia_mobile/firebase_options.dart';
 
 import 'app.dart';
 
@@ -24,6 +29,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: '.env');
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final prefs = await SharedPreferences.getInstance();
 
@@ -44,6 +51,13 @@ void main() async {
   final registerLessorGoogleUseCase =
   RegisterLessorGoogleUseCase(authRepository);
   final logoutUseCase = LogoutUseCase(authRepository);
+
+  final userRemoteDatasource = UserRemoteDatasourceImpl(http.Client());
+  final userRepository = UserRepositoryImpl(
+    remote: userRemoteDatasource,
+    local: localDatasource,
+  );
+  final registerFcmTokenUseCase = RegisterFcmTokenUseCase(userRepository);
 
   // Datos de sesión guardados
   final isLoggedIn = authRepository.isLoggedIn;
@@ -68,6 +82,7 @@ void main() async {
         registerLesseeGoogleUseCase: registerLesseeGoogleUseCase,
         registerLessorGoogleUseCase: registerLessorGoogleUseCase,
         logoutUseCase: logoutUseCase,
+        registerFcmTokenUseCase: registerFcmTokenUseCase,
       ),
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)

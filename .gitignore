@@ -49,3 +49,5 @@ app.*.map.json
 
 # Google Services (Firebase)
 android/app/google-services.json
+
+.codegraph

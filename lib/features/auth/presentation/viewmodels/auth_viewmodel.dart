@@ -10,6 +10,7 @@ import 'package:vivia_mobile/features/auth/domain/usecases/register_lessor_useca
 import 'package:vivia_mobile/features/auth/domain/usecases/register_lessee_google_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/register_lessor_google_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/register_fcm_token_usecase.dart';
 
 enum AuthStatus { idle, loading, success, error }
 
@@ -21,6 +22,7 @@ class AuthViewModel extends ChangeNotifier {
   final RegisterLesseeGoogleUseCase _registerLesseeGoogleUseCase;
   final RegisterLessorGoogleUseCase _registerLessorGoogleUseCase;
   final LogoutUseCase _logoutUseCase;
+  final RegisterFcmTokenUseCase _registerFcmTokenUseCase;
 
   AuthViewModel({
     required LoginUseCase loginUseCase,
@@ -30,13 +32,15 @@ class AuthViewModel extends ChangeNotifier {
     required RegisterLesseeGoogleUseCase registerLesseeGoogleUseCase,
     required RegisterLessorGoogleUseCase registerLessorGoogleUseCase,
     required LogoutUseCase logoutUseCase,
+    required RegisterFcmTokenUseCase registerFcmTokenUseCase,
   })  : _loginUseCase = loginUseCase,
         _loginGoogleUseCase = loginGoogleUseCase,
         _registerLesseeUseCase = registerLesseeUseCase,
         _registerLessorUseCase = registerLessorUseCase,
         _registerLesseeGoogleUseCase = registerLesseeGoogleUseCase,
         _registerLessorGoogleUseCase = registerLessorGoogleUseCase,
-        _logoutUseCase = logoutUseCase;
+        _logoutUseCase = logoutUseCase,
+        _registerFcmTokenUseCase = registerFcmTokenUseCase;
 
   // ── Estado ────────────────────────────────────────────────────────────
   AuthStatus _status = AuthStatus.idle;
@@ -128,6 +132,7 @@ class AuthViewModel extends ChangeNotifier {
       _lastRole = role;
       _avatarUrl = null;
       _status = AuthStatus.success;
+      _registerFcmTokenUseCase.execute().ignore();
     } catch (e) {
       _status = AuthStatus.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -166,6 +171,7 @@ class AuthViewModel extends ChangeNotifier {
       _lastRole = role;
       _avatarUrl = null;
       _status = AuthStatus.success;
+      _registerFcmTokenUseCase.execute().ignore();
     } catch (e) {
       _status = AuthStatus.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -221,6 +227,7 @@ class AuthViewModel extends ChangeNotifier {
       _lastRole = role;
       _avatarUrl = photoUrl;
       _status = AuthStatus.success;
+      _registerFcmTokenUseCase.execute().ignore();
     } catch (e) {
       _status = AuthStatus.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -244,6 +251,8 @@ class AuthViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> syncFcmToken() => _registerFcmTokenUseCase.execute();
 
   void resetStatus() {
     _status = AuthStatus.idle;
