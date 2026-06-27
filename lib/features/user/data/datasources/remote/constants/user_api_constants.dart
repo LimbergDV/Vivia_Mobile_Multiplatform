@@ -6,8 +6,8 @@ class UserApiConstants {
 
   static String get baseUrl => dotenv.env['API_BASE_URL'] ?? '';
 
+  static String get me => '$baseUrl/users/me';
   static String get fcmToken => '$baseUrl/users/me/fcm-token';
 
-  static Map<String, String> headers({String? accessToken}) =>
-      AuthApiConstants.headers(accessToken: accessToken);
+  static Map<String, String> headers() => AuthApiConstants.headers();
 }

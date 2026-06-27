@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
+import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 import 'package:vivia_mobile/features/home/domain/enums/property_category.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/property_detail_page.dart';
@@ -31,6 +33,15 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   PropertyCategory _selectedCategory = PropertyCategory.todas;
   HomeNavItem _selectedNav = HomeNavItem.home;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<UserViewModel>().init(widget.userName, widget.avatarUrl);
+    });
+  }
   final TextEditingController _searchController = TextEditingController();
 
   void _onNavSelected(HomeNavItem item) {
@@ -109,8 +120,6 @@ class _HomePageState extends State<HomePage> {
 
     if (isLandscape) {
       return _LandscapeScaffold(
-        userName: widget.userName,
-        avatarUrl: widget.avatarUrl,
         role: widget.role,
         selectedCategory: _selectedCategory,
         selectedNav: _selectedNav,
@@ -122,8 +131,6 @@ class _HomePageState extends State<HomePage> {
     }
 
     return _PortraitScaffold(
-      userName: widget.userName,
-      avatarUrl: widget.avatarUrl,
       role: widget.role,
       selectedCategory: _selectedCategory,
       selectedNav: _selectedNav,
@@ -136,8 +143,6 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _PortraitScaffold extends StatelessWidget {
-  final String userName;
-  final String? avatarUrl;
   final UserRole role;
   final PropertyCategory selectedCategory;
   final HomeNavItem selectedNav;
@@ -147,8 +152,6 @@ class _PortraitScaffold extends StatelessWidget {
   final ValueChanged<HomeNavItem> onNavSelected;
 
   const _PortraitScaffold({
-    required this.userName,
-    required this.avatarUrl,
     required this.role,
     required this.selectedCategory,
     required this.selectedNav,
@@ -177,11 +180,7 @@ class _PortraitScaffold extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  HomeHeader(
-                    userName: userName,
-                    avatarUrl: avatarUrl,
-                    notificationCount: 1,
-                  ),
+                  const HomeHeader(notificationCount: 1),
                   SizedBox(height: screenHeight * 0.025),
                   HomeSearchBar(controller: searchController),
                   SizedBox(height: screenHeight * 0.02),
@@ -313,8 +312,6 @@ class _PortraitScaffold extends StatelessWidget {
 }
 
 class _LandscapeScaffold extends StatelessWidget {
-  final String userName;
-  final String? avatarUrl;
   final UserRole role;
   final PropertyCategory selectedCategory;
   final HomeNavItem selectedNav;
@@ -324,8 +321,6 @@ class _LandscapeScaffold extends StatelessWidget {
   final ValueChanged<HomeNavItem> onNavSelected;
 
   const _LandscapeScaffold({
-    required this.userName,
-    required this.avatarUrl,
     required this.role,
     required this.selectedCategory,
     required this.selectedNav,
@@ -368,11 +363,7 @@ class _LandscapeScaffold extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        HomeHeader(
-                          userName: userName,
-                          avatarUrl: avatarUrl,
-                          notificationCount: 1,
-                        ),
+                        const HomeHeader(notificationCount: 1),
                         const SizedBox(height: 14),
                         HomeSearchBar(controller: searchController),
                         const SizedBox(height: 14),
