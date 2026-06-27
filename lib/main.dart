@@ -8,7 +8,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:vivia_mobile/core/http/auth_http_client.dart';
 import 'package:vivia_mobile/features/auth/data/datasources/local/auth_local_datasource.dart';
 import 'package:vivia_mobile/features/auth/data/datasources/remote/auth_remote_datasource.dart';
@@ -131,6 +130,13 @@ void main() async {
   final setLocationPermissionShownUseCase = SetLocationPermissionShownUseCase(authRepository);
   final putUbicationUseCase = PutUbicationUseCase(authRepository);
 
+  final userRemoteDatasource = UserRemoteDatasourceImpl(http.Client());
+  final userRepository = UserRepositoryImpl(
+    remote: userRemoteDatasource,
+    local: localDatasource,
+  );
+  final registerFcmTokenUseCase = RegisterFcmTokenUseCase(userRepository);
+
   final authViewModel = AuthViewModel(
     loginUseCase: loginUseCase,
     loginGoogleUseCase: loginGoogleUseCase,
@@ -142,15 +148,9 @@ void main() async {
     setLocationPermissionShownUseCase: setLocationPermissionShownUseCase,
     putUbicationUseCase: putUbicationUseCase,
     authRepository: authRepository,
+    registerFcmTokenUseCase: registerFcmTokenUseCase,
   );
   authViewModelRef = authViewModel;
-
-  final userRemoteDatasource = UserRemoteDatasourceImpl(http.Client());
-  final userRepository = UserRepositoryImpl(
-    remote: userRemoteDatasource,
-    local: localDatasource,
-  );
-  final registerFcmTokenUseCase = RegisterFcmTokenUseCase(userRepository);
 
   // Datos de sesión guardados
   final isLoggedIn = authRepository.isLoggedIn;
@@ -168,17 +168,6 @@ void main() async {
   runApp(
     ChangeNotifierProvider.value(
       value: authViewModel,
-    ChangeNotifierProvider(
-      create: (_) => AuthViewModel(
-        loginUseCase: loginUseCase,
-        loginGoogleUseCase: loginGoogleUseCase,
-        registerLesseeUseCase: registerLesseeUseCase,
-        registerLessorUseCase: registerLessorUseCase,
-        registerLesseeGoogleUseCase: registerLesseeGoogleUseCase,
-        registerLessorGoogleUseCase: registerLessorGoogleUseCase,
-        logoutUseCase: logoutUseCase,
-        registerFcmTokenUseCase: registerFcmTokenUseCase,
-      ),
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)
           : app,

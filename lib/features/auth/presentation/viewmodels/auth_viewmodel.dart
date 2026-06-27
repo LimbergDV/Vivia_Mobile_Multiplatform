@@ -53,8 +53,7 @@ class AuthViewModel extends ChangeNotifier {
         _registerLesseeGoogleUseCase = registerLesseeGoogleUseCase,
         _registerLessorGoogleUseCase = registerLessorGoogleUseCase,
         _logoutUseCase = logoutUseCase,
-        _registerFcmTokenUseCase = registerFcmTokenUseCase;
-        _logoutUseCase = logoutUseCase,
+        _registerFcmTokenUseCase = registerFcmTokenUseCase,
         _setLocationPermissionShownUseCase = setLocationPermissionShownUseCase,
         _putUbicationUseCase = putUbicationUseCase,
         _authRepository = authRepository;
