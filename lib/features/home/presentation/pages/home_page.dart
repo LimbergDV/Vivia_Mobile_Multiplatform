@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/home/domain/enums/property_category.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/property_detail_page.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/category_chip_list.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/empty_properties_state.dart';
@@ -31,6 +32,21 @@ class _HomePageState extends State<HomePage> {
   PropertyCategory _selectedCategory = PropertyCategory.todas;
   HomeNavItem _selectedNav = HomeNavItem.home;
   final TextEditingController _searchController = TextEditingController();
+
+  void _onNavSelected(HomeNavItem item) {
+    if (item == HomeNavItem.add && widget.role == UserRole.lessor) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AddPropertyPage()),
+      );
+      return;
+    }
+    if (item == HomeNavItem.home) {
+      setState(() => _selectedNav = item);
+      return;
+    }
+    setState(() => _selectedNav = item);
+  }
 
   final List<PropertyModel> _properties = [
     PropertyModel(
@@ -84,17 +100,6 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _onNavSelected(HomeNavItem item) {
-    if (item == HomeNavItem.add && widget.role == UserRole.lessor) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const AddPropertyPage()),
-      );
-      return;
-    }
-    setState(() => _selectedNav = item);
   }
 
   @override
@@ -158,7 +163,6 @@ class _PortraitScaffold extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -224,6 +228,16 @@ class _PortraitScaffold extends StatelessWidget {
                           const SizedBox(width: 12),
                           itemBuilder: (context, i) => NearbyPropertyCard(
                             property: properties[i],
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PropertyDetailPage(
+                                    property: properties[i],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -276,6 +290,16 @@ class _PortraitScaffold extends StatelessWidget {
                 delegate: SliverChildBuilderDelegate(
                       (context, index) => PropertyCard(
                     property: properties[index],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PropertyDetailPage(
+                            property: properties[index],
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   childCount: properties.length,
                 ),
@@ -395,6 +419,16 @@ class _LandscapeScaffold extends StatelessWidget {
                                 itemBuilder: (context, i) =>
                                     NearbyPropertyCard(
                                       property: properties[i],
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => PropertyDetailPage(
+                                              property: properties[i],
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     ),
                               ),
                             ),
@@ -440,6 +474,16 @@ class _LandscapeScaffold extends StatelessWidget {
                       delegate: SliverChildBuilderDelegate(
                             (context, index) => PropertyCard(
                           property: properties[index],
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PropertyDetailPage(
+                                  property: properties[index],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         childCount: properties.length,
                       ),
