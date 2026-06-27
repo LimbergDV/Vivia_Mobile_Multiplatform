@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/login_usecase.dart';
@@ -11,6 +15,9 @@ import 'package:vivia_mobile/features/auth/domain/usecases/register_lessee_googl
 import 'package:vivia_mobile/features/auth/domain/usecases/register_lessor_google_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/register_fcm_token_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/set_location_permission_shown_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/repositories/auth_repository.dart';
 
 enum AuthStatus { idle, loading, success, error }
 
@@ -22,6 +29,9 @@ class AuthViewModel extends ChangeNotifier {
   final RegisterLesseeGoogleUseCase _registerLesseeGoogleUseCase;
   final RegisterLessorGoogleUseCase _registerLessorGoogleUseCase;
   final LogoutUseCase _logoutUseCase;
+  final SetLocationPermissionShownUseCase _setLocationPermissionShownUseCase;
+  final PutUbicationUseCase _putUbicationUseCase;
+  final AuthRepository _authRepository;
   final RegisterFcmTokenUseCase _registerFcmTokenUseCase;
 
   AuthViewModel({
@@ -32,6 +42,9 @@ class AuthViewModel extends ChangeNotifier {
     required RegisterLesseeGoogleUseCase registerLesseeGoogleUseCase,
     required RegisterLessorGoogleUseCase registerLessorGoogleUseCase,
     required LogoutUseCase logoutUseCase,
+    required SetLocationPermissionShownUseCase setLocationPermissionShownUseCase,
+    required PutUbicationUseCase putUbicationUseCase,
+    required AuthRepository authRepository,
     required RegisterFcmTokenUseCase registerFcmTokenUseCase,
   })  : _loginUseCase = loginUseCase,
         _loginGoogleUseCase = loginGoogleUseCase,
@@ -40,7 +53,10 @@ class AuthViewModel extends ChangeNotifier {
         _registerLesseeGoogleUseCase = registerLesseeGoogleUseCase,
         _registerLessorGoogleUseCase = registerLessorGoogleUseCase,
         _logoutUseCase = logoutUseCase,
-        _registerFcmTokenUseCase = registerFcmTokenUseCase;
+        _registerFcmTokenUseCase = registerFcmTokenUseCase,
+        _setLocationPermissionShownUseCase = setLocationPermissionShownUseCase,
+        _putUbicationUseCase = putUbicationUseCase,
+        _authRepository = authRepository;
 
   // ── Estado ────────────────────────────────────────────────────────────
   AuthStatus _status = AuthStatus.idle;
@@ -56,6 +72,7 @@ class AuthViewModel extends ChangeNotifier {
   String get userName => _userName;
   String? get avatarUrl => _avatarUrl;
   UserRole get lastRole => _lastRole;
+  bool get hasSeenLocationPermission => _authRepository.hasSeenLocationPermission;
 
   void _setLoading() {
     _status = AuthStatus.loading;
@@ -208,7 +225,8 @@ class AuthViewModel extends ChangeNotifier {
           displayName: displayName,
           avatarUrl: photoUrl,
         );
-      } catch (_) {
+      } catch (e) {
+        if (e is TimeoutException || e is SocketException || e is http.ClientException) rethrow;
         if (role == UserRole.lessee) {
           await _registerLesseeGoogleUseCase.execute(
             idToken: idToken,
@@ -258,6 +276,25 @@ class AuthViewModel extends ChangeNotifier {
     _status = AuthStatus.idle;
     _errorMessage = null;
     notifyListeners();
+  }
+
+  // Llamado por AuthHttpClient cuando el refresh token también expiró
+  void handleSessionExpired() {
+    _userName = '';
+    _avatarUrl = null;
+    _status = AuthStatus.idle;
+    notifyListeners();
+  }
+
+  // ── Ubicación ─────────────────────────────────────────────────────────
+
+  Future<void> markLocationPermissionShown() =>
+      _setLocationPermissionShownUseCase.execute();
+
+  void putUbicationFireAndForget(double latitude, double longitude) {
+    _putUbicationUseCase
+        .execute(latitude: latitude, longitude: longitude)
+        .catchError((_) {});
   }
 
   @override

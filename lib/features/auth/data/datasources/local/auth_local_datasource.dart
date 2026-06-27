@@ -17,6 +17,9 @@ abstract class AuthLocalDatasource {
   String? getAvatarUrl();
   bool get isLoggedIn;
   Future<void> clearSession();
+
+  bool getLocationPermissionShown();
+  Future<void> setLocationPermissionShown();
 }
 
 // ── Implementación con SharedPreferences ──────────────────────────────────
@@ -28,6 +31,7 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
   static const _roleKey = 'user_role';
   static const _userNameKey = 'user_name';
   static const _avatarKey = 'user_avatar_url';
+  static const _locationPermissionShownKey = 'has_seen_location_permission';
 
   AuthLocalDatasourceImpl(this._prefs);
 
@@ -76,4 +80,12 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
     await _prefs.remove(_userNameKey);
     await _prefs.remove(_avatarKey);
   }
+
+  @override
+  bool getLocationPermissionShown() =>
+      _prefs.getBool(_locationPermissionShownKey) ?? false;
+
+  @override
+  Future<void> setLocationPermissionShown() =>
+      _prefs.setBool(_locationPermissionShownKey, true);
 }

@@ -16,6 +16,7 @@ class AuthApiConstants {
   // ── Lessee ────────────────────────────────────────────────────────────
   static String get registerLessee => '$baseUrl/lessees/password';
   static String get registerLesseeGoogle => '$baseUrl/lessees/google';
+  static String get lesseeUbication => '$baseUrl/lessees/ubication';
   static String get lesseeBiometricChallenge =>
       '$baseUrl/lessees/biometric/challenge';
   static String get lesseeBiometricVerify =>

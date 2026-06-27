@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/widgets.dart';
+import 'package:vivia_mobile/features/auth/presentation/pages/location_permissions_page.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/home_page.dart';
 
 class LoginPage extends StatelessWidget {
@@ -34,16 +35,32 @@ class _LoginViewState extends State<_LoginView> {
   void _onAuthChanged() {
     final vm = context.read<AuthViewModel>();
     if (vm.status == AuthStatus.success) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => HomePage(
-            userName: vm.userName,
-            role: vm.lastRole,
-            avatarUrl: vm.avatarUrl,
+      final isLessee = vm.lastRole == UserRole.lessee;
+      final hasSeenPermission = vm.hasSeenLocationPermission;
+
+      if (isLessee && !hasSeenPermission) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => LocationPermissionsPage(
+              userName: vm.userName,
+              role: vm.lastRole,
+              avatarUrl: vm.avatarUrl,
+            ),
           ),
-        ),
-        (_) => false,
-      );
+          (_) => false,
+        );
+      } else {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => HomePage(
+              userName: vm.userName,
+              role: vm.lastRole,
+              avatarUrl: vm.avatarUrl,
+            ),
+          ),
+          (_) => false,
+        );
+      }
     } else if (vm.status == AuthStatus.error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(vm.errorMessage ?? 'Error desconocido')),
