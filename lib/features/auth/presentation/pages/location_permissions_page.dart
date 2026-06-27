@@ -1,10 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:lottie/lottie.dart';
-import 'package:vivia_mobile/features/auth/presentation/pages/login_page.dart';
-import 'package:vivia_mobile/features/auth/presentation/pages/role_selector_page.dart';
+import 'package:provider/provider.dart';
 
-class LocationPermissionsPage extends StatelessWidget {
-  const LocationPermissionsPage({super.key});
+import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
+import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/home_page.dart';
+
+class LocationPermissionsPage extends StatefulWidget {
+  final String userName;
+  final UserRole role;
+  final String? avatarUrl;
+
+  const LocationPermissionsPage({
+    super.key,
+    required this.userName,
+    required this.role,
+    this.avatarUrl,
+  });
+
+  @override
+  State<LocationPermissionsPage> createState() =>
+      _LocationPermissionsPageState();
+}
+
+class _LocationPermissionsPageState extends State<LocationPermissionsPage> {
+  bool _isLoading = false;
+
+  void _navigateToHome() {
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => HomePage(
+          userName: widget.userName,
+          role: widget.role,
+          avatarUrl: widget.avatarUrl,
+        ),
+      ),
+      (_) => false,
+    );
+  }
+
+  Future<void> _onAllowPressed() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final permission = await Geolocator.requestPermission();
+
+      if (permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse) {
+        try {
+          final position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 10),
+            ),
+          );
+          if (mounted) {
+            context.read<AuthViewModel>().putUbicationFireAndForget(
+                  position.latitude,
+                  position.longitude,
+                );
+          }
+        } catch (_) {
+          // Optimistic UI: si falla obtener posición, igual continuamos
+        }
+      }
+    } catch (_) {
+      // Optimistic UI: si falla el permiso del OS, igual continuamos
+    }
+
+    if (mounted) {
+      await context.read<AuthViewModel>().markLocationPermissionShown();
+      _navigateToHome();
+    }
+  }
+
+  Future<void> _onSkipPressed() async {
+    await context.read<AuthViewModel>().markLocationPermissionShown();
+    _navigateToHome();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,8 +98,8 @@ class LocationPermissionsPage extends StatelessWidget {
               SizedBox(height: screenHeight * 0.06),
 
               SizedBox(
-                width: screenWidth * 0.75,   // 75% del ancho de pantalla
-                height: screenHeight * 0.35, // 35% del alto de pantalla
+                width: screenWidth * 0.75,
+                height: screenHeight * 0.35,
                 child: Lottie.asset(
                   'assets/images/locations_animated_icon.json',
                   fit: BoxFit.contain,
@@ -55,32 +130,40 @@ class LocationPermissionsPage extends StatelessWidget {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                      MaterialPageRoute(builder: (_) => const RoleSelectorPage()),
-                  ),
+                  onPressed: _isLoading ? null : _onAllowPressed,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colorScheme.primary,
                     foregroundColor: colorScheme.onPrimary,
+                    disabledBackgroundColor:
+                        colorScheme.primary.withOpacity(0.5),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-                  child: Text(
-                    'Permitir Ubicación',
-                    style: textTheme.labelLarge?.copyWith(
-                      color: colorScheme.onPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: colorScheme.onPrimary,
+                          ),
+                        )
+                      : Text(
+                          'Permitir Ubicación',
+                          style: textTheme.labelLarge?.copyWith(
+                            color: colorScheme.onPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
 
               const Spacer(),
 
               GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
+                onTap: _isLoading ? null : _onSkipPressed,
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Text(

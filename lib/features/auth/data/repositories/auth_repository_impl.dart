@@ -130,10 +130,12 @@ class AuthRepositoryImpl implements AuthRepository {
   }) async {
     final roleStr = role == UserRole.lessee ? 'ROLE_LESSEE' : 'ROLE_LESSOR';
     final result = await _remote.loginWithGoogle(idToken, roleStr);
+    final claims = _decodeJwtPayload(result.accessToken);
+    final actualRole = _extractRoleFromClaims(claims);
     await _local.saveSession(
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
-      role: roleStr,
+      role: actualRole,
       userName: displayName.split(' ').first,
       avatarUrl: avatarUrl,
     );
@@ -162,12 +164,9 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    final token = _local.getAccessToken();
-    if (token != null) {
-      try {
-        await _remote.logout(token);
-      } catch (_) {}
-    }
+    try {
+      await _remote.logout();
+    } catch (_) {}
     await _local.clearSession();
   }
 
@@ -182,4 +181,20 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   String? get savedAvatarUrl => _local.getAvatarUrl();
+
+  // ── Ubicación ─────────────────────────────────────────────────────────
+
+  @override
+  bool get hasSeenLocationPermission => _local.getLocationPermissionShown();
+
+  @override
+  Future<void> setLocationPermissionShown() =>
+      _local.setLocationPermissionShown();
+
+  @override
+  Future<void> putUbication({
+    required double latitude,
+    required double longitude,
+  }) =>
+      _remote.putUbication(latitude: latitude, longitude: longitude);
 }

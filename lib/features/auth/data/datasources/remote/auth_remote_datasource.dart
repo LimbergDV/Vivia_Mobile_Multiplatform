@@ -54,7 +54,13 @@ abstract class AuthRemoteDatasource {
 
   // Sesión
   Future<AuthResponseModel> refreshToken(String refreshToken);
-  Future<void> logout(String accessToken);
+  Future<void> logout();
+
+  // Ubicación
+  Future<void> putUbication({
+    required double latitude,
+    required double longitude,
+  });
 }
 
 // ── Implementación ────────────────────────────────────────────────────────
@@ -277,10 +283,30 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   }
 
   @override
-  Future<void> logout(String accessToken) async {
+  Future<void> logout() async {
     await _client.post(
       Uri.parse(AuthApiConstants.logout),
-      headers: AuthApiConstants.headers(accessToken: accessToken),
+      headers: AuthApiConstants.headers(),
     ).timeout(_timeout);
+  }
+
+  // ── Ubicación ─────────────────────────────────────────────────────────
+
+  @override
+  Future<void> putUbication({
+    required double latitude,
+    required double longitude,
+  }) async {
+    final res = await _client.put(
+      Uri.parse(AuthApiConstants.lesseeUbication),
+      headers: AuthApiConstants.headers(),
+      body: jsonEncode({'latitude': latitude, 'longitude': longitude}),
+    ).timeout(_timeout);
+
+    print('--------------------------------------------------');
+    print('PUT /lessees/ubication');
+    print('Status: ${res.statusCode}');
+    print('Body:   ${res.body}');
+    print('--------------------------------------------------');
   }
 }
