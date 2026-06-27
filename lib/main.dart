@@ -1,5 +1,8 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -20,13 +23,82 @@ import 'package:vivia_mobile/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/set_location_permission_shown_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
+import 'package:vivia_mobile/features/user/data/datasources/remote/user_remote_datasource.dart';
+import 'package:vivia_mobile/features/user/data/repositories/user_repository_impl.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/register_fcm_token_usecase.dart';
+import 'package:vivia_mobile/firebase_options.dart';
 
 import 'app.dart';
+
+const _channelId = 'vivia_notifications';
+const _channelName = 'Vivia Notificaciones';
+
+final FlutterLocalNotificationsPlugin _localNotifications =
+    FlutterLocalNotificationsPlugin();
+
+// Handler para mensajes en background/terminated — debe ser top-level
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+}
+
+Future<void> _initLocalNotifications() async {
+  const androidSettings =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const initSettings = InitializationSettings(android: androidSettings);
+  await _localNotifications.initialize(initSettings);
+
+  // Canal requerido para Android 8+
+  const channel = AndroidNotificationChannel(
+    _channelId,
+    _channelName,
+    importance: Importance.high,
+  );
+  await _localNotifications
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+}
+
+void _listenForegroundMessages() {
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    final notification = message.notification;
+    if (notification == null) return;
+
+    _localNotifications.show(
+      notification.hashCode,
+      notification.title,
+      notification.body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      ),
+    );
+  });
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: '.env');
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  await _initLocalNotifications();
+  _listenForegroundMessages();
+
+  // Solicitar permiso de notificaciones (crítico en Android 13+ / iOS)
+  await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
 
   final prefs = await SharedPreferences.getInstance();
   final localDatasource = AuthLocalDatasourceImpl(prefs);
@@ -73,6 +145,13 @@ void main() async {
   );
   authViewModelRef = authViewModel;
 
+  final userRemoteDatasource = UserRemoteDatasourceImpl(http.Client());
+  final userRepository = UserRepositoryImpl(
+    remote: userRemoteDatasource,
+    local: localDatasource,
+  );
+  final registerFcmTokenUseCase = RegisterFcmTokenUseCase(userRepository);
+
   // Datos de sesión guardados
   final isLoggedIn = authRepository.isLoggedIn;
   final savedUserName = authRepository.savedUserName;
@@ -89,6 +168,17 @@ void main() async {
   runApp(
     ChangeNotifierProvider.value(
       value: authViewModel,
+    ChangeNotifierProvider(
+      create: (_) => AuthViewModel(
+        loginUseCase: loginUseCase,
+        loginGoogleUseCase: loginGoogleUseCase,
+        registerLesseeUseCase: registerLesseeUseCase,
+        registerLessorUseCase: registerLessorUseCase,
+        registerLesseeGoogleUseCase: registerLesseeGoogleUseCase,
+        registerLessorGoogleUseCase: registerLessorGoogleUseCase,
+        logoutUseCase: logoutUseCase,
+        registerFcmTokenUseCase: registerFcmTokenUseCase,
+      ),
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)
           : app,

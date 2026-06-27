@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/role_selector_page.dart';
+import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/home_page.dart';
 
 class SplashPage extends StatefulWidget {
@@ -93,6 +95,7 @@ class _SplashPageState extends State<SplashPage>
     final Widget destination;
 
     if (widget.isLoggedIn) {
+      context.read<AuthViewModel>().syncFcmToken().ignore();
       final role = widget.savedRole == 'ROLE_LESSOR'
           ? UserRole.lessor
           : UserRole.lessee;

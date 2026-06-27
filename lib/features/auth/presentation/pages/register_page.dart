@@ -26,14 +26,18 @@ class _RegisterView extends StatefulWidget {
 }
 
 class _RegisterViewState extends State<_RegisterView> {
+  late final AuthViewModel _vm;
+
   @override
   void initState() {
     super.initState();
-    context.read<AuthViewModel>().addListener(_onAuthChanged);
+    _vm = context.read<AuthViewModel>();
+    _vm.addListener(_onAuthChanged);
   }
 
   void _onAuthChanged() {
-    final vm = context.read<AuthViewModel>();
+    if (!mounted) return;
+    final vm = _vm;
     if (vm.status == AuthStatus.success) {
       final isLessee = vm.lastRole == UserRole.lessee;
       final hasSeenPermission = vm.hasSeenLocationPermission;
@@ -71,7 +75,7 @@ class _RegisterViewState extends State<_RegisterView> {
 
   @override
   void dispose() {
-    context.read<AuthViewModel>().removeListener(_onAuthChanged);
+    _vm.removeListener(_onAuthChanged);
     super.dispose();
   }
 

@@ -14,6 +14,7 @@ import 'package:vivia_mobile/features/auth/domain/usecases/register_lessor_useca
 import 'package:vivia_mobile/features/auth/domain/usecases/register_lessee_google_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/register_lessor_google_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/register_fcm_token_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/set_location_permission_shown_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/repositories/auth_repository.dart';
@@ -31,6 +32,7 @@ class AuthViewModel extends ChangeNotifier {
   final SetLocationPermissionShownUseCase _setLocationPermissionShownUseCase;
   final PutUbicationUseCase _putUbicationUseCase;
   final AuthRepository _authRepository;
+  final RegisterFcmTokenUseCase _registerFcmTokenUseCase;
 
   AuthViewModel({
     required LoginUseCase loginUseCase,
@@ -43,12 +45,15 @@ class AuthViewModel extends ChangeNotifier {
     required SetLocationPermissionShownUseCase setLocationPermissionShownUseCase,
     required PutUbicationUseCase putUbicationUseCase,
     required AuthRepository authRepository,
+    required RegisterFcmTokenUseCase registerFcmTokenUseCase,
   })  : _loginUseCase = loginUseCase,
         _loginGoogleUseCase = loginGoogleUseCase,
         _registerLesseeUseCase = registerLesseeUseCase,
         _registerLessorUseCase = registerLessorUseCase,
         _registerLesseeGoogleUseCase = registerLesseeGoogleUseCase,
         _registerLessorGoogleUseCase = registerLessorGoogleUseCase,
+        _logoutUseCase = logoutUseCase,
+        _registerFcmTokenUseCase = registerFcmTokenUseCase;
         _logoutUseCase = logoutUseCase,
         _setLocationPermissionShownUseCase = setLocationPermissionShownUseCase,
         _putUbicationUseCase = putUbicationUseCase,
@@ -145,6 +150,7 @@ class AuthViewModel extends ChangeNotifier {
       _lastRole = role;
       _avatarUrl = null;
       _status = AuthStatus.success;
+      _registerFcmTokenUseCase.execute().ignore();
     } catch (e) {
       _status = AuthStatus.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -183,6 +189,7 @@ class AuthViewModel extends ChangeNotifier {
       _lastRole = role;
       _avatarUrl = null;
       _status = AuthStatus.success;
+      _registerFcmTokenUseCase.execute().ignore();
     } catch (e) {
       _status = AuthStatus.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -239,6 +246,7 @@ class AuthViewModel extends ChangeNotifier {
       _lastRole = role;
       _avatarUrl = photoUrl;
       _status = AuthStatus.success;
+      _registerFcmTokenUseCase.execute().ignore();
     } catch (e) {
       _status = AuthStatus.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -262,6 +270,8 @@ class AuthViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> syncFcmToken() => _registerFcmTokenUseCase.execute();
 
   void resetStatus() {
     _status = AuthStatus.idle;
