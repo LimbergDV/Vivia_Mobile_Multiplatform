@@ -7,6 +7,7 @@ class PropertyTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final String? Function(String?)? validator;
+  final ValueChanged<String>? onChanged;
 
   const PropertyTextField({
     super.key,
@@ -15,6 +16,7 @@ class PropertyTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.inputFormatters,
     this.validator,
+    this.onChanged,
   });
 
   @override
@@ -27,6 +29,7 @@ class PropertyTextField extends StatelessWidget {
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       validator: validator,
+      onChanged: onChanged,
       style: textTheme.bodyMedium?.copyWith(
         color: colorScheme.onSurface,
       ),
