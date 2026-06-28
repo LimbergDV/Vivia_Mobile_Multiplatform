@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
+import 'package:vivia_mobile/features/home/domain/models/property_detail.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/fullscreen_image_viewer.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/gallery_page.dart';
+import 'package:vivia_mobile/features/home/presentation/viewmodels/property_detail_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 
 class PropertyDetailPage extends StatefulWidget {
@@ -19,41 +23,44 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  // TODO: Replace with real data from backend
-  List<String> get _images => [
-    widget.property.imageUrl,
-    widget.property.imageUrl,
-    widget.property.imageUrl,
-    widget.property.imageUrl,
-  ];
+  late final PropertyDetailViewModel _vm;
 
-  // TODO: Replace with real gallery images from backend
-  List<String> get _galleryImages => [
-    widget.property.imageUrl,
-    widget.property.imageUrl,
-    widget.property.imageUrl,
-  ];
-
-  String get _formattedPrice {
-    return '\$${widget.property.price.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+$)'),
-          (m) => '${m[1]},',
-    )}';
-  }
-
-  String get _propertyTypeLabel {
-    final type = widget.property.type;
-    if (type.toLowerCase().contains('departamento') ||
-        type.toLowerCase().contains('pisos')) {
-      return 'DEPARTAMENTO';
-    }
-    return type.toUpperCase();
+  @override
+  void initState() {
+    super.initState();
+    _vm = PropertyDetailViewModel(
+      getPropertyByIdUseCase: context.read<GetPropertyByIdUseCase>(),
+    );
+    _vm.load(widget.property.id);
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _vm.dispose();
     super.dispose();
+  }
+
+  // Imágenes del carrusel: las del detalle si ya cargaron, si no la de la summary.
+  List<String> _images(PropertyDetail? detail) {
+    final urls = detail?.imageUrls ?? const [];
+    if (urls.isNotEmpty) return urls;
+    return [widget.property.imageUrl];
+  }
+
+  String _formatPrice(double price) =>
+      '\$${price.toStringAsFixed(0).replaceAllMapped(
+            RegExp(r'(\d)(?=(\d{3})+$)'),
+            (m) => '${m[1]},',
+          )}';
+
+  String _typeLabel(PropertyDetail? detail) {
+    final type = detail?.propertyType.name ?? widget.property.type;
+    if (type.toLowerCase().contains('departamento') ||
+        type.toLowerCase().contains('pisos')) {
+      return 'DEPARTAMENTO';
+    }
+    return type.toUpperCase();
   }
 
   void _onNavSelected(HomeNavItem item) {
@@ -80,95 +87,108 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
         selected: _selectedNav,
         onItemSelected: _onNavSelected,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            SizedBox(
-              height: imageHeight,
-              width: double.infinity,
-              child: Stack(
-                children: [
-                  PageView.builder(
-                    controller: _pageController,
-                    itemCount: _images.length,
-                    onPageChanged: (i) => setState(() => _currentPage = i),
-                    itemBuilder: (_, index) {
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => FullscreenImageViewer(
-                                imageUrls: _images,
-                                initialIndex: index,
+      body: AnimatedBuilder(
+        animation: _vm,
+        builder: (context, _) {
+          final detail = _vm.detail;
+          final images = _images(detail);
+
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                SizedBox(
+                  height: imageHeight,
+                  width: double.infinity,
+                  child: Stack(
+                    children: [
+                      PageView.builder(
+                        controller: _pageController,
+                        itemCount: images.length,
+                        onPageChanged: (i) => setState(() => _currentPage = i),
+                        itemBuilder: (_, index) {
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => FullscreenImageViewer(
+                                    imageUrls: images,
+                                    initialIndex: index,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Image.network(
+                              images[index],
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: colorScheme.surfaceContainerHigh,
+                                child: Icon(Icons.image_outlined,
+                                    size: 64,
+                                    color: colorScheme.onSurfaceVariant
+                                        .withOpacity(0.3)),
                               ),
                             ),
                           );
                         },
-                        child: Image.network(
-                          _images[index],
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: colorScheme.surfaceContainerHigh,
-                            child: Icon(Icons.image_outlined,
-                                size: 64,
-                                color: colorScheme.onSurfaceVariant
-                                    .withOpacity(0.3)),
+                      ),
+                      if (images.length > 1)
+                        Positioned(
+                          bottom: 30,
+                          left: 0,
+                          right: 0,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(images.length, (i) {
+                              final isActive = i == _currentPage;
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 3),
+                                width: isActive ? 24 : 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: isActive
+                                      ? colorScheme.primary
+                                      : Colors.white.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              );
+                            }),
                           ),
                         ),
-                      );
-                    },
+                    ],
                   ),
-                  Positioned(
-                    bottom: 30,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(_images.length, (i) {
-                        final isActive = i == _currentPage;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          width: isActive ? 24 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? colorScheme.primary
-                                : Colors.white.withOpacity(0.6),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        );
-                      }),
+                ),
+
+                Transform.translate(
+                  offset: const Offset(0, -20),
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(24),
+                        topRight: Radius.circular(24),
+                      ),
+                    ),
+                    child: _ContentBody(
+                      property: widget.property,
+                      detail: detail,
+                      isLoading: _vm.status == PropertyDetailStatus.loading,
+                      formattedPrice: _formatPrice(
+                        detail?.listedPrice ?? widget.property.price,
+                      ),
+                      propertyTypeLabel: _typeLabel(detail),
+                      galleryImages: images,
+                      isLandscape: isLandscape,
                     ),
                   ),
-                ],
-              ),
-            ),
-
-            Transform.translate(
-              offset: const Offset(0, -20),
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
-                  ),
                 ),
-                child: _ContentBody(
-                  property: widget.property,
-                  formattedPrice: _formattedPrice,
-                  propertyTypeLabel: _propertyTypeLabel,
-                  galleryImages: _galleryImages,
-                  totalImageCount: 20,
-                  isLandscape: isLandscape,
-                ),
-              ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -176,18 +196,20 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
 
 class _ContentBody extends StatelessWidget {
   final PropertyModel property;
+  final PropertyDetail? detail;
+  final bool isLoading;
   final String formattedPrice;
   final String propertyTypeLabel;
   final List<String> galleryImages;
-  final int totalImageCount;
   final bool isLandscape;
 
   const _ContentBody({
     required this.property,
+    required this.detail,
+    required this.isLoading,
     required this.formattedPrice,
     required this.propertyTypeLabel,
     required this.galleryImages,
-    required this.totalImageCount,
     required this.isLandscape,
   });
 
@@ -196,6 +218,15 @@ class _ContentBody extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final horizontalPadding = isLandscape ? 32.0 : 20.0;
+
+    final title = detail?.title ?? property.title;
+    final bedrooms = detail?.bedrooms ?? property.bedrooms;
+    final bathrooms = detail?.bathrooms ?? property.bathrooms;
+    final area = detail?.areaM2 ?? property.area;
+    final description = detail?.description ?? '';
+    final location = detail?.address.formatted ?? property.location;
+    final lessor = detail?.lessor;
+    final isFavorite = detail?.like ?? property.isFavorite;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -214,8 +245,11 @@ class _ContentBody extends StatelessWidget {
               ),
               Row(
                 children: [
-                  Icon(Icons.favorite_border,
-                      color: colorScheme.onSurface, size: 24),
+                  Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: isFavorite ? Colors.red : colorScheme.onSurface,
+                    size: 24,
+                  ),
                   const SizedBox(width: 16),
                   Icon(Icons.send_outlined,
                       color: colorScheme.onSurface, size: 24),
@@ -226,7 +260,7 @@ class _ContentBody extends StatelessWidget {
           const SizedBox(height: 20),
 
           Text(
-            property.title,
+            title,
             style: textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: colorScheme.onSurface,
@@ -236,8 +270,7 @@ class _ContentBody extends StatelessWidget {
           const SizedBox(height: 8),
 
           Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
             decoration: BoxDecoration(
               color: colorScheme.primaryContainer.withOpacity(0.3),
               borderRadius: BorderRadius.circular(20),
@@ -262,30 +295,50 @@ class _ContentBody extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          _StatsRow(property: property),
+          _StatsRow(bedrooms: bedrooms, bathrooms: bathrooms, area: area),
           const SizedBox(height: 24),
 
-          _SectionTitle(label: 'Agente'),
-          const SizedBox(height: 12),
-          _AgentCard(
-            name: 'André Gabriel',
-            role: 'Dueño',
-            avatarUrl: null,
-          ),
-          const SizedBox(height: 24),
-
-          _SectionTitle(label: 'Descripción'),
-          const SizedBox(height: 10),
-          Text(
-            'Sleek, modern 2-bedroom apartment with open living space, high-end finishes, and city views. Minutes from downtown, dining, and transit.',
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              height: 1.6,
+          // Agente — solo cuando el backend lo entrega (token de lessee)
+          if (lessor != null) ...[
+            const _SectionTitle(label: 'Agente'),
+            const SizedBox(height: 12),
+            _AgentCard(
+              name: lessor.fullName,
+              role: 'Dueño',
+              avatarUrl: lessor.photoUrl,
             ),
-          ),
+            const SizedBox(height: 24),
+          ],
+
+          const _SectionTitle(label: 'Descripción'),
+          const SizedBox(height: 10),
+          if (isLoading && description.isEmpty)
+            _SkeletonLines(colorScheme: colorScheme)
+          else
+            Text(
+              description.isEmpty ? 'Sin descripción disponible.' : description,
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.6,
+              ),
+            ),
           const SizedBox(height: 24),
 
-          _SectionTitle(label: 'Imágenes y videos'),
+          // Amenidades
+          if (detail != null && detail!.amenities.isNotEmpty) ...[
+            const _SectionTitle(label: 'Amenidades'),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: detail!.amenities
+                  .map((a) => _AmenityChip(label: a.name))
+                  .toList(),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          const _SectionTitle(label: 'Imágenes y videos'),
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () {
@@ -297,22 +350,21 @@ class _ContentBody extends StatelessWidget {
             },
             child: _GalleryRow(
               images: galleryImages,
-              remaining: totalImageCount - galleryImages.length,
+              remaining: 0,
             ),
           ),
           const SizedBox(height: 24),
 
-          _SectionTitle(label: 'Ubicación'),
+          const _SectionTitle(label: 'Ubicación'),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.location_on,
-                  color: colorScheme.primary, size: 20),
+              Icon(Icons.location_on, color: colorScheme.primary, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  property.location,
+                  location.isEmpty ? 'Ubicación no disponible' : location,
                   style: textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurface,
                     height: 1.4,
@@ -348,10 +400,73 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  final PropertyModel property;
+class _SkeletonLines extends StatelessWidget {
+  final ColorScheme colorScheme;
 
-  const _StatsRow({required this.property});
+  const _SkeletonLines({required this.colorScheme});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget line(double widthFactor) => FractionallySizedBox(
+          widthFactor: widthFactor,
+          child: Container(
+            height: 12,
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [line(1), line(0.95), line(0.6)],
+    );
+  }
+}
+
+class _AmenityChip extends StatelessWidget {
+  final String label;
+
+  const _AmenityChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+class _StatsRow extends StatelessWidget {
+  final int bedrooms;
+  final double bathrooms;
+  final double area;
+
+  const _StatsRow({
+    required this.bedrooms,
+    required this.bathrooms,
+    required this.area,
+  });
+
+  String get _bathroomsLabel => bathrooms == bathrooms.truncateToDouble()
+      ? bathrooms.toInt().toString()
+      : bathrooms.toString();
 
   @override
   Widget build(BuildContext context) {
@@ -359,19 +474,19 @@ class _StatsRow extends StatelessWidget {
       children: [
         _StatItem(
           svgPath: 'assets/icons/bed_icon.svg',
-          value: '${property.bedrooms}',
+          value: '$bedrooms',
           label: 'habitaciones',
         ),
         const SizedBox(width: 24),
         _StatItem(
           svgPath: 'assets/icons/bath_icon.svg',
-          value: '${property.bathrooms}',
+          value: _bathroomsLabel,
           label: 'baños',
         ),
         const SizedBox(width: 24),
         _StatItem(
           svgPath: 'assets/icons/area_icon.svg',
-          value: '${property.area.toInt()}',
+          value: '${area.toInt()}',
           label: 'm2',
         ),
       ],
@@ -453,11 +568,12 @@ class _AgentCard extends StatelessWidget {
         CircleAvatar(
           radius: 24,
           backgroundColor: colorScheme.surfaceContainerHigh,
-          backgroundImage:
-          avatarUrl != null ? NetworkImage(avatarUrl!) : null,
-          child: avatarUrl == null
+          backgroundImage: (avatarUrl != null && avatarUrl!.isNotEmpty)
+              ? NetworkImage(avatarUrl!)
+              : null,
+          child: (avatarUrl == null || avatarUrl!.isEmpty)
               ? Icon(Icons.person,
-              color: colorScheme.onSurfaceVariant, size: 24)
+                  color: colorScheme.onSurfaceVariant, size: 24)
               : null,
         ),
         const SizedBox(width: 12),
@@ -514,13 +630,13 @@ class _GalleryRow extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
+    if (displayCount == 0) {
+      return const SizedBox.shrink();
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = 10.0;
-        final itemWidth =
-            (constraints.maxWidth - spacing * (displayCount - 1)) /
-                displayCount;
-        final itemHeight = itemWidth * 1.05;
 
         return Row(
           children: List.generate(displayCount, (i) {
@@ -532,8 +648,8 @@ class _GalleryRow extends StatelessWidget {
                     right: i < displayCount - 1 ? spacing : 0),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(14),
-                  child: SizedBox(
-                    height: itemHeight,
+                  child: AspectRatio(
+                    aspectRatio: 1 / 1.05,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
