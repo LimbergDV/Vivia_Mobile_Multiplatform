@@ -26,6 +26,7 @@ import 'package:vivia_mobile/features/home/data/datasources/remote/property_remo
 import 'package:vivia_mobile/features/home/data/repositories/property_repository_impl.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_likes_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_property_suggestions_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/data/datasources/remote/lessor_remote_datasource.dart';
@@ -47,7 +48,7 @@ const _channelId = 'vivia_notifications';
 const _channelName = 'Vivia Notificaciones';
 
 final FlutterLocalNotificationsPlugin _localNotifications =
-    FlutterLocalNotificationsPlugin();
+FlutterLocalNotificationsPlugin();
 
 // Handler para mensajes en background/terminated — debe ser top-level
 @pragma('vm:entry-point')
@@ -57,7 +58,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> _initLocalNotifications() async {
   const androidSettings =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
+  AndroidInitializationSettings('@mipmap/ic_launcher');
   const initSettings = InitializationSettings(android: androidSettings);
   await _localNotifications.initialize(initSettings);
 
@@ -69,7 +70,7 @@ Future<void> _initLocalNotifications() async {
   );
   await _localNotifications
       .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
+      AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 }
 
@@ -124,7 +125,7 @@ void main() async {
   final authHttpClient = AuthHttpClient(
     http.Client(),
     localDatasource,
-    () => authViewModelRef?.handleSessionExpired(),
+        () => authViewModelRef?.handleSessionExpired(),
   );
 
   final remoteDatasource = AuthRemoteDatasourceImpl(authHttpClient);
@@ -172,6 +173,7 @@ void main() async {
     getPropertyTypesUseCase: GetPropertyTypesUseCase(propertyRepository),
     getPropertiesMeUseCase: GetPropertiesMeUseCase(propertyRepository),
     getPropertiesMeLikesUseCase: GetPropertiesMeLikesUseCase(propertyRepository),
+    getPropertySuggestionsUseCase: GetPropertySuggestionsUseCase(propertyRepository),
     authRepository: authRepository,
   );
 

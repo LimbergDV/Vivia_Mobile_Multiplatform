@@ -5,6 +5,7 @@ import 'package:vivia_mobile/features/home/domain/models/property_type_model.dar
 import 'package:vivia_mobile/features/home/domain/models/selected_category.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_likes_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_property_suggestions_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
 
 enum PropertyLoadStatus { idle, loading, success, error }
@@ -13,16 +14,19 @@ class PropertyViewModel extends ChangeNotifier {
   final GetPropertyTypesUseCase _getPropertyTypes;
   final GetPropertiesMeUseCase _getPropertiesMe;
   final GetPropertiesMeLikesUseCase _getPropertiesMeLikes;
+  final GetPropertySuggestionsUseCase _getPropertySuggestions;
   final AuthRepository _authRepository;
 
   PropertyViewModel({
     required GetPropertyTypesUseCase getPropertyTypesUseCase,
     required GetPropertiesMeUseCase getPropertiesMeUseCase,
     required GetPropertiesMeLikesUseCase getPropertiesMeLikesUseCase,
+    required GetPropertySuggestionsUseCase getPropertySuggestionsUseCase,
     required AuthRepository authRepository,
   })  : _getPropertyTypes = getPropertyTypesUseCase,
         _getPropertiesMe = getPropertiesMeUseCase,
         _getPropertiesMeLikes = getPropertiesMeLikesUseCase,
+        _getPropertySuggestions = getPropertySuggestionsUseCase,
         _authRepository = authRepository;
 
   // ── Estado ────────────────────────────────────────────────────────────────
@@ -42,11 +46,11 @@ class PropertyViewModel extends ChangeNotifier {
   SelectedCategory get selectedCategory => _selectedCategory;
 
   List<PropertyModel> get displayedProperties => switch (_selectedCategory) {
-        AllCategory() => _allProperties,
-        FavoritesCategory() => _likedProperties,
-        TypeCategory(type: final t) =>
-          _allProperties.where((p) => p.type == t.name).toList(),
-      };
+    AllCategory() => _allProperties,
+    FavoritesCategory() => _likedProperties,
+    TypeCategory(type: final t) =>
+        _allProperties.where((p) => p.type == t.name).toList(),
+  };
 
   // Primeros 4 ítems de /properties/me para la sección "Cerca de ti"
   List<PropertyModel> get nearbyProperties => _allProperties.take(4).toList();
@@ -64,21 +68,13 @@ class PropertyViewModel extends ChangeNotifier {
 
     final isLessor = _authRepository.savedRole == 'ROLE_LESSOR';
 
-    if (!isLessor) {
-      // Endpoints aún no disponibles para lessee — UI responde con estado vacío limpio
-      _typesStatus = PropertyLoadStatus.success;
-      _propertiesStatus = PropertyLoadStatus.success;
-      notifyListeners();
-      return;
-    }
-
     _typesStatus = PropertyLoadStatus.loading;
     _propertiesStatus = PropertyLoadStatus.loading;
     notifyListeners();
 
     await Future.wait([
       _loadTypes(),
-      _loadPropertiesMe(),
+      isLessor ? _loadPropertiesMe() : _loadPropertySuggestions(),
     ]);
   }
 
@@ -103,6 +99,18 @@ class PropertyViewModel extends ChangeNotifier {
       _allProperties = await _getPropertiesMe.execute();
       _propertiesStatus = PropertyLoadStatus.success;
     } catch (_) {
+      _propertiesStatus = PropertyLoadStatus.error;
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> _loadPropertySuggestions() async {
+    try {
+      _allProperties = await _getPropertySuggestions.execute();
+      _propertiesStatus = PropertyLoadStatus.success;
+    } catch (e) {
+      debugPrint('ERROR suggestions: $e');
       _propertiesStatus = PropertyLoadStatus.error;
     } finally {
       notifyListeners();

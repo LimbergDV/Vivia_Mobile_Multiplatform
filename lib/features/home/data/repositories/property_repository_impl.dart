@@ -39,4 +39,10 @@ class PropertyRepositoryImpl implements PropertyRepository {
     final summaries = await _remote.getPropertiesMeLikes();
     return summaries.map((s) => _toModel(s, isFavorite: true)).toList();
   }
+
+  @override
+  Future<List<PropertyModel>> getPropertySuggestions() async {
+    final summaries = await _remote.getPropertySuggestions();
+    return summaries.map((s) => _toModel(s)).toList();
+  }
 }
