@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 class EmptyPropertiesState extends StatelessWidget {
-  const EmptyPropertiesState({super.key});
+  final String title;
+
+  const EmptyPropertiesState({
+    super.key,
+    this.title = '¡No tienes propiedades\npublicadas aún!',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +30,7 @@ class EmptyPropertiesState extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Text(
-            '¡No tienes propiedades\npublicadas aún!',
+            title,
             textAlign: TextAlign.center,
             style: textTheme.titleLarge?.copyWith(
               color: colorScheme.onSurface,

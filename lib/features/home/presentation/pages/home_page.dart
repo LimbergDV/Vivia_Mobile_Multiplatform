@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
-import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
-import 'package:vivia_mobile/features/home/domain/enums/property_category.dart';
-import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/property_detail_page.dart';
+import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/category_chip_list.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/empty_properties_state.dart';
@@ -13,6 +11,7 @@ import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_sear
 import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_property_card.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/add_property_page.dart';
+import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -31,8 +30,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  PropertyCategory _selectedCategory = PropertyCategory.todas;
   HomeNavItem _selectedNav = HomeNavItem.home;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -40,9 +39,9 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<UserViewModel>().init(widget.userName, widget.avatarUrl);
+      context.read<PropertyViewModel>().init();
     });
   }
-  final TextEditingController _searchController = TextEditingController();
 
   void _onNavSelected(HomeNavItem item) {
     if (item == HomeNavItem.add && widget.role == UserRole.lessor) {
@@ -52,60 +51,8 @@ class _HomePageState extends State<HomePage> {
       );
       return;
     }
-    if (item == HomeNavItem.home) {
-      setState(() => _selectedNav = item);
-      return;
-    }
     setState(() => _selectedNav = item);
   }
-
-  final List<PropertyModel> _properties = [
-    PropertyModel(
-      id: '1',
-      title: 'Casa Moderna',
-      type: 'Casa',
-      price: 2000000,
-      location: 'Chiapas, MX',
-      area: 2000,
-      bedrooms: 4,
-      bathrooms: 1,
-      imageUrl: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400',
-    ),
-    PropertyModel(
-      id: '2',
-      title: 'Casa Campestre',
-      type: 'Casa',
-      price: 2000000,
-      location: 'Chiapas, MX',
-      area: 2000,
-      bedrooms: 4,
-      bathrooms: 1,
-      imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400',
-    ),
-    PropertyModel(
-      id: '3',
-      title: 'Villa Exclusiva',
-      type: 'Casa',
-      price: 2000000,
-      location: 'New York, US',
-      area: 2000,
-      bedrooms: 4,
-      bathrooms: 1,
-      imageUrl: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400',
-      isFavorite: true,
-    ),
-    PropertyModel(
-      id: '4',
-      title: 'Casa Suburbana',
-      type: 'Casa',
-      price: 2000000,
-      location: 'New York, US',
-      area: 2000,
-      bedrooms: 4,
-      bathrooms: 1,
-      imageUrl: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400',
-    ),
-  ];
 
   @override
   void dispose() {
@@ -121,43 +68,33 @@ class _HomePageState extends State<HomePage> {
     if (isLandscape) {
       return _LandscapeScaffold(
         role: widget.role,
-        selectedCategory: _selectedCategory,
         selectedNav: _selectedNav,
         searchController: _searchController,
-        properties: _properties,
-        onCategorySelected: (c) => setState(() => _selectedCategory = c),
         onNavSelected: _onNavSelected,
       );
     }
 
     return _PortraitScaffold(
       role: widget.role,
-      selectedCategory: _selectedCategory,
       selectedNav: _selectedNav,
       searchController: _searchController,
-      properties: _properties,
-      onCategorySelected: (c) => setState(() => _selectedCategory = c),
       onNavSelected: _onNavSelected,
     );
   }
 }
 
+// ── Portrait ──────────────────────────────────────────────────────────────────
+
 class _PortraitScaffold extends StatelessWidget {
   final UserRole role;
-  final PropertyCategory selectedCategory;
   final HomeNavItem selectedNav;
   final TextEditingController searchController;
-  final List<PropertyModel> properties;
-  final ValueChanged<PropertyCategory> onCategorySelected;
   final ValueChanged<HomeNavItem> onNavSelected;
 
   const _PortraitScaffold({
     required this.role,
-    required this.selectedCategory,
     required this.selectedNav,
     required this.searchController,
-    required this.properties,
-    required this.onCategorySelected,
     required this.onNavSelected,
   });
 
@@ -173,160 +110,143 @@ class _PortraitScaffold extends StatelessWidget {
         selected: selectedNav,
         onItemSelected: onNavSelected,
       ),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  const HomeHeader(notificationCount: 1),
-                  SizedBox(height: screenHeight * 0.025),
-                  HomeSearchBar(controller: searchController),
-                  SizedBox(height: screenHeight * 0.02),
-                ]),
-              ),
-            ),
+      body: Consumer<PropertyViewModel>(
+        builder: (context, vm, _) {
+          return SafeArea(
+            child: CustomScrollView(
+              slivers: [
+                // ── Header estático ──────────────────────────────────────
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      const HomeHeader(notificationCount: 1),
+                      SizedBox(height: screenHeight * 0.025),
+                      HomeSearchBar(controller: searchController),
+                      SizedBox(height: screenHeight * 0.02),
+                    ]),
+                  ),
+                ),
 
-            if (role == UserRole.lessee && properties.isNotEmpty) ...[
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
-                sliver: SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Cerca de ti',
-                            style: textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.onSurface,
-                            ),
+                // ── "Cerca de ti" (lessee) ───────────────────────────────
+                if (role == UserRole.lessee)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: _NearbySection(
+                        vm: vm,
+                        screenHeight: screenHeight,
+                        textTheme: textTheme,
+                        colorScheme: colorScheme,
+                      ),
+                    ),
+                  ),
+
+                // ── Chips de categoría ───────────────────────────────────
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: vm.typesStatus == PropertyLoadStatus.loading
+                        ? _ChipSkeletonRow(colorScheme: colorScheme)
+                        : CategoryChipList(
+                            categories: vm.categoryTabs,
+                            selected: vm.selectedCategory,
+                            onSelected: vm.selectCategory,
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(right: 20),
-                            child: Text(
-                              'Ver todos',
-                              style: textTheme.labelMedium?.copyWith(
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                // ── Encabezado de sección ─────────────────────────────────
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: _SectionHeader(
+                      title: 'Todas las propiedades',
+                      colorScheme: colorScheme,
+                      textTheme: textTheme,
+                    ),
+                  ),
+                ),
+
+                // ── Grid de propiedades ───────────────────────────────────
+                if (vm.propertiesStatus == PropertyLoadStatus.loading)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 14,
+                        childAspectRatio: 0.62,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, _) =>
+                            _PropertySkeletonCard(colorScheme: colorScheme),
+                        childCount: 4,
+                      ),
+                    ),
+                  )
+                else if (vm.displayedProperties.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: EmptyPropertiesState(
+                        title: vm.isLessor
+                            ? '¡No tienes propiedades\npublicadas aún!'
+                            : '¡Próximamente podrás\nexplorar propiedades!',
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 14,
+                        childAspectRatio: 0.62,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => PropertyCard(
+                          property: vm.displayedProperties[index],
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PropertyDetailPage(
+                                property: vm.displayedProperties[index],
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        height: screenHeight * 0.28,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: properties.length,
-                          separatorBuilder: (_, __) =>
-                          const SizedBox(width: 12),
-                          itemBuilder: (context, i) => NearbyPropertyCard(
-                            property: properties[i],
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => PropertyDetailPage(
-                                    property: properties[i],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
                         ),
+                        childCount: vm.displayedProperties.length,
                       ),
-                      const SizedBox(height: 20),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ],
-
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              sliver: SliverToBoxAdapter(
-                child: CategoryChipList(
-                  selected: selectedCategory,
-                  onSelected: onCategorySelected,
-                ),
-              ),
+              ],
             ),
-
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              sliver: SliverToBoxAdapter(
-                child: _SectionHeader(
-                  title: 'Todas las propiedades',
-                  colorScheme: colorScheme,
-                  textTheme: textTheme,
-                ),
-              ),
-            ),
-
-            properties.isEmpty
-                ? SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: const EmptyPropertiesState(),
-              ),
-            )
-                : SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              sliver: SliverGrid(
-                gridDelegate:
-                SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  childAspectRatio: 0.62,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                      (context, index) => PropertyCard(
-                    property: properties[index],
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PropertyDetailPage(
-                            property: properties[index],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  childCount: properties.length,
-                ),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
 
+// ── Landscape ─────────────────────────────────────────────────────────────────
+
 class _LandscapeScaffold extends StatelessWidget {
   final UserRole role;
-  final PropertyCategory selectedCategory;
   final HomeNavItem selectedNav;
   final TextEditingController searchController;
-  final List<PropertyModel> properties;
-  final ValueChanged<PropertyCategory> onCategorySelected;
   final ValueChanged<HomeNavItem> onNavSelected;
 
   const _LandscapeScaffold({
     required this.role,
-    required this.selectedCategory,
     required this.selectedNav,
     required this.searchController,
-    required this.properties,
-    required this.onCategorySelected,
     required this.onNavSelected,
   });
 
@@ -357,130 +277,109 @@ class _LandscapeScaffold extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: CustomScrollView(
-                slivers: [
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        const HomeHeader(notificationCount: 1),
-                        const SizedBox(height: 14),
-                        HomeSearchBar(controller: searchController),
-                        const SizedBox(height: 14),
-                      ]),
-                    ),
-                  ),
-                  if (role == UserRole.lessee && properties.isNotEmpty)
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
-                      sliver: SliverToBoxAdapter(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(right: 20),
-                              child: Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Cerca de ti',
-                                    style: textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Ver todos',
-                                    style: textTheme.labelMedium?.copyWith(
-                                      color: colorScheme.primary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              height: 180,
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: properties.length,
-                                separatorBuilder: (_, __) =>
-                                const SizedBox(width: 10),
-                                itemBuilder: (context, i) =>
-                                    NearbyPropertyCard(
-                                      property: properties[i],
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => PropertyDetailPage(
-                                              property: properties[i],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
+              child: Consumer<PropertyViewModel>(
+                builder: (context, vm, _) {
+                  return CustomScrollView(
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            const HomeHeader(notificationCount: 1),
+                            const SizedBox(height: 14),
+                            HomeSearchBar(controller: searchController),
+                            const SizedBox(height: 14),
+                          ]),
                         ),
                       ),
-                    ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                    sliver: SliverToBoxAdapter(
-                      child: CategoryChipList(
-                        selected: selectedCategory,
-                        onSelected: onCategorySelected,
+                      if (role == UserRole.lessee)
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                          sliver: SliverToBoxAdapter(
+                            child: _NearbySection(
+                              vm: vm,
+                              screenHeight: 400,
+                              textTheme: textTheme,
+                              colorScheme: colorScheme,
+                              nearbyHeight: 180,
+                            ),
+                          ),
+                        ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                        sliver: SliverToBoxAdapter(
+                          child: vm.typesStatus == PropertyLoadStatus.loading
+                              ? _ChipSkeletonRow(colorScheme: colorScheme)
+                              : CategoryChipList(
+                                  categories: vm.categoryTabs,
+                                  selected: vm.selectedCategory,
+                                  onSelected: vm.selectCategory,
+                                ),
+                        ),
                       ),
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    sliver: SliverToBoxAdapter(
-                      child: _SectionHeader(
-                        title: 'Todas las propiedades',
-                        colorScheme: colorScheme,
-                        textTheme: textTheme,
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                        sliver: SliverToBoxAdapter(
+                          child: _SectionHeader(
+                            title: 'Todas las propiedades',
+                            colorScheme: colorScheme,
+                            textTheme: textTheme,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  properties.isEmpty
-                      ? SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: const EmptyPropertiesState(),
-                  )
-                      : SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                    sliver: SliverGrid(
-                      gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 0.62,
-                      ),
-                      delegate: SliverChildBuilderDelegate(
-                            (context, index) => PropertyCard(
-                          property: properties[index],
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PropertyDetailPage(
-                                  property: properties[index],
+                      if (vm.propertiesStatus == PropertyLoadStatus.loading)
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 14,
+                              mainAxisSpacing: 14,
+                              childAspectRatio: 0.62,
+                            ),
+                            delegate: SliverChildBuilderDelegate(
+                              (context, _) => _PropertySkeletonCard(
+                                  colorScheme: colorScheme),
+                              childCount: 4,
+                            ),
+                          ),
+                        )
+                      else if (vm.displayedProperties.isEmpty)
+                        const SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: EmptyPropertiesState(),
+                        )
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 14,
+                              mainAxisSpacing: 14,
+                              childAspectRatio: 0.62,
+                            ),
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) => PropertyCard(
+                                property: vm.displayedProperties[index],
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PropertyDetailPage(
+                                      property: vm.displayedProperties[index],
+                                    ),
+                                  ),
                                 ),
                               ),
-                            );
-                          },
+                              childCount: vm.displayedProperties.length,
+                            ),
+                          ),
                         ),
-                        childCount: properties.length,
-                      ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -489,6 +388,202 @@ class _LandscapeScaffold extends StatelessWidget {
     );
   }
 }
+
+// ── Sección "Cerca de ti" ─────────────────────────────────────────────────────
+
+class _NearbySection extends StatelessWidget {
+  final PropertyViewModel vm;
+  final double screenHeight;
+  final double? nearbyHeight;
+  final TextTheme textTheme;
+  final ColorScheme colorScheme;
+
+  const _NearbySection({
+    required this.vm,
+    required this.screenHeight,
+    required this.textTheme,
+    required this.colorScheme,
+    this.nearbyHeight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final listHeight = nearbyHeight ?? screenHeight * 0.28;
+    final isLoading = vm.propertiesStatus == PropertyLoadStatus.loading;
+    final nearby = vm.nearbyProperties;
+
+    if (!isLoading && nearby.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Cerca de ti',
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 20),
+              child: Text(
+                'Ver todos',
+                style: textTheme.labelMedium?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: listHeight,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: isLoading ? 3 : nearby.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, i) {
+              if (isLoading) {
+                return _NearbySkeletonCard(
+                  height: listHeight,
+                  colorScheme: colorScheme,
+                );
+              }
+              return NearbyPropertyCard(
+                property: nearby[i],
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PropertyDetailPage(property: nearby[i]),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+}
+
+// ── Skeletons nativos ─────────────────────────────────────────────────────────
+
+class _PropertySkeletonCard extends StatelessWidget {
+  final ColorScheme colorScheme;
+  const _PropertySkeletonCard({required this.colorScheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 3,
+            child: Container(color: colorScheme.surfaceContainerHighest),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _SkeletonBox(width: 70, height: 12, colorScheme: colorScheme),
+                  _SkeletonBox(
+                      width: 100, height: 16, colorScheme: colorScheme),
+                  _SkeletonBox(
+                      width: double.infinity,
+                      height: 10,
+                      colorScheme: colorScheme),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NearbySkeletonCard extends StatelessWidget {
+  final double height;
+  final ColorScheme colorScheme;
+  const _NearbySkeletonCard(
+      {required this.height, required this.colorScheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 200,
+      height: height,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(18),
+      ),
+    );
+  }
+}
+
+class _ChipSkeletonRow extends StatelessWidget {
+  final ColorScheme colorScheme;
+  const _ChipSkeletonRow({required this.colorScheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 42,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: 4,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, __) => Container(
+          width: 80,
+          height: 42,
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(24),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SkeletonBox extends StatelessWidget {
+  final double width;
+  final double height;
+  final ColorScheme colorScheme;
+  const _SkeletonBox(
+      {required this.width,
+      required this.height,
+      required this.colorScheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(4),
+      ),
+    );
+  }
+}
+
+// ── Nav bar vertical (landscape) ──────────────────────────────────────────────
 
 class _VerticalNavBar extends StatelessWidget {
   final HomeNavItem selected;
@@ -590,6 +685,8 @@ class _VerticalNavIcon extends StatelessWidget {
     );
   }
 }
+
+// ── Section header ────────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   final String title;
