@@ -27,6 +27,7 @@ import 'package:vivia_mobile/features/home/data/repositories/property_repository
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_likes_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_property_media_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/user/data/datasources/remote/user_remote_datasource.dart';
@@ -173,6 +174,7 @@ void main() async {
   // Use case del detalle: la VM de detalle se construye por pantalla (per-propiedad),
   // así que se expone el use case y cada PropertyDetailPage crea su propia VM.
   final getPropertyByIdUseCase = GetPropertyByIdUseCase(propertyRepository);
+  final getPropertyMediaUseCase = GetPropertyMediaUseCase(propertyRepository);
 
   // Datos de sesión guardados
   final isLoggedIn = authRepository.isLoggedIn;
@@ -194,6 +196,7 @@ void main() async {
         ChangeNotifierProvider.value(value: userViewModel),
         ChangeNotifierProvider.value(value: propertyViewModel),
         Provider<GetPropertyByIdUseCase>.value(value: getPropertyByIdUseCase),
+        Provider<GetPropertyMediaUseCase>.value(value: getPropertyMediaUseCase),
       ],
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)

@@ -1,6 +1,7 @@
 import 'package:vivia_mobile/features/home/data/datasources/remote/property_remote_datasource.dart';
 import 'package:vivia_mobile/features/home/data/models/property_summary_model.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_detail.dart';
+import 'package:vivia_mobile/features/home/domain/models/property_media.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_type_model.dart';
 import 'package:vivia_mobile/features/home/domain/repositories/property_repository.dart';
@@ -44,4 +45,8 @@ class PropertyRepositoryImpl implements PropertyRepository {
   @override
   Future<PropertyDetail> getPropertyById(String id) =>
       _remote.getPropertyById(id);
+
+  @override
+  Future<List<PropertyMedia>> getPropertyMedia(String id) =>
+      _remote.getPropertyMedia(id);
 }

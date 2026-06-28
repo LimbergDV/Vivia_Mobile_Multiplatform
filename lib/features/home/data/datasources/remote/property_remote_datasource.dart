@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:vivia_mobile/features/home/data/datasources/remote/constants/property_api_constants.dart';
 import 'package:vivia_mobile/features/home/data/models/property_summary_model.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_detail.dart';
+import 'package:vivia_mobile/features/home/domain/models/property_media.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_type_model.dart';
 
 // ── Contrato ──────────────────────────────────────────────────────────────────
@@ -13,6 +14,7 @@ abstract class PropertyRemoteDatasource {
   Future<List<PropertySummaryModel>> getPropertiesMe();
   Future<List<PropertySummaryModel>> getPropertiesMeLikes();
   Future<PropertyDetail> getPropertyById(String id);
+  Future<List<PropertyMedia>> getPropertyMedia(String id);
 }
 
 // ── Implementación ────────────────────────────────────────────────────────────
@@ -79,5 +81,14 @@ class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
       headers: PropertyApiConstants.headers(),
     ).timeout(_timeout);
     return _parseObject(res, PropertyDetail.fromResponse);
+  }
+
+  @override
+  Future<List<PropertyMedia>> getPropertyMedia(String id) async {
+    final res = await _client.get(
+      Uri.parse(PropertyApiConstants.propertyMedia(id)),
+      headers: PropertyApiConstants.headers(),
+    ).timeout(_timeout);
+    return _parseList(res, PropertyMedia.fromJson);
   }
 }

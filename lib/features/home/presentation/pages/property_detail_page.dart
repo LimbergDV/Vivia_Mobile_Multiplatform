@@ -344,7 +344,7 @@ class _ContentBody extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => GalleryPage(imageUrls: galleryImages),
+                  builder: (_) => GalleryPage(propertyId: property.id),
                 ),
               );
             },

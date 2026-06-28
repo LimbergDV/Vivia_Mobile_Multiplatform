@@ -1,3 +1,4 @@
+import 'package:vivia_mobile/features/home/domain/models/property_media.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_type_model.dart';
 
 /// Detalle completo de una propiedad (GET /properties/{id}).
@@ -46,7 +47,7 @@ class PropertyDetail {
 
   /// URLs de los medios de tipo imagen.
   List<String> get imageUrls => media
-      .where((m) => m.type.toLowerCase() == 'image' || m.type.isEmpty)
+      .where((m) => m.isImage)
       .map((m) => m.url)
       .where((url) => url.isNotEmpty)
       .toList();
@@ -186,23 +187,3 @@ class PropertyLessor {
       );
 }
 
-class PropertyMedia {
-  final String id;
-  final String url;
-  final String type;
-  final String classification;
-
-  const PropertyMedia({
-    required this.id,
-    required this.url,
-    required this.type,
-    required this.classification,
-  });
-
-  factory PropertyMedia.fromJson(Map<String, dynamic> json) => PropertyMedia(
-        id: json['id'] as String? ?? '',
-        url: json['url'] as String? ?? '',
-        type: json['type'] as String? ?? '',
-        classification: json['classification'] as String? ?? '',
-      );
-}
