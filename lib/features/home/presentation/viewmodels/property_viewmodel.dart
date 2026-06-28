@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
+import 'package:vivia_mobile/features/home/domain/models/property_type_model.dart';
 import 'package:vivia_mobile/features/home/domain/models/selected_category.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_likes_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_usecase.dart';
@@ -51,6 +52,11 @@ class PropertyViewModel extends ChangeNotifier {
   List<PropertyModel> get nearbyProperties => _allProperties.take(4).toList();
 
   bool get isLessor => _authRepository.savedRole == 'ROLE_LESSOR';
+
+  List<PropertyTypeModel> get propertyTypes => _categoryTabs
+      .whereType<TypeCategory>()
+      .map((c) => c.type)
+      .toList();
 
   // ── Inicialización ────────────────────────────────────────────────────────
   Future<void> init() async {

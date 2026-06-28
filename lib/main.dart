@@ -28,6 +28,12 @@ import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_lik
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
+import 'package:vivia_mobile/features/lessor/data/datasources/remote/lessor_remote_datasource.dart';
+import 'package:vivia_mobile/features/lessor/data/repositories/lessor_repository_impl.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/get_amenities_usecase.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/get_neighborhoods_usecase.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/publish_property_draft_usecase.dart';
+import 'package:vivia_mobile/features/lessor/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/user/data/datasources/remote/user_remote_datasource.dart';
 import 'package:vivia_mobile/features/user/data/repositories/user_repository_impl.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/get_me_usecase.dart';
@@ -169,6 +175,16 @@ void main() async {
     authRepository: authRepository,
   );
 
+  final lessorRemoteDatasource =
+      LessorRemoteDatasourceImpl(authHttpClient, http.Client());
+  final lessorRepository =
+      LessorRepositoryImpl(remote: lessorRemoteDatasource);
+  final propertyDraftViewModel = PropertyDraftViewModel(
+    getNeighborhoodsUseCase: GetNeighborhoodsUseCase(lessorRepository),
+    getAmenitiesUseCase: GetAmenitiesUseCase(lessorRepository),
+    publishPropertyDraftUseCase: PublishPropertyDraftUseCase(lessorRepository),
+  );
+
   // Datos de sesión guardados
   final isLoggedIn = authRepository.isLoggedIn;
   final savedUserName = authRepository.savedUserName;
@@ -188,6 +204,7 @@ void main() async {
         ChangeNotifierProvider.value(value: authViewModel),
         ChangeNotifierProvider.value(value: userViewModel),
         ChangeNotifierProvider.value(value: propertyViewModel),
+        ChangeNotifierProvider.value(value: propertyDraftViewModel),
       ],
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)

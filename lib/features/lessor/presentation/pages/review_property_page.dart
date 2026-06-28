@@ -1,14 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:vivia_mobile/features/lessor/presentation/pages/gallery_page.dart';
+import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/add_property_page.dart';
+import 'package:vivia_mobile/features/lessor/presentation/pages/gallery_page.dart';
+import 'package:vivia_mobile/features/lessor/presentation/viewmodels/property_draft_viewmodel.dart';
 
 class ReviewPropertyPage extends StatefulWidget {
-  final NewPropertyForm form;
-
-  const ReviewPropertyPage({super.key, required this.form});
+  const ReviewPropertyPage({super.key});
 
   @override
   State<ReviewPropertyPage> createState() => _ReviewPropertyPageState();
@@ -16,42 +16,11 @@ class ReviewPropertyPage extends StatefulWidget {
 
 class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
   late final PageController _pageController;
-  late NewPropertyForm _form;
   int _currentPage = 0;
-
-  List<String> get _allImages {
-    final images = <String>[];
-    if (_form.mainPhotoPath != null) {
-      images.add(_form.mainPhotoPath!);
-    }
-    _form.spacePhotos?.forEach((_, paths) {
-      images.addAll(paths);
-    });
-    return images;
-  }
-
-  String get _formattedPrice {
-    final raw = _form.price ?? '0';
-    final number = int.tryParse(raw) ?? 0;
-    final formatted = number.toString().replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-          (m) => '${m[1]},',
-    );
-    return '\$$formatted';
-  }
-
-  String get _locationText {
-    final parts = <String>[];
-    if (_form.colonia != null) parts.add(_form.colonia!);
-    if (_form.city != null) parts.add(_form.city!);
-    if (_form.state != null) parts.add(_form.state!);
-    return parts.isNotEmpty ? parts.join(', ') : 'Ubicación no especificada';
-  }
 
   @override
   void initState() {
     super.initState();
-    _form = widget.form;
     _pageController = PageController();
   }
 
@@ -61,14 +30,40 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
     super.dispose();
   }
 
-  Future<void> _onEditImages() async {
-    final result = await Navigator.push<NewPropertyForm>(
+  List<String> _allImages(PropertyDraftViewModel vm) {
+    final images = <String>[];
+    if (vm.form.mainPhotoPath != null) images.add(vm.form.mainPhotoPath!);
+    vm.form.spacePhotos?.forEach((_, paths) => images.addAll(paths));
+    return images;
+  }
+
+  String _formattedPrice(String? raw) {
+    final number = int.tryParse(raw ?? '0') ?? 0;
+    return '\$${number.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
+  }
+
+  String _locationText(PropertyDraftViewModel vm) {
+    final parts = <String>[];
+    if (vm.form.neighborhood != null) parts.add(vm.form.neighborhood!.name);
+    if (vm.form.street != null) parts.add(vm.form.street!);
+    return parts.isNotEmpty ? parts.join(', ') : 'Ubicación no especificada';
+  }
+
+  Future<void> _onEditImages(BuildContext context,
+      PropertyDraftViewModel vm) async {
+    final updated = await Navigator.push<NewPropertyForm>(
       context,
-      MaterialPageRoute(builder: (_) => GalleryPage(form: _form)),
+      MaterialPageRoute(builder: (_) => GalleryPage(form: vm.form)),
     );
-    if (result != null && mounted) {
+    if (updated != null && mounted) {
+      if (updated.mainPhotoPath != null) {
+        vm.setMainPhotoPath(updated.mainPhotoPath!);
+      }
+      if (updated.spacePhotos != null) {
+        vm.setSpacePhotos(updated.spacePhotos!);
+      }
+      vm.setVideoPath(updated.videoPath);
       setState(() {
-        _form = result;
         _currentPage = 0;
         _pageController.jumpToPage(0);
       });
@@ -78,12 +73,57 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
   void _onEditInfo() {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const AddPropertyPage()),
-          (route) => route.isFirst,
+      (route) => route.isFirst,
     );
   }
 
-  void _onPublish() {
-    // TODO: Llamar al ViewModel para publicar la propiedad
+  Future<void> _onPublish(
+      BuildContext context, PropertyDraftViewModel vm) async {
+    final mainPhoto = vm.form.mainPhotoPath;
+    if (mainPhoto == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Agrega al menos una fotografía principal'),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
+    await vm.publish(
+      mainPhotoPath: mainPhoto,
+      spacePhotos: vm.form.spacePhotos ?? {},
+      videoPath: vm.form.videoPath,
+    );
+
+    if (!mounted) return;
+
+    if (vm.publishStatus == PublishStatus.success) {
+      vm.reset();
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+              '¡Propiedad publicada! Pasará por un proceso de verificación.'),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } else if (vm.publishStatus == PublishStatus.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+              'Ocurrió un error al publicar. Intenta de nuevo.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).colorScheme.error,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
   }
 
   @override
@@ -95,96 +135,108 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
         MediaQuery.of(context).orientation == Orientation.landscape;
     final horizontalPadding = isLandscape ? 32.0 : 20.0;
 
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      body: SafeArea(
-        top: false,
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: _ImageCarousel(
-                images: _allImages,
-                pageController: _pageController,
-                currentPage: _currentPage,
-                screenWidth: screenWidth,
-                onPageChanged: (i) => setState(() => _currentPage = i),
-                onBack: () => Navigator.of(context).pop(),
-                onEditImages: _onEditImages,
-              ),
-            ),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                horizontalPadding, 20, horizontalPadding, 0,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _form.title ?? 'Sin título',
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      (_form.propertyType ?? 'Propiedad').toUpperCase(),
-                      style: textTheme.labelMedium?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _formattedPrice,
-                      style: textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _StatsRow(
-                      rooms: _form.rooms ?? 0,
-                      bathrooms: _form.bathrooms ?? 0,
-                      area: _form.area ?? '0',
-                    ),
-                    const SizedBox(height: 24),
-                    Divider(color: colorScheme.outlineVariant, height: 1),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Overview',
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _form.description ?? 'Sin descripción',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    _GallerySection(spacePhotos: _form.spacePhotos),
-                    const SizedBox(height: 24),
-                    _LocationSection(locationText: _locationText),
-                    const SizedBox(height: 32),
-                    _ActionButtons(
-                      onEditInfo: _onEditInfo,
-                      onPublish: _onPublish,
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+    return Consumer<PropertyDraftViewModel>(
+      builder: (context, vm, _) {
+        final images = _allImages(vm);
+
+        return Scaffold(
+          backgroundColor: colorScheme.surface,
+          body: SafeArea(
+            top: false,
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _ImageCarousel(
+                    images: images,
+                    pageController: _pageController,
+                    currentPage: _currentPage,
+                    screenWidth: screenWidth,
+                    onPageChanged: (i) =>
+                        setState(() => _currentPage = i),
+                    onBack: () => Navigator.of(context).pop(),
+                    onEditImages: () => _onEditImages(context, vm),
+                  ),
                 ),
-              ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                      horizontalPadding, 20, horizontalPadding, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          vm.form.title ?? 'Sin título',
+                          style: textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          (vm.form.propertyType?.name ?? 'Propiedad')
+                              .toUpperCase(),
+                          style: textTheme.labelMedium?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _formattedPrice(vm.form.price),
+                          style: textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _StatsRow(
+                          rooms: vm.form.rooms ?? 0,
+                          bathrooms: vm.form.bathrooms ?? 0,
+                          area: vm.form.area ?? '0',
+                        ),
+                        const SizedBox(height: 24),
+                        Divider(
+                            color: colorScheme.outlineVariant, height: 1),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Overview',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          vm.form.description ?? 'Sin descripción',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _GallerySection(
+                            spacePhotos: vm.form.spacePhotos),
+                        const SizedBox(height: 24),
+                        _LocationSection(
+                            locationText: _locationText(vm)),
+                        const SizedBox(height: 32),
+                        _ActionButtons(
+                          isPublishing: vm.publishStatus ==
+                              PublishStatus.loading,
+                          onEditInfo: _onEditInfo,
+                          onPublish: () => _onPublish(context, vm),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -223,11 +275,9 @@ class _ImageCarousel extends StatelessWidget {
             Container(
               color: colorScheme.surfaceContainerHighest,
               child: Center(
-                child: Icon(
-                  Icons.image_outlined,
-                  size: 64,
-                  color: colorScheme.onSurfaceVariant.withOpacity(0.4),
-                ),
+                child: Icon(Icons.image_outlined,
+                    size: 64,
+                    color: colorScheme.onSurfaceVariant.withOpacity(0.4)),
               ),
             )
           else
@@ -235,20 +285,15 @@ class _ImageCarousel extends StatelessWidget {
               controller: pageController,
               itemCount: images.length,
               onPageChanged: onPageChanged,
-              itemBuilder: (_, i) {
-                return Image.file(
-                  File(images[i]),
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: colorScheme.surfaceContainerHighest,
-                    child: Icon(
-                      Icons.broken_image_outlined,
-                      size: 48,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                );
-              },
+              itemBuilder: (_, i) => Image.file(
+                File(images[i]),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: colorScheme.surfaceContainerHighest,
+                  child: Icon(Icons.broken_image_outlined,
+                      size: 48, color: colorScheme.onSurfaceVariant),
+                ),
+              ),
             ),
           Positioned(
             top: 0,
@@ -274,26 +319,16 @@ class _ImageCarousel extends StatelessWidget {
             right: 12,
             child: Row(
               children: [
-                _CircleIconButton(
-                  icon: Icons.arrow_back_ios_new_rounded,
-                  onTap: onBack,
-                ),
+                _CircleIconButton(icon: Icons.arrow_back_ios_new_rounded,
+                    onTap: onBack),
                 const Spacer(),
-                // TODO: Reemplazar con SVGs propios
-                _CircleIconButton(
-                  icon: Icons.link_rounded,
-                  onTap: () {},
-                ),
+                _CircleIconButton(icon: Icons.link_rounded, onTap: () {}),
                 const SizedBox(width: 8),
                 _CircleIconButton(
-                  icon: Icons.favorite_border_rounded,
-                  onTap: () {},
-                ),
+                    icon: Icons.favorite_border_rounded, onTap: () {}),
                 const SizedBox(width: 8),
                 _CircleIconButton(
-                  icon: Icons.send_outlined,
-                  onTap: () {},
-                ),
+                    icon: Icons.send_outlined, onTap: () {}),
               ],
             ),
           ),
@@ -324,12 +359,9 @@ class _ImageCarousel extends StatelessWidget {
                   foregroundColor: Colors.white,
                   elevation: 2,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 10,
-                  ),
+                      horizontal: 24, vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                      borderRadius: BorderRadius.circular(20)),
                 ),
                 child: Text(
                   'Editar Imágenes',
@@ -350,7 +382,7 @@ class _ImageCarousel extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
                   images.length,
-                      (i) => AnimatedContainer(
+                  (i) => AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     margin: const EdgeInsets.symmetric(horizontal: 3),
                     width: i == currentPage ? 10 : 8,
@@ -459,9 +491,7 @@ class _StatItem extends StatelessWidget {
           width: 18,
           height: 18,
           colorFilter: ColorFilter.mode(
-            colorScheme.onSurfaceVariant,
-            BlendMode.srcIn,
-          ),
+              colorScheme.onSurfaceVariant, BlendMode.srcIn),
         ),
         const SizedBox(width: 6),
         Text(
@@ -494,7 +524,7 @@ class _GallerySection extends StatelessWidget {
     final photos = _allPhotos;
     const maxVisible = 3;
     final remaining =
-    photos.length > maxVisible ? photos.length - maxVisible : 0;
+        photos.length > maxVisible ? photos.length - maxVisible : 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,9 +547,8 @@ class _GallerySection extends StatelessWidget {
             child: Center(
               child: Text(
                 'Sin fotografías de espacios',
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
+                style: textTheme.bodySmall
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
             ),
           )
@@ -529,11 +558,10 @@ class _GallerySection extends StatelessWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount:
-              photos.length > maxVisible ? maxVisible : photos.length,
+                  photos.length > maxVisible ? maxVisible : photos.length,
               separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (context, i) {
                 final isLast = i == maxVisible - 1 && remaining > 0;
-
                 return ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: SizedBox(
@@ -542,17 +570,14 @@ class _GallerySection extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.file(
-                          File(photos[i]),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: colorScheme.surfaceContainerHighest,
-                            child: Icon(
-                              Icons.image_outlined,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
+                        Image.file(File(photos[i]),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                                  color:
+                                      colorScheme.surfaceContainerHighest,
+                                  child: Icon(Icons.image_outlined,
+                                      color: colorScheme.onSurfaceVariant),
+                                )),
                         if (isLast)
                           Container(
                             color: Colors.black.withOpacity(0.55),
@@ -606,9 +631,8 @@ class _LocationSection extends StatelessWidget {
             Expanded(
               child: Text(
                 locationText,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
+                style: textTheme.bodyMedium
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
             ),
           ],
@@ -638,10 +662,12 @@ class _LocationSection extends StatelessWidget {
 }
 
 class _ActionButtons extends StatelessWidget {
+  final bool isPublishing;
   final VoidCallback onEditInfo;
   final VoidCallback onPublish;
 
   const _ActionButtons({
+    required this.isPublishing,
     required this.onEditInfo,
     required this.onPublish,
   });
@@ -657,13 +683,12 @@ class _ActionButtons extends StatelessWidget {
           width: double.infinity,
           height: 52,
           child: OutlinedButton(
-            onPressed: onEditInfo,
+            onPressed: isPublishing ? null : onEditInfo,
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.red.shade400,
               side: BorderSide(color: Colors.red.shade400, width: 1.5),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+                  borderRadius: BorderRadius.circular(14)),
             ),
             child: Text(
               'Editar Información',
@@ -688,22 +713,31 @@ class _ActionButtons extends StatelessWidget {
           width: double.infinity,
           height: 52,
           child: ElevatedButton(
-            onPressed: onPublish,
+            onPressed: isPublishing ? null : onPublish,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade400,
               foregroundColor: Colors.white,
+              disabledBackgroundColor: Colors.red.shade200,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+                  borderRadius: BorderRadius.circular(14)),
             ),
-            child: Text(
-              'Publicar',
-              style: textTheme.labelLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: isPublishing
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    'Publicar',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
         ),
         const SizedBox(height: 6),
