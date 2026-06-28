@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:vivia_mobile/features/home/domain/enums/property_category.dart';
+import 'package:vivia_mobile/features/home/domain/models/selected_category.dart';
 
 class CategoryChipList extends StatelessWidget {
-  final PropertyCategory selected;
-  final ValueChanged<PropertyCategory> onSelected;
+  final List<SelectedCategory> categories;
+  final SelectedCategory selected;
+  final ValueChanged<SelectedCategory> onSelected;
 
   const CategoryChipList({
     super.key,
+    required this.categories,
     required this.selected,
     required this.onSelected,
   });
+
+  bool _isSelected(SelectedCategory a, SelectedCategory b) {
+    if (a is AllCategory && b is AllCategory) return true;
+    if (a is FavoritesCategory && b is FavoritesCategory) return true;
+    if (a is TypeCategory && b is TypeCategory) return a.type.id == b.type.id;
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,14 +26,13 @@ class CategoryChipList extends StatelessWidget {
       height: 42,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: PropertyCategory.values.length,
+        itemCount: categories.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
-          final category = PropertyCategory.values[i];
-          final isSelected = category == selected;
+          final category = categories[i];
           return _CategoryChip(
             label: category.label,
-            isSelected: isSelected,
+            isSelected: _isSelected(category, selected),
             onTap: () => onSelected(category),
           );
         },

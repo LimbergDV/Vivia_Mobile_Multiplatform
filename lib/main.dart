@@ -22,6 +22,12 @@ import 'package:vivia_mobile/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/set_location_permission_shown_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
+import 'package:vivia_mobile/features/home/data/datasources/remote/property_remote_datasource.dart';
+import 'package:vivia_mobile/features/home/data/repositories/property_repository_impl.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_likes_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
+import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/user/data/datasources/remote/user_remote_datasource.dart';
 import 'package:vivia_mobile/features/user/data/repositories/user_repository_impl.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/get_me_usecase.dart';
@@ -154,6 +160,15 @@ void main() async {
 
   final userViewModel = UserViewModel(getMeUseCase: getMeUseCase);
 
+  final propertyRemoteDatasource = PropertyRemoteDatasourceImpl(authHttpClient);
+  final propertyRepository = PropertyRepositoryImpl(remote: propertyRemoteDatasource);
+  final propertyViewModel = PropertyViewModel(
+    getPropertyTypesUseCase: GetPropertyTypesUseCase(propertyRepository),
+    getPropertiesMeUseCase: GetPropertiesMeUseCase(propertyRepository),
+    getPropertiesMeLikesUseCase: GetPropertiesMeLikesUseCase(propertyRepository),
+    authRepository: authRepository,
+  );
+
   // Datos de sesión guardados
   final isLoggedIn = authRepository.isLoggedIn;
   final savedUserName = authRepository.savedUserName;
@@ -172,6 +187,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: authViewModel),
         ChangeNotifierProvider.value(value: userViewModel),
+        ChangeNotifierProvider.value(value: propertyViewModel),
       ],
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)
