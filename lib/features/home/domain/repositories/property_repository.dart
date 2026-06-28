@@ -5,4 +5,5 @@ abstract class PropertyRepository {
   Future<List<PropertyTypeModel>> getPropertyTypes();
   Future<List<PropertyModel>> getPropertiesMe();
   Future<List<PropertyModel>> getPropertiesMeLikes();
+  Future<List<PropertyModel>> getPropertySuggestions();
 }
