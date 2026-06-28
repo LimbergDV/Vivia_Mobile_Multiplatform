@@ -101,15 +101,15 @@ class PropertyCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           _PropertyStat(
-                            svgPath: 'assets/icons/bath_icon.svg',
+                            svgPath: 'assets/icons/bed_icon.svg',
                             label: '${property.bedrooms}',
                             textTheme: textTheme,
                             colorScheme: colorScheme,
                           ),
                           const SizedBox(width: 8),
                           _PropertyStat(
-                            svgPath: 'assets/icons/bed_icon.svg',
-                            label: '${property.bathrooms}',
+                            svgPath: 'assets/icons/bath_icon.svg',
+                            label: _formatBathrooms(property.bathrooms),
                             textTheme: textTheme,
                             colorScheme: colorScheme,
                           ),
@@ -125,6 +125,12 @@ class PropertyCard extends StatelessWidget {
       ),
     );
   }
+
+  // Muestra "2" en vez de "2.0", pero conserva "2.5" para medios baños
+  String _formatBathrooms(double bathrooms) =>
+      bathrooms == bathrooms.truncateToDouble()
+          ? bathrooms.toInt().toString()
+          : bathrooms.toString();
 
   String _formatPrice(double price) {
     return price
