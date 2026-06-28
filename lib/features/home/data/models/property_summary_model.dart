@@ -5,7 +5,7 @@ class PropertySummaryModel {
   final double listedPrice;
   final double areaM2;
   final int bedrooms;
-  final int bathrooms;
+  final double bathrooms;
   final String propertyTypeName;
 
   const PropertySummaryModel({
@@ -27,7 +27,7 @@ class PropertySummaryModel {
         listedPrice: (json['listedPrice'] as num).toDouble(),
         areaM2: (json['areaM2'] as num).toDouble(),
         bedrooms: (json['bedrooms'] as num).toInt(),
-        bathrooms: (json['bathrooms'] as num).toInt(),
+        bathrooms: (json['bathrooms'] as num).toDouble(),
         propertyTypeName: json['propertyTypeName'] as String? ?? '',
       );
 }

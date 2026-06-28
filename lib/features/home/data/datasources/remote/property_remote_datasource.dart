@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 
 import 'package:vivia_mobile/features/home/data/datasources/remote/constants/property_api_constants.dart';
 import 'package:vivia_mobile/features/home/data/models/property_summary_model.dart';
+import 'package:vivia_mobile/features/home/domain/models/property_detail.dart';
+import 'package:vivia_mobile/features/home/domain/models/property_media.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_type_model.dart';
 
 // ── Contrato ──────────────────────────────────────────────────────────────────
@@ -11,6 +13,8 @@ abstract class PropertyRemoteDatasource {
   Future<List<PropertyTypeModel>> getPropertyTypes();
   Future<List<PropertySummaryModel>> getPropertiesMe();
   Future<List<PropertySummaryModel>> getPropertiesMeLikes();
+  Future<PropertyDetail> getPropertyById(String id);
+  Future<List<PropertyMedia>> getPropertyMedia(String id);
   Future<List<PropertySummaryModel>> getPropertySuggestions();
 }
 
@@ -29,6 +33,17 @@ class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
     if (res.statusCode == 200 && json['success'] == true) {
       final data = json['data'] as List<dynamic>;
       return data.map((e) => fromJson(e as Map<String, dynamic>)).toList();
+    }
+    throw Exception(json['message'] ?? 'Error ${res.statusCode}');
+  }
+
+  T _parseObject<T>(
+    http.Response res,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode == 200 && json['success'] == true) {
+      return fromJson(json['data'] as Map<String, dynamic>);
     }
     throw Exception(json['message'] ?? 'Error ${res.statusCode}');
   }
@@ -58,6 +73,24 @@ class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
       headers: PropertyApiConstants.headers(),
     ).timeout(_timeout);
     return _parseList(res, PropertySummaryModel.fromJson);
+  }
+
+  @override
+  Future<PropertyDetail> getPropertyById(String id) async {
+    final res = await _client.get(
+      Uri.parse(PropertyApiConstants.propertyDetail(id)),
+      headers: PropertyApiConstants.headers(),
+    ).timeout(_timeout);
+    return _parseObject(res, PropertyDetail.fromResponse);
+  }
+
+  @override
+  Future<List<PropertyMedia>> getPropertyMedia(String id) async {
+    final res = await _client.get(
+      Uri.parse(PropertyApiConstants.propertyMedia(id)),
+      headers: PropertyApiConstants.headers(),
+    ).timeout(_timeout);
+    return _parseList(res, PropertyMedia.fromJson);
   }
 
   @override

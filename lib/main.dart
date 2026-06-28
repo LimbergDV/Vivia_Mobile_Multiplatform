@@ -26,6 +26,8 @@ import 'package:vivia_mobile/features/home/data/datasources/remote/property_remo
 import 'package:vivia_mobile/features/home/data/repositories/property_repository_impl.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_likes_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_property_media_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_suggestions_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
@@ -177,6 +179,12 @@ void main() async {
     authRepository: authRepository,
   );
 
+
+  // Use case del detalle: la VM de detalle se construye por pantalla (per-propiedad),
+  // así que se expone el use case y cada PropertyDetailPage crea su propia VM.
+  final getPropertyByIdUseCase = GetPropertyByIdUseCase(propertyRepository);
+  final getPropertyMediaUseCase = GetPropertyMediaUseCase(propertyRepository);
+
   final lessorRemoteDatasource =
       LessorRemoteDatasourceImpl(authHttpClient, http.Client());
   final lessorRepository =
@@ -186,6 +194,7 @@ void main() async {
     getAmenitiesUseCase: GetAmenitiesUseCase(lessorRepository),
     publishPropertyDraftUseCase: PublishPropertyDraftUseCase(lessorRepository),
   );
+
 
   // Datos de sesión guardados
   final isLoggedIn = authRepository.isLoggedIn;
@@ -206,6 +215,8 @@ void main() async {
         ChangeNotifierProvider.value(value: authViewModel),
         ChangeNotifierProvider.value(value: userViewModel),
         ChangeNotifierProvider.value(value: propertyViewModel),
+        Provider<GetPropertyByIdUseCase>.value(value: getPropertyByIdUseCase),
+        Provider<GetPropertyMediaUseCase>.value(value: getPropertyMediaUseCase),
         ChangeNotifierProvider.value(value: propertyDraftViewModel),
       ],
       child: kIsWeb
