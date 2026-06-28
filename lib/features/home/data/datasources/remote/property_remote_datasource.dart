@@ -15,6 +15,7 @@ abstract class PropertyRemoteDatasource {
   Future<List<PropertySummaryModel>> getPropertiesMeLikes();
   Future<PropertyDetail> getPropertyById(String id);
   Future<List<PropertyMedia>> getPropertyMedia(String id);
+  Future<List<PropertySummaryModel>> getPropertySuggestions();
 }
 
 // ── Implementación ────────────────────────────────────────────────────────────
@@ -25,9 +26,9 @@ class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
   PropertyRemoteDatasourceImpl(this._client);
 
   List<T> _parseList<T>(
-    http.Response res,
-    T Function(Map<String, dynamic>) fromJson,
-  ) {
+      http.Response res,
+      T Function(Map<String, dynamic>) fromJson,
+      ) {
     final json = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode == 200 && json['success'] == true) {
       final data = json['data'] as List<dynamic>;
@@ -90,5 +91,14 @@ class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
       headers: PropertyApiConstants.headers(),
     ).timeout(_timeout);
     return _parseList(res, PropertyMedia.fromJson);
+  }
+
+  @override
+  Future<List<PropertySummaryModel>> getPropertySuggestions() async {
+    final res = await _client.get(
+      Uri.parse(PropertyApiConstants.propertiesSuggestions),
+      headers: PropertyApiConstants.headers(),
+    ).timeout(_timeout);
+    return _parseList(res, PropertySummaryModel.fromJson);
   }
 }

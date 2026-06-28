@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
+import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/lessor/presentation/helpers/media_picker_helper.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/tour_video_page.dart';
+import 'package:vivia_mobile/features/lessor/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/space_category_section.dart';
 
 class SpacePhotosPage extends StatefulWidget {
-  final NewPropertyForm form;
-
-  const SpacePhotosPage({super.key, required this.form});
+  const SpacePhotosPage({super.key});
 
   @override
   State<SpacePhotosPage> createState() => _SpacePhotosPageState();
@@ -19,6 +18,23 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
     _SpaceCategory(label: 'Baños'),
     _SpaceCategory(label: 'Jardines'),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-cargar fotos guardadas en el ViewModel (si el usuario regresó a esta pantalla)
+    final saved = context.read<PropertyDraftViewModel>().form.spacePhotos;
+    if (saved != null) {
+      for (int i = 0; i < _categories.length; i++) {
+        final paths = saved[_categories[i].label] ?? [];
+        _categories[i] = _SpaceCategory(
+          label: _categories[i].label,
+          isExpanded: _categories[i].isExpanded,
+          imagePaths: List.of(paths),
+        );
+      }
+    }
+  }
 
   void _toggleCategory(int index) {
     setState(() {
@@ -42,6 +58,7 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
           imagePaths: [..._categories[index].imagePaths, ...paths],
         );
       });
+      _syncToViewModel();
     }
   }
 
@@ -55,6 +72,7 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
           imagePaths: [..._categories[index].imagePaths, result.path!],
         );
       });
+      _syncToViewModel();
     } else if (result.isCameraDenied && mounted) {
       _showSnack('Permiso de cámara denegado. Usa la galería para subir fotos.');
     }
@@ -62,7 +80,8 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
 
   void _onDeleteImage(int categoryIndex, int imageIndex) {
     setState(() {
-      final updated = List<String>.of(_categories[categoryIndex].imagePaths);
+      final updated =
+          List<String>.of(_categories[categoryIndex].imagePaths);
       updated.removeAt(imageIndex);
       _categories[categoryIndex] = _SpaceCategory(
         label: _categories[categoryIndex].label,
@@ -70,21 +89,22 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
         imagePaths: updated,
       );
     });
+    _syncToViewModel();
   }
 
-  void _onNext() {
+  void _syncToViewModel() {
     final spacePhotos = <String, List<String>>{};
     for (final cat in _categories) {
       spacePhotos[cat.label] = cat.imagePaths;
     }
+    context.read<PropertyDraftViewModel>().setSpacePhotos(spacePhotos);
+  }
 
-    final updatedForm = widget.form.copyWith(spacePhotos: spacePhotos);
-
+  void _onNext() {
+    _syncToViewModel();
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => TourVideoPage(form: updatedForm),
-      ),
+      MaterialPageRoute(builder: (_) => const TourVideoPage()),
     );
   }
 

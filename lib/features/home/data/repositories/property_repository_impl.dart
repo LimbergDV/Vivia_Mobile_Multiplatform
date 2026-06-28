@@ -49,4 +49,10 @@ class PropertyRepositoryImpl implements PropertyRepository {
   @override
   Future<List<PropertyMedia>> getPropertyMedia(String id) =>
       _remote.getPropertyMedia(id);
+
+  @override
+  Future<List<PropertyModel>> getPropertySuggestions() async {
+    final summaries = await _remote.getPropertySuggestions();
+    return summaries.map((s) => _toModel(s)).toList();
+  }
 }

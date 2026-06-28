@@ -28,8 +28,15 @@ import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_lik
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_media_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_property_suggestions_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
+import 'package:vivia_mobile/features/lessor/data/datasources/remote/lessor_remote_datasource.dart';
+import 'package:vivia_mobile/features/lessor/data/repositories/lessor_repository_impl.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/get_amenities_usecase.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/get_neighborhoods_usecase.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/publish_property_draft_usecase.dart';
+import 'package:vivia_mobile/features/lessor/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/user/data/datasources/remote/user_remote_datasource.dart';
 import 'package:vivia_mobile/features/user/data/repositories/user_repository_impl.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/get_me_usecase.dart';
@@ -43,7 +50,7 @@ const _channelId = 'vivia_notifications';
 const _channelName = 'Vivia Notificaciones';
 
 final FlutterLocalNotificationsPlugin _localNotifications =
-    FlutterLocalNotificationsPlugin();
+FlutterLocalNotificationsPlugin();
 
 // Handler para mensajes en background/terminated — debe ser top-level
 @pragma('vm:entry-point')
@@ -53,7 +60,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> _initLocalNotifications() async {
   const androidSettings =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
+  AndroidInitializationSettings('@mipmap/ic_launcher');
   const initSettings = InitializationSettings(android: androidSettings);
   await _localNotifications.initialize(initSettings);
 
@@ -65,7 +72,7 @@ Future<void> _initLocalNotifications() async {
   );
   await _localNotifications
       .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
+      AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 }
 
@@ -120,7 +127,7 @@ void main() async {
   final authHttpClient = AuthHttpClient(
     http.Client(),
     localDatasource,
-    () => authViewModelRef?.handleSessionExpired(),
+        () => authViewModelRef?.handleSessionExpired(),
   );
 
   final remoteDatasource = AuthRemoteDatasourceImpl(authHttpClient);
@@ -168,13 +175,26 @@ void main() async {
     getPropertyTypesUseCase: GetPropertyTypesUseCase(propertyRepository),
     getPropertiesMeUseCase: GetPropertiesMeUseCase(propertyRepository),
     getPropertiesMeLikesUseCase: GetPropertiesMeLikesUseCase(propertyRepository),
+    getPropertySuggestionsUseCase: GetPropertySuggestionsUseCase(propertyRepository),
     authRepository: authRepository,
   );
+
 
   // Use case del detalle: la VM de detalle se construye por pantalla (per-propiedad),
   // así que se expone el use case y cada PropertyDetailPage crea su propia VM.
   final getPropertyByIdUseCase = GetPropertyByIdUseCase(propertyRepository);
   final getPropertyMediaUseCase = GetPropertyMediaUseCase(propertyRepository);
+
+  final lessorRemoteDatasource =
+      LessorRemoteDatasourceImpl(authHttpClient, http.Client());
+  final lessorRepository =
+      LessorRepositoryImpl(remote: lessorRemoteDatasource);
+  final propertyDraftViewModel = PropertyDraftViewModel(
+    getNeighborhoodsUseCase: GetNeighborhoodsUseCase(lessorRepository),
+    getAmenitiesUseCase: GetAmenitiesUseCase(lessorRepository),
+    publishPropertyDraftUseCase: PublishPropertyDraftUseCase(lessorRepository),
+  );
+
 
   // Datos de sesión guardados
   final isLoggedIn = authRepository.isLoggedIn;
@@ -197,6 +217,7 @@ void main() async {
         ChangeNotifierProvider.value(value: propertyViewModel),
         Provider<GetPropertyByIdUseCase>.value(value: getPropertyByIdUseCase),
         Provider<GetPropertyMediaUseCase>.value(value: getPropertyMediaUseCase),
+        ChangeNotifierProvider.value(value: propertyDraftViewModel),
       ],
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)

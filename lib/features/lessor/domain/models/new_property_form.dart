@@ -1,13 +1,15 @@
-// lib/features/lessor/domain/models/new_property_form.dart
+import 'package:vivia_mobile/features/home/domain/models/property_type_model.dart';
+import 'package:vivia_mobile/features/lessor/data/models/neighborhood_model.dart';
 
 class NewPropertyForm {
   // Paso 1 - add_property_page
-  final String? listingType;
+  final bool isAvailableToRent;
   final String? postalCode;
-  final String? city;
-  final String? state;
-  final String? colonia;
-  final String? propertyType;
+  final NeighborhoodModel? neighborhood;
+  final PropertyTypeModel? propertyType;
+  final String? street;
+  final String? exteriorNumber;
+  final String? interiorNumber;
   final String? price;
   final String? area;
 
@@ -17,6 +19,9 @@ class NewPropertyForm {
   final int? parkingSpots;
   final String? title;
   final String? description;
+  final int? constructionYear;
+  final bool isCondominium;
+  final List<String> amenityIds;
 
   // Paso 3 - property_photos_page
   final String? mainPhotoPath;
@@ -28,12 +33,13 @@ class NewPropertyForm {
   final String? videoPath;
 
   const NewPropertyForm({
-    this.listingType,
+    this.isAvailableToRent = false,
     this.postalCode,
-    this.city,
-    this.state,
-    this.colonia,
+    this.neighborhood,
     this.propertyType,
+    this.street,
+    this.exteriorNumber,
+    this.interiorNumber,
     this.price,
     this.area,
     this.rooms,
@@ -41,18 +47,22 @@ class NewPropertyForm {
     this.parkingSpots,
     this.title,
     this.description,
+    this.constructionYear,
+    this.isCondominium = false,
+    this.amenityIds = const [],
     this.mainPhotoPath,
     this.spacePhotos,
     this.videoPath,
   });
 
   NewPropertyForm copyWith({
-    String? listingType,
+    bool? isAvailableToRent,
     String? postalCode,
-    String? city,
-    String? state,
-    String? colonia,
-    String? propertyType,
+    NeighborhoodModel? neighborhood,
+    PropertyTypeModel? propertyType,
+    String? street,
+    String? exteriorNumber,
+    String? interiorNumber,
     String? price,
     String? area,
     int? rooms,
@@ -60,17 +70,21 @@ class NewPropertyForm {
     int? parkingSpots,
     String? title,
     String? description,
+    int? constructionYear,
+    bool? isCondominium,
+    List<String>? amenityIds,
     String? mainPhotoPath,
     Map<String, List<String>>? spacePhotos,
     String? videoPath,
   }) {
     return NewPropertyForm(
-      listingType: listingType ?? this.listingType,
+      isAvailableToRent: isAvailableToRent ?? this.isAvailableToRent,
       postalCode: postalCode ?? this.postalCode,
-      city: city ?? this.city,
-      state: state ?? this.state,
-      colonia: colonia ?? this.colonia,
+      neighborhood: neighborhood ?? this.neighborhood,
       propertyType: propertyType ?? this.propertyType,
+      street: street ?? this.street,
+      exteriorNumber: exteriorNumber ?? this.exteriorNumber,
+      interiorNumber: interiorNumber ?? this.interiorNumber,
       price: price ?? this.price,
       area: area ?? this.area,
       rooms: rooms ?? this.rooms,
@@ -78,6 +92,9 @@ class NewPropertyForm {
       parkingSpots: parkingSpots ?? this.parkingSpots,
       title: title ?? this.title,
       description: description ?? this.description,
+      constructionYear: constructionYear ?? this.constructionYear,
+      isCondominium: isCondominium ?? this.isCondominium,
+      amenityIds: amenityIds ?? this.amenityIds,
       mainPhotoPath: mainPhotoPath ?? this.mainPhotoPath,
       spacePhotos: spacePhotos ?? this.spacePhotos,
       videoPath: videoPath ?? this.videoPath,

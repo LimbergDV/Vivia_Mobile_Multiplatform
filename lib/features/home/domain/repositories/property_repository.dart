@@ -9,4 +9,5 @@ abstract class PropertyRepository {
   Future<List<PropertyModel>> getPropertiesMeLikes();
   Future<PropertyDetail> getPropertyById(String id);
   Future<List<PropertyMedia>> getPropertyMedia(String id);
+  Future<List<PropertyModel>> getPropertySuggestions();
 }

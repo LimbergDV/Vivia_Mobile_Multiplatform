@@ -26,8 +26,8 @@ class PropertySummaryModel {
         title: json['title'] as String? ?? '',
         listedPrice: (json['listedPrice'] as num).toDouble(),
         areaM2: (json['areaM2'] as num).toDouble(),
-        bedrooms: (json['bedrooms'] as num?)?.toInt() ?? 0,
-        bathrooms: (json['bathrooms'] as num?)?.toDouble() ?? 0,
+        bedrooms: (json['bedrooms'] as num).toInt(),
+        bathrooms: (json['bathrooms'] as num).toDouble(),
         propertyTypeName: json['propertyTypeName'] as String? ?? '',
       );
 }
