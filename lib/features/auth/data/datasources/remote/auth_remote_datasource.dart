@@ -297,16 +297,10 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
     required double latitude,
     required double longitude,
   }) async {
-    final res = await _client.put(
+    await _client.put(
       Uri.parse(AuthApiConstants.lesseeUbication),
       headers: AuthApiConstants.headers(),
       body: jsonEncode({'latitude': latitude, 'longitude': longitude}),
     ).timeout(_timeout);
-
-    print('--------------------------------------------------');
-    print('PUT /lessees/ubication');
-    print('Status: ${res.statusCode}');
-    print('Body:   ${res.body}');
-    print('--------------------------------------------------');
   }
 }

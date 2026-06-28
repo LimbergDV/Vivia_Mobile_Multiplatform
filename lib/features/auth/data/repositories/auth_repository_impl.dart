@@ -35,9 +35,6 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   String _extractFirstNameFromClaims(Map<String, dynamic> claims) {
-    // ⚠️ DEBUG: borrar después de confirmar qué claims trae el JWT
-    print('>>> JWT CLAIMS: $claims');
-
     final candidates = [
       'name', 'given_name', 'firstName', 'first_name',
       'nombre', 'display_name', 'displayName', 'fullName',

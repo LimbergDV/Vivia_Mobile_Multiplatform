@@ -6,7 +6,7 @@ class PropertyModel {
   final String location;
   final double area;
   final int bedrooms;
-  final int bathrooms;
+  final double bathrooms;
   final String imageUrl;
   final bool isFavorite;
 
