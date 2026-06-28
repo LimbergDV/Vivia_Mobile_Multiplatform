@@ -3,7 +3,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AuthApiConstants {
   AuthApiConstants._();
 
-  static String get baseUrl => dotenv.env['API_BASE_URL'] ?? '';
+  static String get baseUrl =>
+      (dotenv.env['API_BASE_URL'] ?? '').replaceAll(RegExp(r'/+$'), '');
 
   // ── Auth ──────────────────────────────────────────────────────────────
   static String get login => '$baseUrl/auth/login';
