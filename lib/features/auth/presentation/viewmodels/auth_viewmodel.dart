@@ -1,14 +1,86 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
+
+import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/login_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/login_google_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/register_lessee_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/register_lessor_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/register_lessee_google_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/register_lessor_google_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/register_fcm_token_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/set_location_permission_shown_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase.dart';
+import 'package:vivia_mobile/features/auth/domain/repositories/auth_repository.dart';
 
 enum AuthStatus { idle, loading, success, error }
 
 class AuthViewModel extends ChangeNotifier {
+  final LoginUseCase _loginUseCase;
+  final LoginGoogleUseCase _loginGoogleUseCase;
+  final RegisterLesseeUseCase _registerLesseeUseCase;
+  final RegisterLessorUseCase _registerLessorUseCase;
+  final RegisterLesseeGoogleUseCase _registerLesseeGoogleUseCase;
+  final RegisterLessorGoogleUseCase _registerLessorGoogleUseCase;
+  final LogoutUseCase _logoutUseCase;
+  final SetLocationPermissionShownUseCase _setLocationPermissionShownUseCase;
+  final PutUbicationUseCase _putUbicationUseCase;
+  final AuthRepository _authRepository;
+  final RegisterFcmTokenUseCase _registerFcmTokenUseCase;
+
+  AuthViewModel({
+    required LoginUseCase loginUseCase,
+    required LoginGoogleUseCase loginGoogleUseCase,
+    required RegisterLesseeUseCase registerLesseeUseCase,
+    required RegisterLessorUseCase registerLessorUseCase,
+    required RegisterLesseeGoogleUseCase registerLesseeGoogleUseCase,
+    required RegisterLessorGoogleUseCase registerLessorGoogleUseCase,
+    required LogoutUseCase logoutUseCase,
+    required SetLocationPermissionShownUseCase setLocationPermissionShownUseCase,
+    required PutUbicationUseCase putUbicationUseCase,
+    required AuthRepository authRepository,
+    required RegisterFcmTokenUseCase registerFcmTokenUseCase,
+  })  : _loginUseCase = loginUseCase,
+        _loginGoogleUseCase = loginGoogleUseCase,
+        _registerLesseeUseCase = registerLesseeUseCase,
+        _registerLessorUseCase = registerLessorUseCase,
+        _registerLesseeGoogleUseCase = registerLesseeGoogleUseCase,
+        _registerLessorGoogleUseCase = registerLessorGoogleUseCase,
+        _logoutUseCase = logoutUseCase,
+        _registerFcmTokenUseCase = registerFcmTokenUseCase,
+        _setLocationPermissionShownUseCase = setLocationPermissionShownUseCase,
+        _putUbicationUseCase = putUbicationUseCase,
+        _authRepository = authRepository;
+
+  // ── Estado ────────────────────────────────────────────────────────────
   AuthStatus _status = AuthStatus.idle;
   String? _errorMessage;
 
+  // Datos del usuario post-login (para navegar a HomePage)
+  String _userName = '';
+  String? _avatarUrl;
+  UserRole _lastRole = UserRole.lessee;
+
   AuthStatus get status => _status;
   String? get errorMessage => _errorMessage;
+  String get userName => _userName;
+  String? get avatarUrl => _avatarUrl;
+  UserRole get lastRole => _lastRole;
+  bool get hasSeenLocationPermission => _authRepository.hasSeenLocationPermission;
 
+  void _setLoading() {
+    _status = AuthStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  // ── Controllers de Login ──────────────────────────────────────────────
   final TextEditingController loginEmailController = TextEditingController();
   final TextEditingController loginPasswordController = TextEditingController();
   final GlobalKey<FormState> loginFormKey = GlobalKey<FormState>();
@@ -21,10 +93,17 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Controllers de Registro ───────────────────────────────────────────
   final TextEditingController registerNameController = TextEditingController();
-  final TextEditingController registerLastNameController = TextEditingController();
-  final TextEditingController registerPasswordController = TextEditingController();
-  final TextEditingController registerConfirmPasswordController = TextEditingController();
+  final TextEditingController registerLastNameController =
+  TextEditingController();
+  final TextEditingController registerMaternalSurnameController =
+  TextEditingController();
+  final TextEditingController registerPhoneController = TextEditingController();
+  final TextEditingController registerPasswordController =
+  TextEditingController();
+  final TextEditingController registerConfirmPasswordController =
+  TextEditingController();
   final TextEditingController registerEmailController = TextEditingController();
   final GlobalKey<FormState> registerFormKey = GlobalKey<FormState>();
 
@@ -43,49 +122,179 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> login() async {
+  // ── Login con contraseña ──────────────────────────────────────────────
+  Future<void> login(UserRole role) async {
     if (!loginFormKey.currentState!.validate()) return;
+    _setLoading();
+    try {
+      final result = await _loginUseCase.execute(
+        loginEmailController.text.trim(),
+        loginPasswordController.text,
+      );
 
-    _status = AuthStatus.loading;
-    _errorMessage = null;
-    notifyListeners();
+      // Rol esperado según la pantalla que eligió el usuario
+      final expectedRole = role == UserRole.lessee ? 'ROLE_LESSEE' : 'ROLE_LESSOR';
 
-    // TODO: Conectar con el UseCase de login
-    await Future.delayed(const Duration(seconds: 2)); // simulación
+      // Bloqueo estricto: si el rol del JWT no coincide, no pasa
+      if (result.role != expectedRole) {
+        _status = AuthStatus.error;
+        _errorMessage = role == UserRole.lessee
+            ? 'Esta cuenta no es de arrendatario'
+            : 'Esta cuenta no es de arrendador';
+        notifyListeners();
+        return;
+      }
 
-    _status = AuthStatus.success;
-    notifyListeners();
+      _userName = result.name;
+      _lastRole = role;
+      _avatarUrl = null;
+      _status = AuthStatus.success;
+      _registerFcmTokenUseCase.execute().ignore();
+    } catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      notifyListeners();
+    }
   }
 
-  Future<void> register() async {
+  // ── Registro ──────────────────────────────────────────────────────────
+  Future<void> register(UserRole role) async {
     if (!registerFormKey.currentState!.validate()) return;
+    _setLoading();
+    try {
+      final name = registerNameController.text.trim();
+      final paternalSurname = registerLastNameController.text.trim();
 
-    _status = AuthStatus.loading;
-    _errorMessage = null;
-    notifyListeners();
-
-    // TODO: Conectar con el UseCase de registro
-    await Future.delayed(const Duration(seconds: 2)); // simulación
-
-    _status = AuthStatus.success;
-    notifyListeners();
+      if (role == UserRole.lessee) {
+        await _registerLesseeUseCase.execute(
+          name: name,
+          paternalSurname: paternalSurname,
+          maternalSurname: registerMaternalSurnameController.text.trim(),
+          email: registerEmailController.text.trim(),
+          password: registerPasswordController.text,
+        );
+      } else {
+        await _registerLessorUseCase.execute(
+          name: name,
+          paternalSurname: paternalSurname,
+          maternalSurname: registerMaternalSurnameController.text.trim(),
+          email: registerEmailController.text.trim(),
+          phoneNumber: registerPhoneController.text.trim(),
+          password: registerPasswordController.text,
+        );
+      }
+      _userName = name;
+      _lastRole = role;
+      _avatarUrl = null;
+      _status = AuthStatus.success;
+      _registerFcmTokenUseCase.execute().ignore();
+    } catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      notifyListeners();
+    }
   }
 
-  Future<void> loginWithGoogle() async {
-    _status = AuthStatus.loading;
-    notifyListeners();
+  // ── Login / Registro con Google ───────────────────────────────────────
+  Future<void> loginWithGoogle(UserRole role) async {
+    _setLoading();
+    try {
+      final googleSignIn = GoogleSignIn(
+        serverClientId: dotenv.env['GOOGLE_WEB_CLIENT_ID'] ?? '',
+      );
+      await googleSignIn.signOut();
+      final googleUser = await googleSignIn.signIn();
 
-    // TODO: Conectar con Google Sign-In
-    await Future.delayed(const Duration(seconds: 1));
+      if (googleUser == null) {
+        _status = AuthStatus.idle;
+        notifyListeners();
+        return;
+      }
 
-    _status = AuthStatus.idle;
-    notifyListeners();
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken ?? '';
+      final displayName = googleUser.displayName ?? googleUser.email.split('@').first;
+      final photoUrl = googleUser.photoUrl;
+
+      try {
+        await _loginGoogleUseCase.execute(
+          idToken: idToken,
+          role: role,
+          displayName: displayName,
+          avatarUrl: photoUrl,
+        );
+      } catch (e) {
+        if (e is TimeoutException || e is SocketException || e is http.ClientException) rethrow;
+        if (role == UserRole.lessee) {
+          await _registerLesseeGoogleUseCase.execute(
+            idToken: idToken,
+            displayName: displayName,
+            avatarUrl: photoUrl,
+          );
+        } else {
+          await _registerLessorGoogleUseCase.execute(
+            idToken: idToken,
+            displayName: displayName,
+            avatarUrl: photoUrl,
+          );
+        }
+      }
+      _userName = displayName.split(' ').first;
+      _lastRole = role;
+      _avatarUrl = photoUrl;
+      _status = AuthStatus.success;
+      _registerFcmTokenUseCase.execute().ignore();
+    } catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      notifyListeners();
+    }
   }
+
+  // ── Logout ────────────────────────────────────────────────────────────
+  Future<void> logout() async {
+    _setLoading();
+    try {
+      await _logoutUseCase.execute();
+      _userName = '';
+      _avatarUrl = null;
+      _status = AuthStatus.idle;
+    } catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> syncFcmToken() => _registerFcmTokenUseCase.execute();
 
   void resetStatus() {
     _status = AuthStatus.idle;
     _errorMessage = null;
     notifyListeners();
+  }
+
+  // Llamado por AuthHttpClient cuando el refresh token también expiró
+  void handleSessionExpired() {
+    _userName = '';
+    _avatarUrl = null;
+    _status = AuthStatus.idle;
+    notifyListeners();
+  }
+
+  // ── Ubicación ─────────────────────────────────────────────────────────
+
+  Future<void> markLocationPermissionShown() =>
+      _setLocationPermissionShownUseCase.execute();
+
+  void putUbicationFireAndForget(double latitude, double longitude) {
+    _putUbicationUseCase
+        .execute(latitude: latitude, longitude: longitude)
+        .catchError((_) {});
   }
 
   @override
@@ -94,6 +303,8 @@ class AuthViewModel extends ChangeNotifier {
     loginPasswordController.dispose();
     registerNameController.dispose();
     registerLastNameController.dispose();
+    registerMaternalSurnameController.dispose();
+    registerPhoneController.dispose();
     registerPasswordController.dispose();
     registerConfirmPasswordController.dispose();
     registerEmailController.dispose();

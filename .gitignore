@@ -45,5 +45,9 @@ app.*.map.json
 /android/app/release
 
 .env
-.codegraph
+*.env
+
+# Google Services (Firebase)
 android/app/google-services.json
+
+.codegraph

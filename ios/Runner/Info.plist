@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+		<key>NSCameraUsageDescription</key>
+    	<string>Vivia necesita acceso a la cámara para tomar fotos y videos de tu propiedad.</string>
+    	<key>NSPhotoLibraryUsageDescription</key>
+    	<string>Vivia necesita acceso a tu galería para seleccionar fotos de tu propiedad.</string>
 </dict>
 </plist>

@@ -1,0 +1,42 @@
+import 'package:vivia_mobile/features/home/data/datasources/remote/property_remote_datasource.dart';
+import 'package:vivia_mobile/features/home/data/models/property_summary_model.dart';
+import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
+import 'package:vivia_mobile/features/home/domain/models/property_type_model.dart';
+import 'package:vivia_mobile/features/home/domain/repositories/property_repository.dart';
+
+class PropertyRepositoryImpl implements PropertyRepository {
+  final PropertyRemoteDatasource _remote;
+
+  PropertyRepositoryImpl({required PropertyRemoteDatasource remote})
+      : _remote = remote;
+
+  PropertyModel _toModel(PropertySummaryModel s, {bool isFavorite = false}) =>
+      PropertyModel(
+        id: s.id,
+        title: s.title,
+        type: s.propertyTypeName,
+        price: s.listedPrice,
+        location: '',
+        area: s.areaM2,
+        bedrooms: s.bedrooms,
+        bathrooms: s.bathrooms,
+        imageUrl: s.mainImageUrl,
+        isFavorite: isFavorite,
+      );
+
+  @override
+  Future<List<PropertyTypeModel>> getPropertyTypes() =>
+      _remote.getPropertyTypes();
+
+  @override
+  Future<List<PropertyModel>> getPropertiesMe() async {
+    final summaries = await _remote.getPropertiesMe();
+    return summaries.map((s) => _toModel(s)).toList();
+  }
+
+  @override
+  Future<List<PropertyModel>> getPropertiesMeLikes() async {
+    final summaries = await _remote.getPropertiesMeLikes();
+    return summaries.map((s) => _toModel(s, isFavorite: true)).toList();
+  }
+}
