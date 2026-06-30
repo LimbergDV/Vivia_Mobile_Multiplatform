@@ -6,11 +6,13 @@ enum HomeNavItem { home, notifications, add, messages, profile }
 class HomeBottomNavBar extends StatelessWidget {
   final HomeNavItem selected;
   final ValueChanged<HomeNavItem> onItemSelected;
+  final bool showAddButton;
 
   const HomeBottomNavBar({
     super.key,
     required this.selected,
     required this.onItemSelected,
+    this.showAddButton = true,
   });
 
   @override
@@ -64,33 +66,34 @@ class HomeBottomNavBar extends StatelessWidget {
             ),
           ),
 
-          Positioned(
-            bottom: 22,
-            child: GestureDetector(
-              onTap: () => onItemSelected(HomeNavItem.add),
-              child: Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF04364A),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF04364A).withOpacity(0.35),
-                      blurRadius: 16,
-                      spreadRadius: 1,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.add,
-                  color: Colors.white,
-                  size: 30,
+          if (showAddButton)
+            Positioned(
+              bottom: 22,
+              child: GestureDetector(
+                onTap: () => onItemSelected(HomeNavItem.add),
+                child: Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF04364A),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF04364A).withOpacity(0.35),
+                        blurRadius: 16,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.add,
+                    color: Colors.white,
+                    size: 30,
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

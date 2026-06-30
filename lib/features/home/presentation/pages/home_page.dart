@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onNavSelected(HomeNavItem item) {
-    if (item == HomeNavItem.add && widget.role == UserRole.lessor) {
+    if (item == HomeNavItem.add && context.read<PropertyViewModel>().isLessor) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const AddPropertyPage()),

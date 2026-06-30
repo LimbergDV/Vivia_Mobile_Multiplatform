@@ -266,6 +266,7 @@ class AuthViewModel extends ChangeNotifier {
       _userName = '';
       _avatarUrl = null;
       _status = AuthStatus.idle;
+      _clearRegisterFields();
       _onSessionCleared?.call();
     } catch (e) {
       _status = AuthStatus.error;
@@ -287,6 +288,7 @@ class AuthViewModel extends ChangeNotifier {
     _userName = '';
     _avatarUrl = null;
     _status = AuthStatus.idle;
+    _clearRegisterFields();
     notifyListeners();
     _onSessionCleared?.call();
   }

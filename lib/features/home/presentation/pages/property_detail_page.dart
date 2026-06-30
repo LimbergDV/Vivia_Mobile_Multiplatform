@@ -7,7 +7,10 @@ import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_us
 import 'package:vivia_mobile/features/home/presentation/pages/fullscreen_image_viewer.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/gallery_page.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_detail_viewmodel.dart';
+import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/profile_page.dart';
+import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final PropertyModel property;
@@ -41,7 +44,6 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     super.dispose();
   }
 
-  // Imágenes del carrusel: las del detalle si ya cargaron, si no la de la summary.
   List<String> _images(PropertyDetail? detail) {
     final urls = detail?.imageUrls ?? const [];
     if (urls.isNotEmpty) return urls;
@@ -50,9 +52,9 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
 
   String _formatPrice(double price) =>
       '\$${price.toStringAsFixed(0).replaceAllMapped(
-            RegExp(r'(\d)(?=(\d{3})+$)'),
+        RegExp(r'(\d)(?=(\d{3})+$)'),
             (m) => '${m[1]},',
-          )}';
+      )}';
 
   String _typeLabel(PropertyDetail? detail) {
     final type = detail?.propertyType.name ?? widget.property.type;
@@ -66,6 +68,18 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   void _onNavSelected(HomeNavItem item) {
     if (item == HomeNavItem.home) {
       Navigator.of(context).pop();
+      return;
+    }
+    if (item == HomeNavItem.profile) {
+      final userVm = context.read<UserViewModel>();
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ProfilePage(
+            userName: userVm.displayName,
+            avatarUrl: userVm.avatarUrl,
+          ),
+        ),
+      );
       return;
     }
     setState(() => _selectedNav = item);
@@ -86,6 +100,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
       bottomNavigationBar: HomeBottomNavBar(
         selected: _selectedNav,
         onItemSelected: _onNavSelected,
+        showAddButton: context.watch<PropertyViewModel>().isLessor,
       ),
       body: AnimatedBuilder(
         animation: _vm,
@@ -144,7 +159,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                               return AnimatedContainer(
                                 duration: const Duration(milliseconds: 250),
                                 margin:
-                                    const EdgeInsets.symmetric(horizontal: 3),
+                                const EdgeInsets.symmetric(horizontal: 3),
                                 width: isActive ? 24 : 8,
                                 height: 8,
                                 decoration: BoxDecoration(
@@ -298,7 +313,6 @@ class _ContentBody extends StatelessWidget {
           _StatsRow(bedrooms: bedrooms, bathrooms: bathrooms, area: area),
           const SizedBox(height: 24),
 
-          // Agente — solo cuando el backend lo entrega (token de lessee)
           if (lessor != null) ...[
             const _SectionTitle(label: 'Agente'),
             const SizedBox(height: 12),
@@ -324,7 +338,6 @@ class _ContentBody extends StatelessWidget {
             ),
           const SizedBox(height: 24),
 
-          // Amenidades
           if (detail != null && detail!.amenities.isNotEmpty) ...[
             const _SectionTitle(label: 'Amenidades'),
             const SizedBox(height: 12),
@@ -408,16 +421,16 @@ class _SkeletonLines extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget line(double widthFactor) => FractionallySizedBox(
-          widthFactor: widthFactor,
-          child: Container(
-            height: 12,
-            margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-        );
+      widthFactor: widthFactor,
+      child: Container(
+        height: 12,
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(6),
+        ),
+      ),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,7 +586,7 @@ class _AgentCard extends StatelessWidget {
               : null,
           child: (avatarUrl == null || avatarUrl!.isEmpty)
               ? Icon(Icons.person,
-                  color: colorScheme.onSurfaceVariant, size: 24)
+              color: colorScheme.onSurfaceVariant, size: 24)
               : null,
         ),
         const SizedBox(width: 12),
