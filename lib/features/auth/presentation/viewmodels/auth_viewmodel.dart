@@ -184,12 +184,23 @@ class AuthViewModel extends ChangeNotifier {
       _avatarUrl = null;
       _status = AuthStatus.success;
       _registerFcmTokenUseCase.execute().ignore();
+      _clearRegisterFields();
     } catch (e) {
       _status = AuthStatus.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
     } finally {
       notifyListeners();
     }
+  }
+
+  void _clearRegisterFields() {
+    registerNameController.clear();
+    registerLastNameController.clear();
+    registerMaternalSurnameController.clear();
+    registerPhoneController.clear();
+    registerPasswordController.clear();
+    registerConfirmPasswordController.clear();
+    registerEmailController.clear();
   }
 
   Future<void> loginWithGoogle(UserRole role) async {
@@ -255,6 +266,7 @@ class AuthViewModel extends ChangeNotifier {
       _userName = '';
       _avatarUrl = null;
       _status = AuthStatus.idle;
+      _clearRegisterFields();
       _onSessionCleared?.call();
     } catch (e) {
       _status = AuthStatus.error;
@@ -276,6 +288,7 @@ class AuthViewModel extends ChangeNotifier {
     _userName = '';
     _avatarUrl = null;
     _status = AuthStatus.idle;
+    _clearRegisterFields();
     notifyListeners();
     _onSessionCleared?.call();
   }
