@@ -12,6 +12,7 @@ import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_pr
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/add_property_page.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/profile_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -48,6 +49,18 @@ class _HomePageState extends State<HomePage> {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const AddPropertyPage()),
+      );
+      return;
+    }
+    if (item == HomeNavItem.profile) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProfilePage(
+            userName: widget.userName,
+            avatarUrl: widget.avatarUrl,
+          ),
+        ),
       );
       return;
     }
