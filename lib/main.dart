@@ -30,6 +30,7 @@ import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_us
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_media_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_suggestions_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/delete_property_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/toggle_like_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/data/datasources/remote/lessor_remote_datasource.dart';
@@ -187,6 +188,7 @@ void main() async {
   final getPropertyByIdUseCase = GetPropertyByIdUseCase(propertyRepository);
   final getPropertyMediaUseCase = GetPropertyMediaUseCase(propertyRepository);
   final toggleLikeUseCase = ToggleLikeUseCase(propertyRepository);
+  final deletePropertyUseCase = DeletePropertyUseCase(propertyRepository);
 
   final lessorRemoteDatasource =
       LessorRemoteDatasourceImpl(authHttpClient, http.Client());
@@ -222,6 +224,7 @@ void main() async {
         Provider<GetPropertyByIdUseCase>.value(value: getPropertyByIdUseCase),
         Provider<GetPropertyMediaUseCase>.value(value: getPropertyMediaUseCase),
         Provider<ToggleLikeUseCase>.value(value: toggleLikeUseCase),
+        Provider<DeletePropertyUseCase>.value(value: deletePropertyUseCase),
         ChangeNotifierProvider.value(value: propertyDraftViewModel),
       ],
       child: kIsWeb

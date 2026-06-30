@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_detail.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/delete_property_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/toggle_like_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/fullscreen_image_viewer.dart';
@@ -67,6 +68,44 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
       return 'DEPARTAMENTO';
     }
     return type.toUpperCase();
+  }
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar propiedad'),
+        content: const Text(
+          '¿Estás seguro de que deseas eliminar esta propiedad? '
+          'Esta acción eliminará también todas las imágenes y videos asociados '
+          'y no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await context.read<DeletePropertyUseCase>().execute(widget.property.id);
+      if (!mounted) return;
+      context.read<PropertyViewModel>().removeProperty(widget.property.id);
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al eliminar: $e')),
+      );
+    }
   }
 
   void _onNavSelected(HomeNavItem item) {
@@ -193,6 +232,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       isLessor: isLessor,
                       isFavorite: _vm.currentLike,
                       onFavoriteTap: () => _vm.toggleLike(widget.property.id),
+                      onDeleteTap: _confirmDelete,
                     ),
                   ),
                 ),
@@ -216,6 +256,7 @@ class _ContentBody extends StatelessWidget {
   final bool isLessor;
   final bool isFavorite;
   final VoidCallback onFavoriteTap;
+  final VoidCallback onDeleteTap;
 
   const _ContentBody({
     required this.property,
@@ -228,6 +269,7 @@ class _ContentBody extends StatelessWidget {
     required this.isLessor,
     required this.isFavorite,
     required this.onFavoriteTap,
+    required this.onDeleteTap,
   });
 
   @override
@@ -278,11 +320,18 @@ class _ContentBody extends StatelessWidget {
                       icon: Icon(Icons.more_vert,
                           color: colorScheme.onSurface, size: 24),
                       padding: EdgeInsets.zero,
-                      onSelected: (_) {},
+                      onSelected: (value) {
+                        if (value == 'delete') onDeleteTap();
+                      },
                       itemBuilder: (_) => const [
                         PopupMenuItem(value: 'edit', child: Text('Editar')),
                         PopupMenuItem(
-                            value: 'delete', child: Text('Eliminar')),
+                          value: 'delete',
+                          child: Text(
+                            'Eliminar',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
                       ],
                     ),
                   ],

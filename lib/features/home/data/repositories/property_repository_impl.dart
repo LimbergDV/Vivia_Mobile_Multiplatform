@@ -58,4 +58,7 @@ class PropertyRepositoryImpl implements PropertyRepository {
 
   @override
   Future<bool> toggleLike(String propertyId) => _remote.toggleLike(propertyId);
+
+  @override
+  Future<void> deleteProperty(String id) => _remote.deleteProperty(id);
 }

@@ -171,6 +171,12 @@ class PropertyViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removeProperty(String propertyId) {
+    _allProperties = _allProperties.where((p) => p.id != propertyId).toList();
+    _likedProperties = _likedProperties.where((p) => p.id != propertyId).toList();
+    notifyListeners();
+  }
+
   void updatePropertyLike(String propertyId, bool liked) {
     PropertyModel? updated;
     _allProperties = _allProperties.map((p) {

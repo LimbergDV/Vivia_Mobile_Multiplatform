@@ -17,6 +17,7 @@ abstract class PropertyRemoteDatasource {
   Future<List<PropertyMedia>> getPropertyMedia(String id);
   Future<List<PropertySummaryModel>> getPropertySuggestions();
   Future<bool> toggleLike(String propertyId);
+  Future<void> deleteProperty(String id);
 }
 
 // ── Implementación ────────────────────────────────────────────────────────────
@@ -114,5 +115,17 @@ class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
       body: jsonEncode({'propertyId': propertyId}),
     ).timeout(_timeout);
     return _parseObject(res, (data) => data['liked'] as bool);
+  }
+
+  @override
+  Future<void> deleteProperty(String id) async {
+    final res = await _client.delete(
+      Uri.parse(PropertyApiConstants.propertyDelete(id)),
+      headers: PropertyApiConstants.headers(),
+    ).timeout(_timeout);
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode != 200 || json['success'] != true) {
+      throw Exception(json['message'] ?? 'Error ${res.statusCode}');
+    }
   }
 }

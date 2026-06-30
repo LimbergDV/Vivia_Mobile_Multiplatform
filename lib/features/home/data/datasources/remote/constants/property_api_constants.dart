@@ -9,6 +9,7 @@ class PropertyApiConstants {
   static String get propertiesMe => '$baseUrl/properties/me';
   static String get propertiesMeLikes => '$baseUrl/properties/me/likes';
   static String propertyDetail(String id) => '$baseUrl/properties/$id';
+  static String propertyDelete(String id) => '$baseUrl/properties/$id';
   static String propertyMedia(String id) => '$baseUrl/properties/media/$id';
   static String get propertiesSuggestions => '$baseUrl/properties/suggestions';
 
