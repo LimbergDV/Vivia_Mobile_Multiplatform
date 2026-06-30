@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_type_model.dart';
 import 'package:vivia_mobile/features/lessor/data/models/amenity_model.dart';
+import 'package:vivia_mobile/features/lessor/data/models/draft_upload_model.dart';
 import 'package:vivia_mobile/features/lessor/data/models/neighborhood_model.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/draft_status_event.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/media_manifest_item.dart';
@@ -267,10 +268,9 @@ class PropertyDraftViewModel extends ChangeNotifier {
 
   // ── Publicación: dos fases ────────────────────────────────────────────────
   //
-  // Se llama sin `await` desde la pantalla de revisión: el formBody se
-  // captura de forma síncrona (antes del primer `await` de este método),
-  // así que el caller puede resetear el formulario inmediatamente después
-  // de invocar `publish()` sin afectar los datos que se están publicando.
+  // Fase A (awaitable): construye el manifiesto y hace POST /properties/draft.
+  // Al retornar, publishStatus es success o error — la UI navega a home en success.
+  // Fase B (background): sube la media a S3 y arranca el SSE.
   Future<void> publish({
     required String mainPhotoPath,
     required Map<String, List<String>> spacePhotos,
@@ -325,21 +325,45 @@ class PropertyDraftViewModel extends ChangeNotifier {
         fileKeyToPath[videoKey] = videoPath;
       }
 
-      final formBody = _buildFormBody();
-
-      _publishedDraftId = await _publishDraft.execute(
+      // Fase A: POST → obtiene draftId + URLs de S3. La UI espera esto.
+      final draftUpload = await _publishDraft.createDraft(
         formBody: formBody,
         manifest: manifest,
-        fileKeyToPath: fileKeyToPath,
       );
 
       _publishStatus = PublishStatus.success;
-      _onPublishComplete?.call(true, null);
+      _publishedDraftId = draftUpload.draftId;
+      notifyListeners(); // la UI navega al home aquí
+
+      // Fase B: sube media y arranca SSE en background (no bloqueante).
+      _uploadAndStream(draftUpload.draftId, draftUpload.uploads, fileKeyToPath);
     } catch (e) {
       _publishStatus = PublishStatus.error;
       _publishError = e.toString();
-      _onPublishComplete?.call(false, _publishError);
+      notifyListeners();
+    }
+  }
+
+  Future<void> _uploadAndStream(
+    String draftId,
+    List<DraftUploadItem> uploads,
+    Map<String, String> fileKeyToPath,
+  ) async {
+    try {
+      await _publishDraft.uploadMedia(
+        uploads: uploads,
+        fileKeyToPath: fileKeyToPath,
+      );
+      startValidationStream(draftId);
+    } catch (e) {
+      _publishStatus = PublishStatus.error;
+      _publishError = e.toString();
     } finally {
+      _form = const NewPropertyForm();
+      _neighborhoods = [];
+      _neighborhoodsStatus = NeighborhoodsStatus.idle;
+      _publishedDraftId = null;
+      if (_publishStatus != PublishStatus.error) _publishStatus = PublishStatus.idle;
       notifyListeners();
     }
   }

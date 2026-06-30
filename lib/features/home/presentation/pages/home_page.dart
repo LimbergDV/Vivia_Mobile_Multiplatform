@@ -52,6 +52,21 @@ class _HomePageState extends State<HomePage> {
     final draftVm = context.read<PropertyDraftViewModel>();
     final propertyVm = context.read<PropertyViewModel>();
 
+    // Error durante el upload o el POST al servidor.
+    if (draftVm.publishStatus == PublishStatus.error) {
+      final error = draftVm.publishError;
+      draftVm.reset();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? 'Error al publicar. Intenta de nuevo.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).colorScheme.error,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
     switch (draftVm.streamStatus) {
       case DraftStreamStatus.success:
         final s = draftVm.successData!;

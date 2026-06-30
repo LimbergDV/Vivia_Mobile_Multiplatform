@@ -214,4 +214,14 @@ class PropertyViewModel extends ChangeNotifier {
 
     notifyListeners();
   }
+
+  void reset() {
+    _typesStatus = PropertyLoadStatus.idle;
+    _propertiesStatus = PropertyLoadStatus.idle;
+    _categoryTabs = const [AllCategory()];
+    _selectedCategory = const AllCategory();
+    _allProperties = [];
+    _likedProperties = [];
+    notifyListeners();
+  }
 }
