@@ -144,4 +144,34 @@ class PropertyViewModel extends ChangeNotifier {
     _allProperties = [property, ..._allProperties];
     notifyListeners();
   }
+
+  void updatePropertyLike(String propertyId, bool liked) {
+    PropertyModel? updated;
+    _allProperties = _allProperties.map((p) {
+      if (p.id != propertyId) return p;
+      updated = PropertyModel(
+        id: p.id,
+        title: p.title,
+        type: p.type,
+        price: p.price,
+        location: p.location,
+        area: p.area,
+        bedrooms: p.bedrooms,
+        bathrooms: p.bathrooms,
+        imageUrl: p.imageUrl,
+        isFavorite: liked,
+      );
+      return updated!;
+    }).toList();
+
+    if (liked) {
+      if (updated != null && !_likedProperties.any((p) => p.id == propertyId)) {
+        _likedProperties = [updated!, ..._likedProperties];
+      }
+    } else {
+      _likedProperties = _likedProperties.where((p) => p.id != propertyId).toList();
+    }
+
+    notifyListeners();
+  }
 }

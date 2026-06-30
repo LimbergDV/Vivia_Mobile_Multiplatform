@@ -30,9 +30,12 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   @override
   void initState() {
     super.initState();
+    final propertyVm = context.read<PropertyViewModel>();
     _vm = PropertyDetailViewModel(
       getPropertyByIdUseCase: context.read<GetPropertyByIdUseCase>(),
       toggleLikeUseCase: context.read<ToggleLikeUseCase>(),
+      initialLike: widget.property.isFavorite,
+      onLikeChanged: propertyVm.updatePropertyLike,
     );
     _vm.load(widget.property.id);
   }

@@ -10,12 +10,17 @@ enum PropertyDetailStatus { idle, loading, success, error }
 class PropertyDetailViewModel extends ChangeNotifier {
   final GetPropertyByIdUseCase _getPropertyById;
   final ToggleLikeUseCase _toggleLike;
+  final void Function(String propertyId, bool liked)? onLikeChanged;
+  final bool _initialLike;
 
   PropertyDetailViewModel({
     required GetPropertyByIdUseCase getPropertyByIdUseCase,
     required ToggleLikeUseCase toggleLikeUseCase,
+    bool initialLike = false,
+    this.onLikeChanged,
   })  : _getPropertyById = getPropertyByIdUseCase,
-        _toggleLike = toggleLikeUseCase;
+        _toggleLike = toggleLikeUseCase,
+        _initialLike = initialLike;
 
   PropertyDetailStatus _status = PropertyDetailStatus.idle;
   PropertyDetail? _detail;
@@ -24,7 +29,10 @@ class PropertyDetailViewModel extends ChangeNotifier {
   PropertyDetailStatus get status => _status;
   PropertyDetail? get detail => _detail;
 
-  bool get currentLike => _localLike ?? _detail?.like ?? false;
+  // _localLike: acción explícita del usuario en esta sesión (optimistic)
+  // _initialLike: estado del listado (fuente de verdad local, actualizada por PropertyViewModel)
+  // _detail?.like NO se usa para display — el server puede devolver false incluso para liked props
+  bool get currentLike => _localLike ?? _initialLike;
 
   Future<void> load(String id) async {
     if (_status == PropertyDetailStatus.loading) return;
@@ -50,6 +58,7 @@ class PropertyDetailViewModel extends ChangeNotifier {
     try {
       final confirmed = await _toggleLike.execute(propertyId);
       _localLike = confirmed;
+      onLikeChanged?.call(propertyId, confirmed);
     } catch (_) {
       _localLike = previous;
     } finally {
