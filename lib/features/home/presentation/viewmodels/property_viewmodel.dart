@@ -113,6 +113,19 @@ class PropertyViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> refresh() async {
+    final isLessor = _authRepository.savedRole == 'ROLE_LESSOR';
+
+    _propertiesStatus = PropertyLoadStatus.loading;
+    notifyListeners();
+
+    await Future.wait([
+      _loadTypes(),
+      isLessor ? _loadPropertiesMe() : _loadPropertySuggestions(),
+      if (_selectedCategory is FavoritesCategory) _loadLikes(),
+    ]);
+  }
+
   Future<void> selectCategory(SelectedCategory category) async {
     _selectedCategory = category;
     notifyListeners();
