@@ -96,8 +96,6 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// ── Portrait ──────────────────────────────────────────────────────────────────
-
 class _PortraitScaffold extends StatelessWidget {
   final UserRole role;
   final HomeNavItem selectedNav;
@@ -126,120 +124,118 @@ class _PortraitScaffold extends StatelessWidget {
       body: Consumer<PropertyViewModel>(
         builder: (context, vm, _) {
           return SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                // ── Header estático ──────────────────────────────────────
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      const HomeHeader(notificationCount: 1),
-                      SizedBox(height: screenHeight * 0.025),
-                      HomeSearchBar(controller: searchController),
-                      SizedBox(height: screenHeight * 0.02),
-                    ]),
-                  ),
-                ),
-
-                // ── "Cerca de ti" (lessee) ───────────────────────────────
-                if (role == UserRole.lessee)
+            child: RefreshIndicator(
+              onRefresh: vm.refresh,
+              child: CustomScrollView(
+                slivers: [
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        const HomeHeader(notificationCount: 1),
+                        SizedBox(height: screenHeight * 0.025),
+                        HomeSearchBar(controller: searchController),
+                        SizedBox(height: screenHeight * 0.02),
+                      ]),
+                    ),
+                  ),
+
+                  if (role == UserRole.lessee)
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                      sliver: SliverToBoxAdapter(
+                        child: _NearbySection(
+                          vm: vm,
+                          screenHeight: screenHeight,
+                          textTheme: textTheme,
+                          colorScheme: colorScheme,
+                        ),
+                      ),
+                    ),
+
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                     sliver: SliverToBoxAdapter(
-                      child: _NearbySection(
-                        vm: vm,
-                        screenHeight: screenHeight,
-                        textTheme: textTheme,
+                      child: vm.typesStatus == PropertyLoadStatus.loading
+                          ? _ChipSkeletonRow(colorScheme: colorScheme)
+                          : CategoryChipList(
+                        categories: vm.categoryTabs,
+                        selected: vm.selectedCategory,
+                        onSelected: vm.selectCategory,
+                      ),
+                    ),
+                  ),
+
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: _SectionHeader(
+                        title: 'Todas las propiedades',
                         colorScheme: colorScheme,
+                        textTheme: textTheme,
                       ),
                     ),
                   ),
 
-                // ── Chips de categoría ───────────────────────────────────
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                  sliver: SliverToBoxAdapter(
-                    child: vm.typesStatus == PropertyLoadStatus.loading
-                        ? _ChipSkeletonRow(colorScheme: colorScheme)
-                        : CategoryChipList(
-                            categories: vm.categoryTabs,
-                            selected: vm.selectedCategory,
-                            onSelected: vm.selectCategory,
-                          ),
-                  ),
-                ),
-
-                // ── Encabezado de sección ─────────────────────────────────
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  sliver: SliverToBoxAdapter(
-                    child: _SectionHeader(
-                      title: 'Todas las propiedades',
-                      colorScheme: colorScheme,
-                      textTheme: textTheme,
-                    ),
-                  ),
-                ),
-
-                // ── Grid de propiedades ───────────────────────────────────
-                if (vm.propertiesStatus == PropertyLoadStatus.loading)
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                    sliver: SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 0.62,
+                  if (vm.propertiesStatus == PropertyLoadStatus.loading)
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 0.62,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                              (context, _) =>
+                              _PropertySkeletonCard(colorScheme: colorScheme),
+                          childCount: 4,
+                        ),
                       ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, _) =>
-                            _PropertySkeletonCard(colorScheme: colorScheme),
-                        childCount: 4,
+                    )
+                  else if (vm.displayedProperties.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: EmptyPropertiesState(
+                          title: vm.isLessor
+                              ? '¡No tienes propiedades\npublicadas aún!'
+                              : '¡Próximamente podrás\nexplorar propiedades!',
+                        ),
                       ),
-                    ),
-                  )
-                else if (vm.displayedProperties.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: EmptyPropertiesState(
-                        title: vm.isLessor
-                            ? '¡No tienes propiedades\npublicadas aún!'
-                            : '¡Próximamente podrás\nexplorar propiedades!',
-                      ),
-                    ),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                    sliver: SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 0.62,
-                      ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => PropertyCard(
-                          property: vm.displayedProperties[index],
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PropertyDetailPage(
-                                property: vm.displayedProperties[index],
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 0.62,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                              (context, index) => PropertyCard(
+                            property: vm.displayedProperties[index],
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PropertyDetailPage(
+                                  property: vm.displayedProperties[index],
+                                ),
                               ),
                             ),
                           ),
+                          childCount: vm.displayedProperties.length,
                         ),
-                        childCount: vm.displayedProperties.length,
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -247,8 +243,6 @@ class _PortraitScaffold extends StatelessWidget {
     );
   }
 }
-
-// ── Landscape ─────────────────────────────────────────────────────────────────
 
 class _LandscapeScaffold extends StatelessWidget {
   final UserRole role;
@@ -292,105 +286,108 @@ class _LandscapeScaffold extends StatelessWidget {
             Expanded(
               child: Consumer<PropertyViewModel>(
                 builder: (context, vm, _) {
-                  return CustomScrollView(
-                    slivers: [
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate([
-                            const HomeHeader(notificationCount: 1),
-                            const SizedBox(height: 14),
-                            HomeSearchBar(controller: searchController),
-                            const SizedBox(height: 14),
-                          ]),
-                        ),
-                      ),
-                      if (role == UserRole.lessee)
+                  return RefreshIndicator(
+                    onRefresh: vm.refresh,
+                    child: CustomScrollView(
+                      slivers: [
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate([
+                              const HomeHeader(notificationCount: 1),
+                              const SizedBox(height: 14),
+                              HomeSearchBar(controller: searchController),
+                              const SizedBox(height: 14),
+                            ]),
+                          ),
+                        ),
+                        if (role == UserRole.lessee)
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+                            sliver: SliverToBoxAdapter(
+                              child: _NearbySection(
+                                vm: vm,
+                                screenHeight: 400,
+                                textTheme: textTheme,
+                                colorScheme: colorScheme,
+                                nearbyHeight: 180,
+                              ),
+                            ),
+                          ),
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                           sliver: SliverToBoxAdapter(
-                            child: _NearbySection(
-                              vm: vm,
-                              screenHeight: 400,
-                              textTheme: textTheme,
+                            child: vm.typesStatus == PropertyLoadStatus.loading
+                                ? _ChipSkeletonRow(colorScheme: colorScheme)
+                                : CategoryChipList(
+                              categories: vm.categoryTabs,
+                              selected: vm.selectedCategory,
+                              onSelected: vm.selectCategory,
+                            ),
+                          ),
+                        ),
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                          sliver: SliverToBoxAdapter(
+                            child: _SectionHeader(
+                              title: 'Todas las propiedades',
                               colorScheme: colorScheme,
-                              nearbyHeight: 180,
+                              textTheme: textTheme,
                             ),
                           ),
                         ),
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                        sliver: SliverToBoxAdapter(
-                          child: vm.typesStatus == PropertyLoadStatus.loading
-                              ? _ChipSkeletonRow(colorScheme: colorScheme)
-                              : CategoryChipList(
-                                  categories: vm.categoryTabs,
-                                  selected: vm.selectedCategory,
-                                  onSelected: vm.selectCategory,
-                                ),
-                        ),
-                      ),
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                        sliver: SliverToBoxAdapter(
-                          child: _SectionHeader(
-                            title: 'Todas las propiedades',
-                            colorScheme: colorScheme,
-                            textTheme: textTheme,
-                          ),
-                        ),
-                      ),
-                      if (vm.propertiesStatus == PropertyLoadStatus.loading)
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                          sliver: SliverGrid(
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 14,
-                              mainAxisSpacing: 14,
-                              childAspectRatio: 0.62,
+                        if (vm.propertiesStatus == PropertyLoadStatus.loading)
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                                childAspectRatio: 0.62,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                    (context, _) => _PropertySkeletonCard(
+                                    colorScheme: colorScheme),
+                                childCount: 4,
+                              ),
                             ),
-                            delegate: SliverChildBuilderDelegate(
-                              (context, _) => _PropertySkeletonCard(
-                                  colorScheme: colorScheme),
-                              childCount: 4,
-                            ),
-                          ),
-                        )
-                      else if (vm.displayedProperties.isEmpty)
-                        const SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: EmptyPropertiesState(),
-                        )
-                      else
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                          sliver: SliverGrid(
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 14,
-                              mainAxisSpacing: 14,
-                              childAspectRatio: 0.62,
-                            ),
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) => PropertyCard(
-                                property: vm.displayedProperties[index],
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => PropertyDetailPage(
-                                      property: vm.displayedProperties[index],
+                          )
+                        else if (vm.displayedProperties.isEmpty)
+                          const SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: EmptyPropertiesState(),
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                                childAspectRatio: 0.62,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                    (context, index) => PropertyCard(
+                                  property: vm.displayedProperties[index],
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PropertyDetailPage(
+                                        property: vm.displayedProperties[index],
+                                      ),
                                     ),
                                   ),
                                 ),
+                                childCount: vm.displayedProperties.length,
                               ),
-                              childCount: vm.displayedProperties.length,
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   );
                 },
               ),
@@ -401,8 +398,6 @@ class _LandscapeScaffold extends StatelessWidget {
     );
   }
 }
-
-// ── Sección "Cerca de ti" ─────────────────────────────────────────────────────
 
 class _NearbySection extends StatelessWidget {
   final PropertyViewModel vm;
@@ -483,8 +478,6 @@ class _NearbySection extends StatelessWidget {
     );
   }
 }
-
-// ── Skeletons nativos ─────────────────────────────────────────────────────────
 
 class _PropertySkeletonCard extends StatelessWidget {
   final ColorScheme colorScheme;
@@ -580,8 +573,8 @@ class _SkeletonBox extends StatelessWidget {
   final ColorScheme colorScheme;
   const _SkeletonBox(
       {required this.width,
-      required this.height,
-      required this.colorScheme});
+        required this.height,
+        required this.colorScheme});
 
   @override
   Widget build(BuildContext context) {
@@ -595,8 +588,6 @@ class _SkeletonBox extends StatelessWidget {
     );
   }
 }
-
-// ── Nav bar vertical (landscape) ──────────────────────────────────────────────
 
 class _VerticalNavBar extends StatelessWidget {
   final HomeNavItem selected;
@@ -698,8 +689,6 @@ class _VerticalNavIcon extends StatelessWidget {
     );
   }
 }
-
-// ── Section header ────────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   final String title;

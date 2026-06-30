@@ -33,6 +33,7 @@ class AuthViewModel extends ChangeNotifier {
   final PutUbicationUseCase _putUbicationUseCase;
   final AuthRepository _authRepository;
   final RegisterFcmTokenUseCase _registerFcmTokenUseCase;
+  final VoidCallback? _onSessionCleared;
 
   AuthViewModel({
     required LoginUseCase loginUseCase,
@@ -46,6 +47,7 @@ class AuthViewModel extends ChangeNotifier {
     required PutUbicationUseCase putUbicationUseCase,
     required AuthRepository authRepository,
     required RegisterFcmTokenUseCase registerFcmTokenUseCase,
+    VoidCallback? onSessionCleared,
   })  : _loginUseCase = loginUseCase,
         _loginGoogleUseCase = loginGoogleUseCase,
         _registerLesseeUseCase = registerLesseeUseCase,
@@ -56,13 +58,12 @@ class AuthViewModel extends ChangeNotifier {
         _registerFcmTokenUseCase = registerFcmTokenUseCase,
         _setLocationPermissionShownUseCase = setLocationPermissionShownUseCase,
         _putUbicationUseCase = putUbicationUseCase,
-        _authRepository = authRepository;
+        _authRepository = authRepository,
+        _onSessionCleared = onSessionCleared;
 
-  // ── Estado ────────────────────────────────────────────────────────────
   AuthStatus _status = AuthStatus.idle;
   String? _errorMessage;
 
-  // Datos del usuario post-login (para navegar a HomePage)
   String _userName = '';
   String? _avatarUrl;
   UserRole _lastRole = UserRole.lessee;
@@ -80,7 +81,6 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Controllers de Login ──────────────────────────────────────────────
   final TextEditingController loginEmailController = TextEditingController();
   final TextEditingController loginPasswordController = TextEditingController();
   final GlobalKey<FormState> loginFormKey = GlobalKey<FormState>();
@@ -93,7 +93,6 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Controllers de Registro ───────────────────────────────────────────
   final TextEditingController registerNameController = TextEditingController();
   final TextEditingController registerLastNameController =
   TextEditingController();
@@ -122,7 +121,6 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Login con contraseña ──────────────────────────────────────────────
   Future<void> login(UserRole role) async {
     if (!loginFormKey.currentState!.validate()) return;
     _setLoading();
@@ -132,10 +130,8 @@ class AuthViewModel extends ChangeNotifier {
         loginPasswordController.text,
       );
 
-      // Rol esperado según la pantalla que eligió el usuario
       final expectedRole = role == UserRole.lessee ? 'ROLE_LESSEE' : 'ROLE_LESSOR';
 
-      // Bloqueo estricto: si el rol del JWT no coincide, no pasa
       if (result.role != expectedRole) {
         _status = AuthStatus.error;
         _errorMessage = role == UserRole.lessee
@@ -158,7 +154,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // ── Registro ──────────────────────────────────────────────────────────
   Future<void> register(UserRole role) async {
     if (!registerFormKey.currentState!.validate()) return;
     _setLoading();
@@ -197,7 +192,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // ── Login / Registro con Google ───────────────────────────────────────
   Future<void> loginWithGoogle(UserRole role) async {
     _setLoading();
     try {
@@ -254,7 +248,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // ── Logout ────────────────────────────────────────────────────────────
   Future<void> logout() async {
     _setLoading();
     try {
@@ -262,6 +255,7 @@ class AuthViewModel extends ChangeNotifier {
       _userName = '';
       _avatarUrl = null;
       _status = AuthStatus.idle;
+      _onSessionCleared?.call();
     } catch (e) {
       _status = AuthStatus.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -278,15 +272,13 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Llamado por AuthHttpClient cuando el refresh token también expiró
   void handleSessionExpired() {
     _userName = '';
     _avatarUrl = null;
     _status = AuthStatus.idle;
     notifyListeners();
+    _onSessionCleared?.call();
   }
-
-  // ── Ubicación ─────────────────────────────────────────────────────────
 
   Future<void> markLocationPermissionShown() =>
       _setLocationPermissionShownUseCase.execute();

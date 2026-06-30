@@ -52,7 +52,6 @@ const _channelName = 'Vivia Notificaciones';
 final FlutterLocalNotificationsPlugin _localNotifications =
 FlutterLocalNotificationsPlugin();
 
-// Handler para mensajes en background/terminated — debe ser top-level
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -64,7 +63,6 @@ Future<void> _initLocalNotifications() async {
   const initSettings = InitializationSettings(android: androidSettings);
   await _localNotifications.initialize(initSettings);
 
-  // Canal requerido para Android 8+
   const channel = AndroidNotificationChannel(
     _channelId,
     _channelName,
@@ -109,7 +107,6 @@ void main() async {
   await _initLocalNotifications();
   _listenForegroundMessages();
 
-  // Solicitar permiso de notificaciones (crítico en Android 13+ / iOS)
   await FirebaseMessaging.instance.requestPermission(
     alert: true,
     badge: true,
@@ -119,10 +116,8 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final localDatasource = AuthLocalDatasourceImpl(prefs);
 
-  // Referencia mutable que el interceptor usará para notificar sesión expirada.
-  // El closure captura la variable por referencia — authViewModel se asigna
-  // antes de runApp(), así que siempre está inicializado cuando se invoca.
   AuthViewModel? authViewModelRef;
+  PropertyViewModel? propertyViewModelRef;
 
   final authHttpClient = AuthHttpClient(
     http.Client(),
@@ -164,6 +159,7 @@ void main() async {
     putUbicationUseCase: putUbicationUseCase,
     authRepository: authRepository,
     registerFcmTokenUseCase: registerFcmTokenUseCase,
+    onSessionCleared: () => propertyViewModelRef?.reset(),
   );
   authViewModelRef = authViewModel;
 
@@ -178,25 +174,40 @@ void main() async {
     getPropertySuggestionsUseCase: GetPropertySuggestionsUseCase(propertyRepository),
     authRepository: authRepository,
   );
+  propertyViewModelRef = propertyViewModel;
 
-
-  // Use case del detalle: la VM de detalle se construye por pantalla (per-propiedad),
-  // así que se expone el use case y cada PropertyDetailPage crea su propia VM.
   final getPropertyByIdUseCase = GetPropertyByIdUseCase(propertyRepository);
   final getPropertyMediaUseCase = GetPropertyMediaUseCase(propertyRepository);
 
   final lessorRemoteDatasource =
-      LessorRemoteDatasourceImpl(authHttpClient, http.Client());
+  LessorRemoteDatasourceImpl(authHttpClient, http.Client());
   final lessorRepository =
-      LessorRepositoryImpl(remote: lessorRemoteDatasource);
+  LessorRepositoryImpl(remote: lessorRemoteDatasource);
   final propertyDraftViewModel = PropertyDraftViewModel(
     getNeighborhoodsUseCase: GetNeighborhoodsUseCase(lessorRepository),
     getAmenitiesUseCase: GetAmenitiesUseCase(lessorRepository),
     publishPropertyDraftUseCase: PublishPropertyDraftUseCase(lessorRepository),
+    onPublishComplete: (success, errorMessage) {
+      _localNotifications.show(
+        success
+            ? 'publish_success'.hashCode
+            : 'publish_error'.hashCode,
+        success ? '¡Propiedad publicada!' : 'No se pudo publicar tu propiedad',
+        success
+            ? 'Tu propiedad ya está en revisión. Te avisaremos cuando esté disponible.'
+            : 'Ocurrió un error al publicar. Vuelve a intentarlo desde tus propiedades.',
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        ),
+      );
+    },
   );
 
-
-  // Datos de sesión guardados
   final isLoggedIn = authRepository.isLoggedIn;
   final savedUserName = authRepository.savedUserName;
   final savedRole = authRepository.savedRole;
