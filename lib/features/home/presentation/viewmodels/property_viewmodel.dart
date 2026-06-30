@@ -68,10 +68,14 @@ class PropertyViewModel extends ChangeNotifier {
     _propertiesStatus = PropertyLoadStatus.loading;
     notifyListeners();
 
+    // Carga tipos, propiedades y likes en paralelo; al terminar sincroniza isFavorite
     await Future.wait([
       _loadTypes(),
       isLessor ? _loadPropertiesMe() : _loadPropertySuggestions(),
+      _loadLikesEager(),
     ]);
+    _syncLikedIntoAll();
+    notifyListeners();
   }
 
   Future<void> _loadTypes() async {
@@ -140,12 +144,75 @@ class PropertyViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       _likedProperties = await _getPropertiesMeLikes.execute();
+      _syncLikedIntoAll();
       _propertiesStatus = PropertyLoadStatus.success;
     } catch (_) {
       _propertiesStatus = PropertyLoadStatus.error;
     } finally {
       notifyListeners();
     }
+  }
+
+  // Carga silenciosa de favoritos sin tocar propertiesStatus (usada en init)
+  Future<void> _loadLikesEager() async {
+    try {
+      _likedProperties = await _getPropertiesMeLikes.execute();
+    } catch (_) {}
+  }
+
+  // Marca isFavorite: true en _allProperties para items que estén en _likedProperties
+  void _syncLikedIntoAll() {
+    if (_likedProperties.isEmpty || _allProperties.isEmpty) return;
+    final likedIds = {for (final p in _likedProperties) p.id};
+    _allProperties = _allProperties.map((p) {
+      if (!likedIds.contains(p.id)) return p;
+      return PropertyModel(
+        id: p.id, title: p.title, type: p.type, price: p.price,
+        location: p.location, area: p.area, bedrooms: p.bedrooms,
+        bathrooms: p.bathrooms, imageUrl: p.imageUrl, isFavorite: true,
+      );
+    }).toList();
+  }
+
+  void prependProperty(PropertyModel property) {
+    _allProperties = [property, ..._allProperties];
+    notifyListeners();
+  }
+
+  void removeProperty(String propertyId) {
+    _allProperties = _allProperties.where((p) => p.id != propertyId).toList();
+    _likedProperties = _likedProperties.where((p) => p.id != propertyId).toList();
+    notifyListeners();
+  }
+
+  void updatePropertyLike(String propertyId, bool liked) {
+    PropertyModel? updated;
+    _allProperties = _allProperties.map((p) {
+      if (p.id != propertyId) return p;
+      updated = PropertyModel(
+        id: p.id,
+        title: p.title,
+        type: p.type,
+        price: p.price,
+        location: p.location,
+        area: p.area,
+        bedrooms: p.bedrooms,
+        bathrooms: p.bathrooms,
+        imageUrl: p.imageUrl,
+        isFavorite: liked,
+      );
+      return updated!;
+    }).toList();
+
+    if (liked) {
+      if (updated != null && !_likedProperties.any((p) => p.id == propertyId)) {
+        _likedProperties = [updated!, ..._likedProperties];
+      }
+    } else {
+      _likedProperties = _likedProperties.where((p) => p.id != propertyId).toList();
+    }
+
+    notifyListeners();
   }
 
   void reset() {

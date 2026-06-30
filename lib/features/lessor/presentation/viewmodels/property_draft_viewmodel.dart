@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_type_model.dart';
 import 'package:vivia_mobile/features/lessor/data/models/amenity_model.dart';
+import 'package:vivia_mobile/features/lessor/data/models/draft_upload_model.dart';
 import 'package:vivia_mobile/features/lessor/data/models/neighborhood_model.dart';
+import 'package:vivia_mobile/features/lessor/domain/models/draft_status_event.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/media_manifest_item.dart';
 import 'package:vivia_mobile/features/lessor/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/get_amenities_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/get_neighborhoods_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/publish_property_draft_usecase.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/watch_draft_status_usecase.dart';
 
 enum NeighborhoodsStatus { idle, loading, success, error }
 
@@ -15,23 +19,25 @@ enum AmenitiesStatus { idle, loading, success, error }
 
 enum PublishStatus { idle, loading, success, error }
 
+enum DraftStreamStatus { idle, validating, success, failed }
+
 class PropertyDraftViewModel extends ChangeNotifier {
   final GetNeighborhoodsUseCase _getNeighborhoods;
   final GetAmenitiesUseCase _getAmenities;
   final PublishPropertyDraftUseCase _publishDraft;
-  final void Function(bool success, String? errorMessage)? _onPublishComplete;
+  final WatchDraftStatusUseCase _watchDraftStatus;
 
   PropertyDraftViewModel({
     required GetNeighborhoodsUseCase getNeighborhoodsUseCase,
     required GetAmenitiesUseCase getAmenitiesUseCase,
     required PublishPropertyDraftUseCase publishPropertyDraftUseCase,
-    void Function(bool success, String? errorMessage)? onPublishComplete,
+    required WatchDraftStatusUseCase watchDraftStatusUseCase,
   })  : _getNeighborhoods = getNeighborhoodsUseCase,
         _getAmenities = getAmenitiesUseCase,
         _publishDraft = publishPropertyDraftUseCase,
-        _onPublishComplete = onPublishComplete;
+        _watchDraftStatus = watchDraftStatusUseCase;
 
-  // ── Estado ────────────────────────────────────────────────────────────────
+  // ── Estado del formulario ─────────────────────────────────────────────────
   NewPropertyForm _form = const NewPropertyForm();
   List<NeighborhoodModel> _neighborhoods = [];
   List<AmenityModel> _amenities = [];
@@ -39,8 +45,16 @@ class PropertyDraftViewModel extends ChangeNotifier {
   AmenitiesStatus _amenitiesStatus = AmenitiesStatus.idle;
   PublishStatus _publishStatus = PublishStatus.idle;
   String? _publishError;
+  String? _publishedDraftId;
 
-  // ── Getters ───────────────────────────────────────────────────────────────
+  // ── Estado del stream de validación ──────────────────────────────────────
+  StreamSubscription<DraftStatusEvent>? _streamSubscription;
+  DraftStreamStatus _streamStatus = DraftStreamStatus.idle;
+  String _streamStatusLabel = '';
+  DraftPublicationSuccess? _successData;
+  DraftPublicationFailed? _failureData;
+
+  // ── Getters del formulario ────────────────────────────────────────────────
   NewPropertyForm get form => _form;
   List<NeighborhoodModel> get neighborhoods => _neighborhoods;
   List<AmenityModel> get amenities => _amenities;
@@ -48,6 +62,13 @@ class PropertyDraftViewModel extends ChangeNotifier {
   AmenitiesStatus get amenitiesStatus => _amenitiesStatus;
   PublishStatus get publishStatus => _publishStatus;
   String? get publishError => _publishError;
+  String? get publishedDraftId => _publishedDraftId;
+
+  // ── Getters del stream ────────────────────────────────────────────────────
+  DraftStreamStatus get streamStatus => _streamStatus;
+  String get streamStatusLabel => _streamStatusLabel;
+  DraftPublicationSuccess? get successData => _successData;
+  DraftPublicationFailed? get failureData => _failureData;
 
   // ── Inicialización ────────────────────────────────────────────────────────
   Future<void> init() async {
@@ -71,7 +92,49 @@ class PropertyDraftViewModel extends ChangeNotifier {
     _form = const NewPropertyForm();
     _neighborhoods = [];
     _neighborhoodsStatus = NeighborhoodsStatus.idle;
+    _publishStatus = PublishStatus.idle;
+    _publishError = null;
+    _publishedDraftId = null;
     notifyListeners();
+  }
+
+  // ── Stream de validación en background ───────────────────────────────────
+  void startValidationStream(String draftId) {
+    _streamStatus = DraftStreamStatus.validating;
+    _streamStatusLabel = '';
+    _successData = null;
+    _failureData = null;
+    _streamSubscription?.cancel();
+    _streamSubscription = _watchDraftStatus.execute(draftId).listen((event) {
+      switch (event) {
+        case DraftStatusUpdate(:final status):
+          _streamStatusLabel = status;
+        case DraftPublicationSuccess():
+          _streamStatus = DraftStreamStatus.success;
+          _successData = event;
+          _streamSubscription = null;
+        case DraftPublicationFailed():
+          _streamStatus = DraftStreamStatus.failed;
+          _failureData = event;
+          _streamSubscription = null;
+      }
+      notifyListeners();
+    });
+    notifyListeners();
+  }
+
+  void clearStreamStatus() {
+    _streamStatus = DraftStreamStatus.idle;
+    _successData = null;
+    _failureData = null;
+    _streamStatusLabel = '';
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _streamSubscription?.cancel();
+    super.dispose();
   }
 
   // ── Campos del formulario Paso 1 ──────────────────────────────────────────
@@ -205,10 +268,9 @@ class PropertyDraftViewModel extends ChangeNotifier {
 
   // ── Publicación: dos fases ────────────────────────────────────────────────
   //
-  // Se llama sin `await` desde la pantalla de revisión: el formBody se
-  // captura de forma síncrona (antes del primer `await` de este método),
-  // así que el caller puede resetear el formulario inmediatamente después
-  // de invocar `publish()` sin afectar los datos que se están publicando.
+  // Fase A (awaitable): construye el manifiesto y hace POST /properties/draft.
+  // Al retornar, publishStatus es success o error — la UI navega a home en success.
+  // Fase B (background): sube la media a S3 y arranca el SSE.
   Future<void> publish({
     required String mainPhotoPath,
     required Map<String, List<String>> spacePhotos,
@@ -263,19 +325,45 @@ class PropertyDraftViewModel extends ChangeNotifier {
         fileKeyToPath[videoKey] = videoPath;
       }
 
-      await _publishDraft.execute(
+      // Fase A: POST → obtiene draftId + URLs de S3. La UI espera esto.
+      final draftUpload = await _publishDraft.createDraft(
         formBody: formBody,
         manifest: manifest,
-        fileKeyToPath: fileKeyToPath,
       );
 
       _publishStatus = PublishStatus.success;
-      _onPublishComplete?.call(true, null);
+      _publishedDraftId = draftUpload.draftId;
+      notifyListeners(); // la UI navega al home aquí
+
+      // Fase B: sube media y arranca SSE en background (no bloqueante).
+      _uploadAndStream(draftUpload.draftId, draftUpload.uploads, fileKeyToPath);
     } catch (e) {
       _publishStatus = PublishStatus.error;
       _publishError = e.toString();
-      _onPublishComplete?.call(false, _publishError);
+      notifyListeners();
+    }
+  }
+
+  Future<void> _uploadAndStream(
+    String draftId,
+    List<DraftUploadItem> uploads,
+    Map<String, String> fileKeyToPath,
+  ) async {
+    try {
+      await _publishDraft.uploadMedia(
+        uploads: uploads,
+        fileKeyToPath: fileKeyToPath,
+      );
+      startValidationStream(draftId);
+    } catch (e) {
+      _publishStatus = PublishStatus.error;
+      _publishError = e.toString();
     } finally {
+      _form = const NewPropertyForm();
+      _neighborhoods = [];
+      _neighborhoodsStatus = NeighborhoodsStatus.idle;
+      _publishedDraftId = null;
+      if (_publishStatus != PublishStatus.error) _publishStatus = PublishStatus.idle;
       notifyListeners();
     }
   }

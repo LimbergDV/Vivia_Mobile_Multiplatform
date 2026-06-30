@@ -30,12 +30,15 @@ import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_us
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_media_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_suggestions_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/delete_property_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/toggle_like_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/data/datasources/remote/lessor_remote_datasource.dart';
 import 'package:vivia_mobile/features/lessor/data/repositories/lessor_repository_impl.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/get_amenities_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/get_neighborhoods_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/publish_property_draft_usecase.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/watch_draft_status_usecase.dart';
 import 'package:vivia_mobile/features/lessor/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/user/data/datasources/remote/user_remote_datasource.dart';
 import 'package:vivia_mobile/features/user/data/repositories/user_repository_impl.dart';
@@ -178,6 +181,8 @@ void main() async {
 
   final getPropertyByIdUseCase = GetPropertyByIdUseCase(propertyRepository);
   final getPropertyMediaUseCase = GetPropertyMediaUseCase(propertyRepository);
+  final toggleLikeUseCase = ToggleLikeUseCase(propertyRepository);
+  final deletePropertyUseCase = DeletePropertyUseCase(propertyRepository);
 
   final lessorRemoteDatasource =
   LessorRemoteDatasourceImpl(authHttpClient, http.Client());
@@ -187,25 +192,7 @@ void main() async {
     getNeighborhoodsUseCase: GetNeighborhoodsUseCase(lessorRepository),
     getAmenitiesUseCase: GetAmenitiesUseCase(lessorRepository),
     publishPropertyDraftUseCase: PublishPropertyDraftUseCase(lessorRepository),
-    onPublishComplete: (success, errorMessage) {
-      _localNotifications.show(
-        success
-            ? 'publish_success'.hashCode
-            : 'publish_error'.hashCode,
-        success ? '¡Propiedad publicada!' : 'No se pudo publicar tu propiedad',
-        success
-            ? 'Tu propiedad ya está en revisión. Te avisaremos cuando esté disponible.'
-            : 'Ocurrió un error al publicar. Vuelve a intentarlo desde tus propiedades.',
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            importance: Importance.high,
-            priority: Priority.high,
-          ),
-        ),
-      );
-    },
+    watchDraftStatusUseCase: WatchDraftStatusUseCase(lessorRepository),
   );
 
   final isLoggedIn = authRepository.isLoggedIn;
@@ -228,6 +215,8 @@ void main() async {
         ChangeNotifierProvider.value(value: propertyViewModel),
         Provider<GetPropertyByIdUseCase>.value(value: getPropertyByIdUseCase),
         Provider<GetPropertyMediaUseCase>.value(value: getPropertyMediaUseCase),
+        Provider<ToggleLikeUseCase>.value(value: toggleLikeUseCase),
+        Provider<DeletePropertyUseCase>.value(value: deletePropertyUseCase),
         ChangeNotifierProvider.value(value: propertyDraftViewModel),
       ],
       child: kIsWeb

@@ -10,4 +10,6 @@ abstract class PropertyRepository {
   Future<PropertyDetail> getPropertyById(String id);
   Future<List<PropertyMedia>> getPropertyMedia(String id);
   Future<List<PropertyModel>> getPropertySuggestions();
+  Future<bool> toggleLike(String propertyId);
+  Future<void> deleteProperty(String id);
 }

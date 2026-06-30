@@ -77,37 +77,47 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
     );
   }
 
-  void _onPublish(BuildContext context, PropertyDraftViewModel vm) {
+  Future<void> _onPublish(BuildContext context, PropertyDraftViewModel vm) async {
     final mainPhoto = vm.form.mainPhotoPath;
     if (mainPhoto == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Agrega al menos una fotografía principal'),
           behavior: SnackBarBehavior.floating,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
       return;
     }
 
-    vm.publish(
+    // Espera solo el POST /properties/draft. La subida de media corre en background.
+    await vm.publish(
       mainPhotoPath: mainPhoto,
       spacePhotos: vm.form.spacePhotos ?? {},
       videoPath: vm.form.videoPath,
     );
 
-    vm.reset();
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-            'Publicando tu propiedad en segundo plano. Te notificaremos cuando esté lista.'),
-        behavior: SnackBarBehavior.floating,
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    if (!mounted) return;
+
+    if (vm.publishStatus == PublishStatus.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Publicando tu propiedad...'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } else if (vm.publishStatus == PublishStatus.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Ocurrió un error al publicar. Intenta de nuevo.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).colorScheme.error,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
   }
 
   @override

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:vivia_mobile/core/utils/jwt_utils.dart';
 import 'package:vivia_mobile/features/auth/data/datasources/local/auth_local_datasource.dart';
 import 'package:vivia_mobile/features/auth/data/datasources/remote/constants/auth_api_constants.dart';
 
@@ -19,13 +20,20 @@ class AuthHttpClient extends http.BaseClient {
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    // Pre-check: refrescar proactivamente si el token está a punto de expirar
+    final currentToken = _local.getAccessToken();
+    if (currentToken != null &&
+        JwtUtils.isExpiredOrExpiringSoon(currentToken)) {
+      await _refreshToken();
+    }
+
     _injectToken(request);
 
     final response = await _inner.send(request);
 
     if (response.statusCode != 401) return response;
 
-    // 401 — intentar refresh y reintentar una sola vez
+    // Fallback reactivo: 401 por clock skew o token expirado en tránsito
     final newToken = await _refreshToken();
     if (newToken == null) return response;
 

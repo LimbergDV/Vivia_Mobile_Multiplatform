@@ -145,7 +145,7 @@ class ChooseOptionPage extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // ── Separador ──────────────────────────────────────────
-                Row(
+                /*Row(
                   children: [
                     Expanded(
                       child: Divider(
@@ -169,11 +169,11 @@ class ChooseOptionPage extends StatelessWidget {
                       ),
                     ),
                   ],
-                ),
+                ),*/
                 const SizedBox(height: 20),
 
                 // ── Botón Google ───────────────────────────────────────
-                SizedBox(
+                /*SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: OutlinedButton(
@@ -207,7 +207,7 @@ class ChooseOptionPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
+                ),*/
 
                 // ── Volver ─────────────────────────────────────────────
                 const SizedBox(height: 32),

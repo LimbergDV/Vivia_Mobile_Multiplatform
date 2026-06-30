@@ -2,6 +2,7 @@ import 'package:vivia_mobile/features/lessor/data/datasources/remote/lessor_remo
 import 'package:vivia_mobile/features/lessor/data/models/amenity_model.dart';
 import 'package:vivia_mobile/features/lessor/data/models/draft_upload_model.dart';
 import 'package:vivia_mobile/features/lessor/data/models/neighborhood_model.dart';
+import 'package:vivia_mobile/features/lessor/domain/models/draft_status_event.dart';
 import 'package:vivia_mobile/features/lessor/domain/repositories/lessor_repository.dart';
 
 class LessorRepositoryImpl implements LessorRepository {
@@ -25,4 +26,8 @@ class LessorRepositoryImpl implements LessorRepository {
   Future<void> uploadFile(
           String uploadUrl, String contentType, List<int> bytes) =>
       _remote.uploadFile(uploadUrl, contentType, bytes);
+
+  @override
+  Stream<DraftStatusEvent> watchDraftStatus(String draftId) =>
+      _remote.watchDraftStatus(draftId);
 }

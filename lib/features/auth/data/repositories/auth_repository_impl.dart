@@ -1,8 +1,6 @@
-import 'dart:convert';
-
+import 'package:vivia_mobile/core/utils/jwt_utils.dart';
 import 'package:vivia_mobile/features/auth/data/datasources/local/auth_local_datasource.dart';
 import 'package:vivia_mobile/features/auth/data/datasources/remote/auth_remote_datasource.dart';
-import 'package:vivia_mobile/features/auth/data/models/auth_response_model.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/domain/repositories/auth_repository.dart';
 
@@ -17,18 +15,6 @@ class AuthRepositoryImpl implements AuthRepository {
         _local = local;
 
   // ── Helpers ───────────────────────────────────────────────────────────
-
-  Map<String, dynamic> _decodeJwtPayload(String token) {
-    try {
-      final parts = token.split('.');
-      if (parts.length != 3) return {};
-      final payload =
-          utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
-      return jsonDecode(payload) as Map<String, dynamic>;
-    } catch (_) {
-      return {};
-    }
-  }
 
   String _extractRoleFromClaims(Map<String, dynamic> claims) {
     return claims['role'] as String? ?? 'ROLE_LESSEE';
@@ -54,7 +40,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<({String name, String role})> login(
       String identifier, String password) async {
     final result = await _remote.login(identifier, password);
-    final claims = _decodeJwtPayload(result.accessToken);
+    final claims = JwtUtils.decodePayload(result.accessToken);
     final role = _extractRoleFromClaims(claims);
     final firstName = _extractFirstNameFromClaims(claims);
     final name = firstName.isNotEmpty ? firstName : identifier.split('@').first;
@@ -127,7 +113,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }) async {
     final roleStr = role == UserRole.lessee ? 'ROLE_LESSEE' : 'ROLE_LESSOR';
     final result = await _remote.loginWithGoogle(idToken, roleStr);
-    final claims = _decodeJwtPayload(result.accessToken);
+    final claims = JwtUtils.decodePayload(result.accessToken);
     final actualRole = _extractRoleFromClaims(claims);
     await _local.saveSession(
       accessToken: result.accessToken,

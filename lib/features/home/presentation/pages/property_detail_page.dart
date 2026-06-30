@@ -3,10 +3,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_detail.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/delete_property_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/toggle_like_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/fullscreen_image_viewer.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/gallery_page.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_detail_viewmodel.dart';
+import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 
 class PropertyDetailPage extends StatefulWidget {
@@ -28,8 +31,12 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   @override
   void initState() {
     super.initState();
+    final propertyVm = context.read<PropertyViewModel>();
     _vm = PropertyDetailViewModel(
       getPropertyByIdUseCase: context.read<GetPropertyByIdUseCase>(),
+      toggleLikeUseCase: context.read<ToggleLikeUseCase>(),
+      initialLike: widget.property.isFavorite,
+      onLikeChanged: propertyVm.updatePropertyLike,
     );
     _vm.load(widget.property.id);
   }
@@ -63,6 +70,44 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     return type.toUpperCase();
   }
 
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar propiedad'),
+        content: const Text(
+          '¿Estás seguro de que deseas eliminar esta propiedad? '
+          'Esta acción eliminará también todas las imágenes y videos asociados '
+          'y no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await context.read<DeletePropertyUseCase>().execute(widget.property.id);
+      if (!mounted) return;
+      context.read<PropertyViewModel>().removeProperty(widget.property.id);
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al eliminar: $e')),
+      );
+    }
+  }
+
   void _onNavSelected(HomeNavItem item) {
     if (item == HomeNavItem.home) {
       Navigator.of(context).pop();
@@ -92,6 +137,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
         builder: (context, _) {
           final detail = _vm.detail;
           final images = _images(detail);
+
+          final isLessor = context.read<PropertyViewModel>().isLessor;
 
           return SingleChildScrollView(
             child: Column(
@@ -182,6 +229,10 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       propertyTypeLabel: _typeLabel(detail),
                       galleryImages: images,
                       isLandscape: isLandscape,
+                      isLessor: isLessor,
+                      isFavorite: _vm.currentLike,
+                      onFavoriteTap: () => _vm.toggleLike(widget.property.id),
+                      onDeleteTap: _confirmDelete,
                     ),
                   ),
                 ),
@@ -202,6 +253,10 @@ class _ContentBody extends StatelessWidget {
   final String propertyTypeLabel;
   final List<String> galleryImages;
   final bool isLandscape;
+  final bool isLessor;
+  final bool isFavorite;
+  final VoidCallback onFavoriteTap;
+  final VoidCallback onDeleteTap;
 
   const _ContentBody({
     required this.property,
@@ -211,6 +266,10 @@ class _ContentBody extends StatelessWidget {
     required this.propertyTypeLabel,
     required this.galleryImages,
     required this.isLandscape,
+    required this.isLessor,
+    required this.isFavorite,
+    required this.onFavoriteTap,
+    required this.onDeleteTap,
   });
 
   @override
@@ -226,7 +285,6 @@ class _ContentBody extends StatelessWidget {
     final description = detail?.description ?? '';
     final location = detail?.address.formatted ?? property.location;
     final lessor = detail?.lessor;
-    final isFavorite = detail?.like ?? property.isFavorite;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -245,14 +303,38 @@ class _ContentBody extends StatelessWidget {
               ),
               Row(
                 children: [
-                  Icon(
-                    isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: isFavorite ? Colors.red : colorScheme.onSurface,
-                    size: 24,
+                  GestureDetector(
+                    onTap: onFavoriteTap,
+                    child: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorite ? Colors.red : colorScheme.onSurface,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Icon(Icons.send_outlined,
                       color: colorScheme.onSurface, size: 24),
+                  if (isLessor) ...[
+                    const SizedBox(width: 4),
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert,
+                          color: colorScheme.onSurface, size: 24),
+                      padding: EdgeInsets.zero,
+                      onSelected: (value) {
+                        if (value == 'delete') onDeleteTap();
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(value: 'edit', child: Text('Editar')),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(
+                            'Eliminar',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ],
