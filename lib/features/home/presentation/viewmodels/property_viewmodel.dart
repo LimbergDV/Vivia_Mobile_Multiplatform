@@ -29,14 +29,12 @@ class PropertyViewModel extends ChangeNotifier {
         _getPropertySuggestions = getPropertySuggestionsUseCase,
         _authRepository = authRepository;
 
-  // ── Estado ────────────────────────────────────────────────────────────────
   PropertyLoadStatus _typesStatus = PropertyLoadStatus.idle;
   PropertyLoadStatus _propertiesStatus = PropertyLoadStatus.idle;
 
   PropertyLoadStatus get typesStatus => _typesStatus;
   PropertyLoadStatus get propertiesStatus => _propertiesStatus;
 
-  // ── Datos ─────────────────────────────────────────────────────────────────
   List<SelectedCategory> _categoryTabs = const [AllCategory()];
   SelectedCategory _selectedCategory = const AllCategory();
   List<PropertyModel> _allProperties = [];
@@ -52,7 +50,6 @@ class PropertyViewModel extends ChangeNotifier {
         _allProperties.where((p) => p.type == t.name).toList(),
   };
 
-  // Primeros 4 ítems de /properties/me para la sección "Cerca de ti"
   List<PropertyModel> get nearbyProperties => _allProperties.take(4).toList();
 
   bool get isLessor => _authRepository.savedRole == 'ROLE_LESSOR';
@@ -62,7 +59,6 @@ class PropertyViewModel extends ChangeNotifier {
       .map((c) => c.type)
       .toList();
 
-  // ── Inicialización ────────────────────────────────────────────────────────
   Future<void> init() async {
     if (_typesStatus != PropertyLoadStatus.idle) return;
 
@@ -117,7 +113,6 @@ class PropertyViewModel extends ChangeNotifier {
     }
   }
 
-  // ── Selección de categoría ────────────────────────────────────────────────
   Future<void> selectCategory(SelectedCategory category) async {
     _selectedCategory = category;
     notifyListeners();
@@ -138,5 +133,15 @@ class PropertyViewModel extends ChangeNotifier {
     } finally {
       notifyListeners();
     }
+  }
+
+  void reset() {
+    _typesStatus = PropertyLoadStatus.idle;
+    _propertiesStatus = PropertyLoadStatus.idle;
+    _categoryTabs = const [AllCategory()];
+    _selectedCategory = const AllCategory();
+    _allProperties = [];
+    _likedProperties = [];
+    notifyListeners();
   }
 }
