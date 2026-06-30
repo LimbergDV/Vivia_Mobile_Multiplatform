@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AuthTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -10,6 +11,8 @@ class AuthTextField extends StatelessWidget {
   final VoidCallback? onToggleVisibility;
   final String? Function(String?)? validator;
   final TextInputType keyboardType;
+  final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AuthTextField({
     super.key,
@@ -22,6 +25,8 @@ class AuthTextField extends StatelessWidget {
     this.onToggleVisibility,
     this.validator,
     this.keyboardType = TextInputType.text,
+    this.maxLength,
+    this.inputFormatters,
   });
 
   @override
@@ -45,6 +50,11 @@ class AuthTextField extends StatelessWidget {
           obscureText: isPassword && !(passwordVisible ?? false),
           keyboardType: keyboardType,
           validator: validator,
+          maxLength: maxLength,
+          inputFormatters: inputFormatters,
+          buildCounter: maxLength == null
+              ? null
+              : (context, {required currentLength, required isFocused, maxLength}) => null,
           style: textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurface,
           ),
@@ -58,13 +68,12 @@ class AuthTextField extends StatelessWidget {
               color: colorScheme.onSurfaceVariant,
               size: 20,
             ),
-            // ✅ Bug corregido: ahora sí cambia el ícono según el estado
             suffixIcon: isPassword
                 ? IconButton(
               icon: Icon(
                 (passwordVisible ?? false)
-                    ? Icons.visibility_outlined      // ojo abierto = visible
-                    : Icons.visibility_off_outlined, // ojo cerrado = oculto
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
                 color: colorScheme.onSurfaceVariant,
                 size: 20,
               ),
