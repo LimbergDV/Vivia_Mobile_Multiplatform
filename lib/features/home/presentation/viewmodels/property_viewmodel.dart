@@ -72,18 +72,14 @@ class PropertyViewModel extends ChangeNotifier {
     _propertiesStatus = PropertyLoadStatus.loading;
     notifyListeners();
 
-    if (isLessor) {
-      await Future.wait([_loadTypes(), _loadPropertiesMe()]);
-    } else {
-      // Carga sugerencias y likes en paralelo; luego sincroniza isFavorite en _allProperties
-      await Future.wait([
-        _loadTypes(),
-        _loadPropertySuggestions(),
-        _loadLikesEager(),
-      ]);
-      _syncLikedIntoAll();
-      notifyListeners();
-    }
+    // Carga tipos, propiedades y likes en paralelo; al terminar sincroniza isFavorite
+    await Future.wait([
+      _loadTypes(),
+      isLessor ? _loadPropertiesMe() : _loadPropertySuggestions(),
+      _loadLikesEager(),
+    ]);
+    _syncLikedIntoAll();
+    notifyListeners();
   }
 
   Future<void> _loadTypes() async {

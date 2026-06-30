@@ -30,9 +30,9 @@ class PropertyDetailViewModel extends ChangeNotifier {
   PropertyDetail? get detail => _detail;
 
   // _localLike: acción explícita del usuario en esta sesión (optimistic)
-  // _initialLike: estado del listado (fuente de verdad local, actualizada por PropertyViewModel)
-  // _detail?.like NO se usa para display — el server puede devolver false incluso para liked props
-  bool get currentLike => _localLike ?? _initialLike;
+  // _initialLike: si es true (item en Favoritos), se respeta siempre — ignora al server
+  // _detail?.like: fallback cuando _initialLike = false (item de Todas/Casas) para leer del server
+  bool get currentLike => _localLike ?? (_initialLike || (_detail?.like ?? false));
 
   Future<void> load(String id) async {
     if (_status == PropertyDetailStatus.loading) return;
