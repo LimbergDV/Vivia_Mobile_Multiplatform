@@ -84,6 +84,9 @@ class PropertyDraftViewModel extends ChangeNotifier {
     }
   }
 
+  // No toca _publishStatus/_publishError: esos reflejan la publicación en
+  // curso en segundo plano, que puede seguir viva después de iniciar un
+  // borrador nuevo.
   void reset() {
     _form = const NewPropertyForm();
     _neighborhoods = [];
@@ -263,14 +266,23 @@ class PropertyDraftViewModel extends ChangeNotifier {
   }
 
   // ── Publicación: dos fases ────────────────────────────────────────────────
+  //
+  // Se llama sin `await` desde la pantalla de revisión: el formBody se
+  // captura de forma síncrona (antes del primer `await` de este método),
+  // así que el caller puede resetear el formulario inmediatamente después
+  // de invocar `publish()` sin afectar los datos que se están publicando.
   Future<void> publish({
     required String mainPhotoPath,
     required Map<String, List<String>> spacePhotos,
     String? videoPath,
   }) async {
+    if (_publishStatus == PublishStatus.loading) return;
+
     _publishStatus = PublishStatus.loading;
     _publishError = null;
     notifyListeners();
+
+    final formBody = _buildFormBody();
 
     try {
       final manifest = <MediaManifestItem>[];
@@ -322,9 +334,11 @@ class PropertyDraftViewModel extends ChangeNotifier {
       );
 
       _publishStatus = PublishStatus.success;
+      _onPublishComplete?.call(true, null);
     } catch (e) {
       _publishStatus = PublishStatus.error;
       _publishError = e.toString();
+      _onPublishComplete?.call(false, _publishError);
     } finally {
       notifyListeners();
     }
@@ -360,7 +374,6 @@ class PropertyDraftViewModel extends ChangeNotifier {
     return dotIndex != -1 ? filename.substring(0, dotIndex) : filename;
   }
 
-  /// Genera un fileKey único añadiendo un sufijo si ya existe en el mapa.
   String _uniqueFileKey(String path, Map<String, String> existing) {
     String key = _fileKey(path);
     int suffix = 1;

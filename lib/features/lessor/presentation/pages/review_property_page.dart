@@ -73,12 +73,11 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
   void _onEditInfo() {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const AddPropertyPage()),
-      (route) => route.isFirst,
+          (route) => route.isFirst,
     );
   }
 
-  Future<void> _onPublish(
-      BuildContext context, PropertyDraftViewModel vm) async {
+  void _onPublish(BuildContext context, PropertyDraftViewModel vm) {
     final mainPhoto = vm.form.mainPhotoPath;
     if (mainPhoto == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -86,13 +85,13 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
           content: const Text('Agrega al menos una fotografía principal'),
           behavior: SnackBarBehavior.floating,
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
       return;
     }
 
-    await vm.publish(
+    vm.publish(
       mainPhotoPath: mainPhoto,
       spacePhotos: vm.form.spacePhotos ?? {},
       videoPath: vm.form.videoPath,
@@ -375,7 +374,7 @@ class _ImageCarousel extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
                   images.length,
-                  (i) => AnimatedContainer(
+                      (i) => AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     margin: const EdgeInsets.symmetric(horizontal: 3),
                     width: i == currentPage ? 10 : 8,
@@ -517,7 +516,7 @@ class _GallerySection extends StatelessWidget {
     final photos = _allPhotos;
     const maxVisible = 3;
     final remaining =
-        photos.length > maxVisible ? photos.length - maxVisible : 0;
+    photos.length > maxVisible ? photos.length - maxVisible : 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -551,7 +550,7 @@ class _GallerySection extends StatelessWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount:
-                  photos.length > maxVisible ? maxVisible : photos.length,
+              photos.length > maxVisible ? maxVisible : photos.length,
               separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (context, i) {
                 final isLast = i == maxVisible - 1 && remaining > 0;
@@ -566,11 +565,11 @@ class _GallerySection extends StatelessWidget {
                         Image.file(File(photos[i]),
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
-                                  color:
-                                      colorScheme.surfaceContainerHighest,
-                                  child: Icon(Icons.image_outlined,
-                                      color: colorScheme.onSurfaceVariant),
-                                )),
+                              color:
+                              colorScheme.surfaceContainerHighest,
+                              child: Icon(Icons.image_outlined,
+                                  color: colorScheme.onSurfaceVariant),
+                            )),
                         if (isLast)
                           Container(
                             color: Colors.black.withOpacity(0.55),
@@ -717,20 +716,20 @@ class _ActionButtons extends StatelessWidget {
             ),
             child: isPublishing
                 ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
-                    ),
-                  )
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Colors.white,
+              ),
+            )
                 : Text(
-                    'Publicar',
-                    style: textTheme.labelLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+              'Publicar',
+              style: textTheme.labelLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 6),
