@@ -101,17 +101,10 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
     if (!mounted) return;
 
     if (vm.publishStatus == PublishStatus.success) {
+      final draftId = vm.publishedDraftId!;
+      vm.startValidationStream(draftId);
       vm.reset();
       Navigator.of(context).popUntil((route) => route.isFirst);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-              '¡Propiedad publicada! Pasará por un proceso de verificación.'),
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
     } else if (vm.publishStatus == PublishStatus.error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

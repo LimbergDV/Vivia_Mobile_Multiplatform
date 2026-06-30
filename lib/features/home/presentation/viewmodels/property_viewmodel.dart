@@ -139,4 +139,9 @@ class PropertyViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void prependProperty(PropertyModel property) {
+    _allProperties = [property, ..._allProperties];
+    notifyListeners();
+  }
 }

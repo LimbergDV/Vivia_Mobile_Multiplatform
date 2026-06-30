@@ -16,6 +16,7 @@ abstract class PropertyRemoteDatasource {
   Future<PropertyDetail> getPropertyById(String id);
   Future<List<PropertyMedia>> getPropertyMedia(String id);
   Future<List<PropertySummaryModel>> getPropertySuggestions();
+  Future<bool> toggleLike(String propertyId);
 }
 
 // ── Implementación ────────────────────────────────────────────────────────────
@@ -100,5 +101,18 @@ class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
       headers: PropertyApiConstants.headers(),
     ).timeout(_timeout);
     return _parseList(res, PropertySummaryModel.fromJson);
+  }
+
+  @override
+  Future<bool> toggleLike(String propertyId) async {
+    final res = await _client.put(
+      Uri.parse(PropertyApiConstants.propertiesMeLikes),
+      headers: {
+        ...PropertyApiConstants.headers(),
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'propertyId': propertyId}),
+    ).timeout(_timeout);
+    return _parseObject(res, (data) => data['liked'] as bool);
   }
 }

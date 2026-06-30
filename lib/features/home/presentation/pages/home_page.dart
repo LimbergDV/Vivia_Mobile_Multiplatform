@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
+import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/property_detail_page.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
@@ -11,6 +12,7 @@ import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_sear
 import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_property_card.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
 import 'package:vivia_mobile/features/lessor/presentation/pages/add_property_page.dart';
+import 'package:vivia_mobile/features/lessor/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 
 class HomePage extends StatefulWidget {
@@ -40,7 +42,45 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
       context.read<UserViewModel>().init(widget.userName, widget.avatarUrl);
       context.read<PropertyViewModel>().init();
+      context.read<PropertyDraftViewModel>().addListener(_onDraftStreamUpdate);
     });
+  }
+
+  void _onDraftStreamUpdate() {
+    if (!mounted) return;
+    final draftVm = context.read<PropertyDraftViewModel>();
+    final propertyVm = context.read<PropertyViewModel>();
+
+    switch (draftVm.streamStatus) {
+      case DraftStreamStatus.success:
+        final s = draftVm.successData!;
+        propertyVm.prependProperty(PropertyModel(
+          id: s.id,
+          title: s.title,
+          type: s.propertyTypeName,
+          price: s.listedPrice,
+          location: '',
+          area: s.areaM2,
+          bedrooms: s.bedrooms,
+          bathrooms: s.bathrooms,
+          imageUrl: s.mainImageUrl,
+        ));
+        draftVm.clearStreamStatus();
+      case DraftStreamStatus.failed:
+        final reason = draftVm.failureData!.reason;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => _DraftRejectedDialog(reason: reason),
+          );
+          draftVm.clearStreamStatus();
+        });
+      case DraftStreamStatus.validating:
+      case DraftStreamStatus.idle:
+        break;
+    }
   }
 
   void _onNavSelected(HomeNavItem item) {
@@ -56,6 +96,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    context.read<PropertyDraftViewModel>().removeListener(_onDraftStreamUpdate);
     _searchController.dispose();
     super.dispose();
   }
@@ -682,6 +723,45 @@ class _VerticalNavIcon extends StatelessWidget {
               : colorScheme.onSurfaceVariant.withOpacity(0.6),
         ),
       ),
+    );
+  }
+}
+
+// ── Dialog de rechazo de publicación ─────────────────────────────────────────
+
+class _DraftRejectedDialog extends StatelessWidget {
+  final String reason;
+  const _DraftRejectedDialog({required this.reason});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      icon: Icon(
+        Icons.error_outline_rounded,
+        color: colorScheme.error,
+        size: 40,
+      ),
+      title: Text(
+        'Publicación rechazada',
+        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
+      ),
+      content: Text(
+        reason,
+        style: textTheme.bodyMedium,
+        textAlign: TextAlign.center,
+      ),
+      actionsAlignment: MainAxisAlignment.center,
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Entendido'),
+        ),
+      ],
     );
   }
 }

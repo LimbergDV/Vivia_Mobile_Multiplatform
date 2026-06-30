@@ -30,12 +30,14 @@ import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_us
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_media_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_suggestions_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/toggle_like_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/data/datasources/remote/lessor_remote_datasource.dart';
 import 'package:vivia_mobile/features/lessor/data/repositories/lessor_repository_impl.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/get_amenities_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/get_neighborhoods_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/publish_property_draft_usecase.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/watch_draft_status_usecase.dart';
 import 'package:vivia_mobile/features/lessor/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/user/data/datasources/remote/user_remote_datasource.dart';
 import 'package:vivia_mobile/features/user/data/repositories/user_repository_impl.dart';
@@ -184,6 +186,7 @@ void main() async {
   // así que se expone el use case y cada PropertyDetailPage crea su propia VM.
   final getPropertyByIdUseCase = GetPropertyByIdUseCase(propertyRepository);
   final getPropertyMediaUseCase = GetPropertyMediaUseCase(propertyRepository);
+  final toggleLikeUseCase = ToggleLikeUseCase(propertyRepository);
 
   final lessorRemoteDatasource =
       LessorRemoteDatasourceImpl(authHttpClient, http.Client());
@@ -193,6 +196,7 @@ void main() async {
     getNeighborhoodsUseCase: GetNeighborhoodsUseCase(lessorRepository),
     getAmenitiesUseCase: GetAmenitiesUseCase(lessorRepository),
     publishPropertyDraftUseCase: PublishPropertyDraftUseCase(lessorRepository),
+    watchDraftStatusUseCase: WatchDraftStatusUseCase(lessorRepository),
   );
 
 
@@ -217,6 +221,7 @@ void main() async {
         ChangeNotifierProvider.value(value: propertyViewModel),
         Provider<GetPropertyByIdUseCase>.value(value: getPropertyByIdUseCase),
         Provider<GetPropertyMediaUseCase>.value(value: getPropertyMediaUseCase),
+        Provider<ToggleLikeUseCase>.value(value: toggleLikeUseCase),
         ChangeNotifierProvider.value(value: propertyDraftViewModel),
       ],
       child: kIsWeb

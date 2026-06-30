@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_detail.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/toggle_like_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/fullscreen_image_viewer.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/gallery_page.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_detail_viewmodel.dart';
+import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 
 class PropertyDetailPage extends StatefulWidget {
@@ -30,6 +32,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     super.initState();
     _vm = PropertyDetailViewModel(
       getPropertyByIdUseCase: context.read<GetPropertyByIdUseCase>(),
+      toggleLikeUseCase: context.read<ToggleLikeUseCase>(),
     );
     _vm.load(widget.property.id);
   }
@@ -92,6 +95,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
         builder: (context, _) {
           final detail = _vm.detail;
           final images = _images(detail);
+
+          final isLessor = context.read<PropertyViewModel>().isLessor;
 
           return SingleChildScrollView(
             child: Column(
@@ -182,6 +187,9 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       propertyTypeLabel: _typeLabel(detail),
                       galleryImages: images,
                       isLandscape: isLandscape,
+                      isLessor: isLessor,
+                      isFavorite: _vm.currentLike,
+                      onFavoriteTap: () => _vm.toggleLike(widget.property.id),
                     ),
                   ),
                 ),
@@ -202,6 +210,9 @@ class _ContentBody extends StatelessWidget {
   final String propertyTypeLabel;
   final List<String> galleryImages;
   final bool isLandscape;
+  final bool isLessor;
+  final bool isFavorite;
+  final VoidCallback onFavoriteTap;
 
   const _ContentBody({
     required this.property,
@@ -211,6 +222,9 @@ class _ContentBody extends StatelessWidget {
     required this.propertyTypeLabel,
     required this.galleryImages,
     required this.isLandscape,
+    required this.isLessor,
+    required this.isFavorite,
+    required this.onFavoriteTap,
   });
 
   @override
@@ -226,7 +240,6 @@ class _ContentBody extends StatelessWidget {
     final description = detail?.description ?? '';
     final location = detail?.address.formatted ?? property.location;
     final lessor = detail?.lessor;
-    final isFavorite = detail?.like ?? property.isFavorite;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -245,14 +258,31 @@ class _ContentBody extends StatelessWidget {
               ),
               Row(
                 children: [
-                  Icon(
-                    isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: isFavorite ? Colors.red : colorScheme.onSurface,
-                    size: 24,
+                  GestureDetector(
+                    onTap: onFavoriteTap,
+                    child: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorite ? Colors.red : colorScheme.onSurface,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Icon(Icons.send_outlined,
                       color: colorScheme.onSurface, size: 24),
+                  if (isLessor) ...[
+                    const SizedBox(width: 4),
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert,
+                          color: colorScheme.onSurface, size: 24),
+                      padding: EdgeInsets.zero,
+                      onSelected: (_) {},
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(value: 'edit', child: Text('Editar')),
+                        PopupMenuItem(
+                            value: 'delete', child: Text('Eliminar')),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ],

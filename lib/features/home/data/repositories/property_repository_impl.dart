@@ -55,4 +55,7 @@ class PropertyRepositoryImpl implements PropertyRepository {
     final summaries = await _remote.getPropertySuggestions();
     return summaries.map((s) => _toModel(s)).toList();
   }
+
+  @override
+  Future<bool> toggleLike(String propertyId) => _remote.toggleLike(propertyId);
 }
