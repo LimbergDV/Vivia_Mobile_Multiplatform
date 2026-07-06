@@ -9,6 +9,7 @@ import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_
 import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_completion_bar.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_settings_item.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_subscription_banner.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/personal_info_page.dart';
 
 class ProfilePage extends StatelessWidget {
   final String userName;
@@ -107,7 +108,7 @@ class _PortraitLayout extends StatelessWidget {
             avatarSize: 130,
           ),
           const SizedBox(height: 36),
-          _SettingsList(role: role),
+          _SettingsList(role: role, userName: userName, avatarUrl: avatarUrl,),
           const SizedBox(height: 28),
         ],
       ),
@@ -152,7 +153,7 @@ class _LandscapeLayout extends StatelessWidget {
           child: SingleChildScrollView(
             padding:
             const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: _SettingsList(role: role),
+            child: _SettingsList(role: role,  userName: userName, avatarUrl: avatarUrl,),
           ),
         ),
       ],
@@ -233,8 +234,10 @@ class _ProfileHeader extends StatelessWidget {
 // ── Lista de ajustes ───────────────────────────────────────────────────────
 class _SettingsList extends StatelessWidget {
   final UserRole role;
+  final String userName;
+  final String? avatarUrl;
 
-  const _SettingsList({required this.role});
+  const _SettingsList({required this.role, required this.userName, this.avatarUrl});
 
   @override
   Widget build(BuildContext context) {
@@ -264,9 +267,16 @@ class _SettingsList extends StatelessWidget {
           icon: Icons.person_outline_rounded,
           label: 'Información Personal',
           showNotificationDot: vm.hasPersonalInfoPending,
-          onTap: () {
-            // TODO: navegar a información personal
-          },
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PersonalInfoPage(
+                userName: userName,
+                avatarUrl: avatarUrl,
+                role: role,
+              ),
+            ),
+          ),
         ),
         ProfileSettingsItem(
           icon: Icons.credit_card_outlined,
