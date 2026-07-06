@@ -1,22 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/role_selector_page.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
+import 'package:vivia_mobile/features/home/presentation/viewmodels/profile_viewmodel.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_avatar_ring.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_completion_bar.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_settings_item.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_subscription_banner.dart';
 
 class ProfilePage extends StatelessWidget {
   final String userName;
   final String? avatarUrl;
+  final UserRole role;
 
   const ProfilePage({
     super.key,
     required this.userName,
+    required this.role,
     this.avatarUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => ProfileViewModel(),
+      child: _ProfileView(
+        userName: userName,
+        avatarUrl: avatarUrl,
+        role: role,
+      ),
+    );
+  }
+}
+
+// ── Vista principal ────────────────────────────────────────────────────────
+class _ProfileView extends StatelessWidget {
+  final String userName;
+  final String? avatarUrl;
+  final UserRole role;
+
+  const _ProfileView({
+    required this.userName,
+    required this.avatarUrl,
+    required this.role,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -37,55 +73,221 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              const SizedBox(height: 32),
+      body: isLandscape
+          ? _LandscapeLayout(
+          userName: userName, avatarUrl: avatarUrl, role: role)
+          : _PortraitLayout(
+          userName: userName, avatarUrl: avatarUrl, role: role),
+    );
+  }
+}
 
-              Text(
+// ── Portrait ───────────────────────────────────────────────────────────────
+class _PortraitLayout extends StatelessWidget {
+  final String userName;
+  final String? avatarUrl;
+  final UserRole role;
+
+  const _PortraitLayout({
+    required this.userName,
+    required this.avatarUrl,
+    required this.role,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _ProfileHeader(
+            userName: userName,
+            avatarUrl: avatarUrl,
+            avatarSize: 130,
+          ),
+          const SizedBox(height: 36),
+          _SettingsList(role: role),
+          const SizedBox(height: 28),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Landscape ──────────────────────────────────────────────────────────────
+class _LandscapeLayout extends StatelessWidget {
+  final String userName;
+  final String? avatarUrl;
+  final UserRole role;
+
+  const _LandscapeLayout({
+    required this.userName,
+    required this.avatarUrl,
+    required this.role,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 4,
+          child: SingleChildScrollView(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: _ProfileHeader(
+              userName: userName,
+              avatarUrl: avatarUrl,
+              avatarSize: 110,
+            ),
+          ),
+        ),
+        VerticalDivider(width: 1, color: colorScheme.outlineVariant),
+        Expanded(
+          flex: 6,
+          child: SingleChildScrollView(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: _SettingsList(role: role),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Header: nombre + badge + avatar + completado + premium ─────────────────
+class _ProfileHeader extends StatelessWidget {
+  final String userName;
+  final String? avatarUrl;
+  final double avatarSize;
+
+  const _ProfileHeader({
+    required this.userName,
+    required this.avatarUrl,
+    required this.avatarSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.watch<ProfileViewModel>();
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Nombre + badge verificado
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
                 userName,
-                style: textTheme.titleLarge?.copyWith(
+                textAlign: TextAlign.center,
+                style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: colorScheme.onSurface,
                 ),
               ),
-              const SizedBox(height: 20),
-
-              CircleAvatar(
-                radius: 64,
-                backgroundColor: colorScheme.primaryContainer,
-                backgroundImage:
-                avatarUrl != null ? NetworkImage(avatarUrl!) : null,
-                child: avatarUrl == null
-                    ? Icon(Icons.person,
-                    size: 64, color: colorScheme.primary)
-                    : null,
-              ),
-              const SizedBox(height: 40),
-
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Ajustes',
-                  style: textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              _SettingsItem(
-                icon: Icons.logout_rounded,
-                label: 'Cerrar Sesión',
-                onTap: () => _showLogoutDialog(context),
-              ),
+            ),
+            if (vm.isVerified) ...[
+              const SizedBox(width: 6),
+              const _VerifiedBadge(),
             ],
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // Avatar con anillo de progreso
+        ProfileAvatarRing(
+          avatarUrl: avatarUrl,
+          progress: vm.completionPercent,
+          size: avatarSize,
+        ),
+        const SizedBox(height: 16),
+
+        // Barra de completado
+        ProfileCompletionBar(
+          completionPercent: vm.completionPercentInt,
+          showDot: true,
+        ),
+        const SizedBox(height: 16),
+
+        // Banner premium
+        ProfileSubscriptionBanner(
+          onTap: () {
+            // TODO: navegar a suscripción
+          },
+        ),
+      ],
+    );
+  }
+}
+
+// ── Lista de ajustes ───────────────────────────────────────────────────────
+class _SettingsList extends StatelessWidget {
+  final UserRole role;
+
+  const _SettingsList({required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.watch<ProfileViewModel>();
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Ajustes',
+          style: textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: colorScheme.onSurface,
           ),
         ),
-      ),
+        const SizedBox(height: 4),
+        ProfileSettingsItem(
+          icon: Icons.verified_user_outlined,
+          label: 'Verificar Cuenta',
+          onTap: () {
+            // TODO: navegar a verificación
+          },
+        ),
+        ProfileSettingsItem(
+          icon: Icons.person_outline_rounded,
+          label: 'Información Personal',
+          showNotificationDot: vm.hasPersonalInfoPending,
+          onTap: () {
+            // TODO: navegar a información personal
+          },
+        ),
+        ProfileSettingsItem(
+          icon: Icons.credit_card_outlined,
+          label: 'Formas De Pago',
+          showNotificationDot: vm.hasPaymentInfoPending,
+          onTap: () {
+            // TODO: navegar a formas de pago
+          },
+        ),
+        ProfileSettingsItem(
+          icon: Icons.logout_rounded,
+          label: 'Cerrar Sesión',
+          onTap: () => _showLogoutDialog(context),
+        ),
+        ProfileSettingsItem(
+          icon: Icons.block_outlined,
+          label: 'Eliminar Cuenta',
+          isDestructive: true,
+          onTap: () => _showDeleteAccountDialog(context),
+        ),
+      ],
     );
   }
 
@@ -97,9 +299,8 @@ class ProfilePage extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           '¿Cerrar sesión?',
           style: textTheme.titleMedium?.copyWith(
@@ -149,53 +350,81 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-}
 
-class _SettingsItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _SettingsItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  void _showDeleteAccountDialog(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: colorScheme.outlineVariant.withOpacity(0.5),
-            ),
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colorScheme.surface,
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          '¿Eliminar cuenta?',
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: colorScheme.error,
           ),
         ),
-        child: Row(
-          children: [
-            Icon(icon, color: colorScheme.onSurfaceVariant, size: 22),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                label,
-                style: textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.w500,
-                ),
+        content: Text(
+          'Esta acción es permanente y no se puede deshacer. Todos tus datos serán eliminados.',
+          style: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              'Cancelar',
+              style: textTheme.labelLarge?.copyWith(
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
-            Icon(Icons.chevron_right,
-                color: colorScheme.onSurfaceVariant, size: 22),
-          ],
-        ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Función próximamente disponible'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            child: Text(
+              'Eliminar',
+              style: textTheme.labelLarge?.copyWith(
+                color: colorScheme.error,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Badge de verificado ────────────────────────────────────────────────────
+class _VerifiedBadge extends StatelessWidget {
+  const _VerifiedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: const BoxDecoration(
+        color: Color(0xFF0095FF),
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(
+        Icons.check_rounded,
+        color: Colors.white,
+        size: 13,
       ),
     );
   }
