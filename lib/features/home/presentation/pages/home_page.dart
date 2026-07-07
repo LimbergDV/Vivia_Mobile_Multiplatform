@@ -52,7 +52,6 @@ class _HomePageState extends State<HomePage> {
     final draftVm = context.read<PropertyDraftViewModel>();
     final propertyVm = context.read<PropertyViewModel>();
 
-    // Error durante el upload o el POST al servidor.
     if (draftVm.publishStatus == PublishStatus.error) {
       final error = draftVm.publishError;
       draftVm.reset();
@@ -61,7 +60,8 @@ class _HomePageState extends State<HomePage> {
           content: Text(error ?? 'Error al publicar. Intenta de nuevo.'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: Theme.of(context).colorScheme.error,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
       return;
@@ -203,6 +203,7 @@ class _PortraitScaffold extends StatelessWidget {
                       sliver: SliverToBoxAdapter(
                         child: _NearbySection(
                           vm: vm,
+                          role: role,
                           screenHeight: screenHeight,
                           textTheme: textTheme,
                           colorScheme: colorScheme,
@@ -283,6 +284,7 @@ class _PortraitScaffold extends StatelessWidget {
                               MaterialPageRoute(
                                 builder: (_) => PropertyDetailPage(
                                   property: vm.displayedProperties[index],
+                                  role: role,
                                 ),
                               ),
                             ),
@@ -364,6 +366,7 @@ class _LandscapeScaffold extends StatelessWidget {
                             sliver: SliverToBoxAdapter(
                               child: _NearbySection(
                                 vm: vm,
+                                role: role,
                                 screenHeight: 400,
                                 textTheme: textTheme,
                                 colorScheme: colorScheme,
@@ -435,6 +438,7 @@ class _LandscapeScaffold extends StatelessWidget {
                                     MaterialPageRoute(
                                       builder: (_) => PropertyDetailPage(
                                         property: vm.displayedProperties[index],
+                                        role: role,
                                       ),
                                     ),
                                   ),
@@ -458,6 +462,7 @@ class _LandscapeScaffold extends StatelessWidget {
 
 class _NearbySection extends StatelessWidget {
   final PropertyViewModel vm;
+  final UserRole role;
   final double screenHeight;
   final double? nearbyHeight;
   final TextTheme textTheme;
@@ -465,6 +470,7 @@ class _NearbySection extends StatelessWidget {
 
   const _NearbySection({
     required this.vm,
+    required this.role,
     required this.screenHeight,
     required this.textTheme,
     required this.colorScheme,
@@ -523,7 +529,10 @@ class _NearbySection extends StatelessWidget {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => PropertyDetailPage(property: nearby[i]),
+                    builder: (_) => PropertyDetailPage(
+                      property: nearby[i],
+                      role: role,
+                    ),
                   ),
                 ),
               );
@@ -563,7 +572,8 @@ class _PropertySkeletonCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _SkeletonBox(width: 70, height: 12, colorScheme: colorScheme),
+                  _SkeletonBox(
+                      width: 70, height: 12, colorScheme: colorScheme),
                   _SkeletonBox(
                       width: 100, height: 16, colorScheme: colorScheme),
                   _SkeletonBox(
@@ -583,8 +593,7 @@ class _PropertySkeletonCard extends StatelessWidget {
 class _NearbySkeletonCard extends StatelessWidget {
   final double height;
   final ColorScheme colorScheme;
-  const _NearbySkeletonCard(
-      {required this.height, required this.colorScheme});
+  const _NearbySkeletonCard({required this.height, required this.colorScheme});
 
   @override
   Widget build(BuildContext context) {
@@ -747,8 +756,6 @@ class _VerticalNavIcon extends StatelessWidget {
   }
 }
 
-// ── Dialog de rechazo de publicación ─────────────────────────────────────────
-
 class _DraftRejectedDialog extends StatelessWidget {
   final String reason;
   const _DraftRejectedDialog({required this.reason});
@@ -785,8 +792,6 @@ class _DraftRejectedDialog extends StatelessWidget {
     );
   }
 }
-
-// ── Section header ────────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   final String title;
