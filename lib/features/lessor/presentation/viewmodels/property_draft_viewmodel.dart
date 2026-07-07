@@ -282,9 +282,8 @@ class PropertyDraftViewModel extends ChangeNotifier {
     _publishError = null;
     notifyListeners();
 
-    final formBody = _buildFormBody();
-
     try {
+      final formBody = _buildFormBody();
       final manifest = <MediaManifestItem>[];
       final fileKeyToPath = <String, String>{};
 

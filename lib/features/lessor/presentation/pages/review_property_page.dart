@@ -91,24 +91,34 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
     }
 
     // Espera solo el POST /properties/draft. La subida de media corre en background.
-    await vm.publish(
-      mainPhotoPath: mainPhoto,
-      spacePhotos: vm.form.spacePhotos ?? {},
-      videoPath: vm.form.videoPath,
-    );
+    var status = PublishStatus.error;
+    try {
+      await vm.publish(
+        mainPhotoPath: mainPhoto,
+        spacePhotos: vm.form.spacePhotos ?? {},
+        videoPath: vm.form.videoPath,
+      );
+      // Se captura aquí: la fase B en background regresa el status a idle
+      // cuando termina y no debe afectar la decisión de navegar.
+      status = vm.publishStatus;
+    } catch (e, stack) {
+      debugPrint('[_onPublish] publish() lanzó: $e\n$stack');
+    }
 
+    debugPrint('[_onPublish] status=$status mounted=$mounted');
     if (!mounted) return;
 
-    if (vm.publishStatus == PublishStatus.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    if (status == PublishStatus.success) {
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      messenger.showSnackBar(
         SnackBar(
           content: const Text('Publicando tu propiedad...'),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    } else if (vm.publishStatus == PublishStatus.error) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Ocurrió un error al publicar. Intenta de nuevo.'),
