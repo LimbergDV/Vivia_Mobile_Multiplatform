@@ -1,230 +1,121 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:vivia_mobile/features/auth/presentation/widgets/auth_background_blobs.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/report_success_page.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/report_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/report/report_step_header.dart';
 
-class ReportReviewPage extends StatelessWidget {
+class ReportReviewPage extends StatefulWidget {
   const ReportReviewPage({super.key});
 
-  void _submit(BuildContext context) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const ReportSuccessPage()),
-    );
+  @override
+  State<ReportReviewPage> createState() => _ReportReviewPageState();
+}
+
+class _ReportReviewPageState extends State<ReportReviewPage> {
+  Future<void> _onSubmit() async {
+    final vm = context.read<ReportViewModel>();
+    await vm.submit();
+    if (!mounted) return;
+
+    if (vm.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(vm.error!),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ReportSuccessPage()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-    return isLandscape ? _buildLandscape(context) : _buildPortrait(context);
-  }
-
-  Widget _buildPortrait(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final vm = context.watch<ReportViewModel>();
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: colorScheme.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-        title: Text(
-          'Reportar Publicación',
-          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-            child: const ReportStepHeader(currentStep: 3),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-              child: Consumer<ReportViewModel>(
-                builder: (_, vm, __) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Revisa el reporte',
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _ReviewItem(
-                      number: 1,
-                      title: 'Razón',
-                      value: vm.reasonLabel,
-                    ),
-                    const SizedBox(height: 16),
-                    _ReviewItem(
-                      number: 2,
-                      title: 'Detalles',
-                      value: vm.details.isEmpty
-                          ? 'Sin detalles adicionales'
-                          : vm.details,
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: () => _submit(context),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF0095FF),
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Text(
-                        'Reportar',
-                        style: textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Gracias por tu confinza, el equipo de Vivia revisará rigurosamente el reporte y dará paso a su veredicto. Queremos recordar que Vivia hace un gran esfuerzo para mantener la seguridad dentro de la plataforma.',
-                      textAlign: TextAlign.center,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 24),
+              const ReportStepHeader(currentStep: 3),
+              const SizedBox(height: 32),
+              Text(
+                'Revisar reporte',
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface,
                 ),
               ),
-            ),
-          ),
-          SizedBox(
-            height: 150,
-            child: ClipRect(
-              child: OverflowBox(
-                alignment: Alignment.bottomCenter,
-                maxHeight: 260,
-                child: const AuthBackgroundBlobs(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLandscape(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: colorScheme.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-        title: Text(
-          'Reportar Publicación',
-          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: Consumer<ReportViewModel>(
-        builder: (_, vm, __) => Row(
-          children: [
-            Expanded(
-              flex: 5,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 16, 0),
-                    child: const ReportStepHeader(currentStep: 3),
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(24, 16, 16, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Revisa el reporte',
-                            style: textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          _ReviewItem(
-                            number: 1,
-                            title: 'Razón',
-                            value: vm.reasonLabel,
-                          ),
-                          const SizedBox(height: 16),
-                          _ReviewItem(
-                            number: 2,
-                            title: 'Detalles',
-                            value: vm.details.isEmpty
-                                ? 'Sin detalles adicionales'
-                                : vm.details,
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'Gracias por tu confinza, el equipo de Vivia revisará rigurosamente el reporte y dará paso a su veredicto. Queremos recordar que Vivia hace un gran esfuerzo para mantener la seguridad dentro de la plataforma.',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            VerticalDivider(
-              width: 1,
-              thickness: 0.5,
-              color: colorScheme.outlineVariant,
-            ),
-            Expanded(
-              flex: 4,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 24, 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    FilledButton(
-                      onPressed: () => _submit(context),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF0095FF),
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Text(
-                        'Reportar',
-                        style: textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 8),
+              Text(
+                'Confirma que la información es correcta antes de enviar.',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 28),
+              _ReviewItem(
+                label: 'Motivo',
+                value: vm.reasonLabel,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
+              ),
+              const SizedBox(height: 12),
+              _ReviewItem(
+                label: 'Detalles',
+                value: vm.details.isEmpty
+                    ? 'Sin detalles adicionales'
+                    : vm.details,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
+              ),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: vm.isLoading ? null : _onSubmit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0095FF),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                    const Color(0xFF0095FF).withOpacity(0.6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: vm.isLoading
+                      ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                      : Text(
+                    'Enviar reporte',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
@@ -232,64 +123,48 @@ class ReportReviewPage extends StatelessWidget {
 }
 
 class _ReviewItem extends StatelessWidget {
-  final int number;
-  final String title;
+  final String label;
   final String value;
+  final ColorScheme colorScheme;
+  final TextTheme textTheme;
 
   const _ReviewItem({
-    required this.number,
-    required this.title,
+    required this.label,
     required this.value,
+    required this.colorScheme,
+    required this.textTheme,
   });
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: const BoxDecoration(
-            color: Color(0xFF0095FF),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              '$number',
-              style: textTheme.labelMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: textTheme.titleSmall?.copyWith(
-                  color: const Color(0xFF0095FF),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

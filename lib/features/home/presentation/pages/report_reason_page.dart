@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:vivia_mobile/features/auth/presentation/widgets/auth_background_blobs.dart';
+import 'package:vivia_mobile/features/home/domain/models/report_reason_model.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/report_details_page.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/report_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/report/report_step_header.dart';
 
-class ReportReasonPage extends StatelessWidget {
+class ReportReasonPage extends StatefulWidget {
   const ReportReasonPage({super.key});
 
-  static final _reasons = [
-    (ReportReason.impreciso, 'Es impreciso o incorrecto'),
-    (ReportReason.noEsPropiedad, 'No es una propiedad real'),
-    (ReportReason.estafa, 'Es una estafa'),
-    (ReportReason.ofensivo, 'Es ofensivo'),
-    (ReportReason.otraMotivo, 'Es por otra motivo'),
-  ];
+  @override
+  State<ReportReasonPage> createState() => _ReportReasonPageState();
+}
 
-  void _next(BuildContext context) {
+class _ReportReasonPageState extends State<ReportReasonPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ReportViewModel>().loadReasons();
+    });
+  }
+
+  void _goToDetails() {
     final vm = context.read<ReportViewModel>();
     Navigator.push(
       context,
@@ -31,281 +36,252 @@ class ReportReasonPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-    return isLandscape ? _buildLandscape(context) : _buildPortrait(context);
-  }
-
-  Widget _buildPortrait(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final vm = context.watch<ReportViewModel>();
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: colorScheme.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-        title: Text(
-          'Reportar Publicación',
-          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-            child: const ReportStepHeader(currentStep: 1),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '¿Por qué razón quieres reportar la publicación?',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Consumer<ReportViewModel>(
-                    builder: (_, vm, __) => Column(
-                      children: _reasons.map((r) {
-                        final (reason, label) = r;
-                        return _ReasonItem(
-                          label: label,
-                          isSelected: vm.selectedReason == reason,
-                          onTap: () => vm.selectReason(reason),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 24),
+              const ReportStepHeader(currentStep: 1),
+              const SizedBox(height: 32),
+              Text(
+                'Razón del reporte',
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface,
+                ),
               ),
-            ),
-          ),
-          SizedBox(
-            height: 150,
-            child: Stack(
-              children: [
-                ClipRect(
-                  child: OverflowBox(
-                    alignment: Alignment.bottomCenter,
-                    maxHeight: 260,
-                    child: const AuthBackgroundBlobs(),
-                  ),
+              const SizedBox(height: 8),
+              Text(
+                '¿Por qué quieres reportar esta publicación?',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                 ),
-                Positioned(
-                  bottom: 20,
-                  right: 20,
-                  child: Consumer<ReportViewModel>(
-                    builder: (_, vm, __) => FilledButton(
-                      onPressed: vm.canProceed ? () => _next(context) : null,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF0095FF),
-                        disabledBackgroundColor: Colors.grey.shade300,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 28,
-                          vertical: 14,
-                        ),
-                      ),
-                      child: Text(
-                        'Siguiente',
-                        style: textTheme.labelLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+              ),
+              const SizedBox(height: 24),
+              Expanded(
+                child: _buildContent(vm, colorScheme, textTheme),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: vm.canProceed ? _goToDetails : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0095FF),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                    const Color(0xFF0095FF).withOpacity(0.4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Continuar',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 24),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildLandscape(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
+  Widget _buildContent(
+      ReportViewModel vm,
+      ColorScheme colorScheme,
+      TextTheme textTheme,
+      ) {
+    if (vm.isLoadingReasons) {
+      return ListView.separated(
+        itemCount: 5,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (_, __) => _SkeletonReason(colorScheme: colorScheme),
+      );
+    }
 
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: colorScheme.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-        title: Text(
-          'Reportar Publicación',
-          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: Row(
-        children: [
-          Expanded(
-            flex: 5,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 16, 0),
-                  child: const ReportStepHeader(currentStep: 1),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 16, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '¿Por qué razón quieres reportar la publicación?',
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Consumer<ReportViewModel>(
-                          builder: (_, vm, __) => Column(
-                            children: _reasons.map((r) {
-                              final (reason, label) = r;
-                              return _ReasonItem(
-                                label: label,
-                                isSelected: vm.selectedReason == reason,
-                                onTap: () => vm.selectReason(reason),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+    if (vm.error != null && vm.reasons.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline,
+                color: colorScheme.error, size: 40),
+            const SizedBox(height: 12),
+            Text(
+              vm.error!,
+              style: textTheme.bodyMedium
+                  ?.copyWith(color: colorScheme.onSurfaceVariant),
+              textAlign: TextAlign.center,
             ),
-          ),
-          VerticalDivider(
-            width: 1,
-            thickness: 0.5,
-            color: colorScheme.outlineVariant,
-          ),
-          Expanded(
-            flex: 4,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 24, 24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Consumer<ReportViewModel>(
-                    builder: (_, vm, __) => FilledButton(
-                      onPressed: vm.canProceed ? () => _next(context) : null,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF0095FF),
-                        disabledBackgroundColor: Colors.grey.shade300,
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Text(
-                        'Siguiente',
-                        style: textTheme.labelLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => context.read<ReportViewModel>().loadReasons(),
+              child: const Text('Reintentar'),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      itemCount: vm.reasons.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (_, i) {
+        final reason = vm.reasons[i];
+        final isSelected = vm.selectedReason?.id == reason.id;
+        return _ReasonItem(
+          reason: reason,
+          isSelected: isSelected,
+          onTap: () => context.read<ReportViewModel>().selectReason(reason),
+          textTheme: textTheme,
+        );
+      },
     );
   }
 }
 
 class _ReasonItem extends StatelessWidget {
-  final String label;
+  final ReportReasonModel reason;
   final bool isSelected;
   final VoidCallback onTap;
+  final TextTheme textTheme;
 
   const _ReasonItem({
-    required this.label,
+    required this.reason,
     required this.isSelected,
     required this.onTap,
+    required this.textTheme,
   });
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF0095FF).withOpacity(0.08)
+              : Colors.transparent,
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF0095FF)
+                : Colors.grey.shade300,
+            width: isSelected ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(14),
+        ),
         child: Row(
           children: [
             Container(
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
-                color: Color(0xFF0095FF),
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                color: isSelected
+                    ? const Color(0xFF0095FF)
+                    : const Color(0xFF0095FF).withOpacity(0.12),
               ),
+              child: isSelected
+                  ? const Icon(Icons.check_rounded,
+                  color: Colors.white, size: 16)
+                  : null,
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
-                label,
+                reason.name,
                 style: textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF0095FF),
-                  fontWeight: FontWeight.w500,
+                  color: isSelected
+                      ? const Color(0xFF0095FF)
+                      : Theme.of(context).colorScheme.onSurface,
+                  fontWeight:
+                  isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ),
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: 22,
-              height: 22,
+              width: 20,
+              height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: const Color(0xFF0095FF),
-                  width: 2,
+                  color: isSelected
+                      ? const Color(0xFF0095FF)
+                      : Colors.grey.shade400,
+                  width: isSelected ? 6 : 2,
                 ),
               ),
-              child: isSelected
-                  ? Center(
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF0095FF),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              )
-                  : null,
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SkeletonReason extends StatelessWidget {
+  final ColorScheme colorScheme;
+
+  const _SkeletonReason({required this.colorScheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: colorScheme.surfaceContainerHighest,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Container(
+              height: 12,
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: colorScheme.surfaceContainerHighest,
+            ),
+          ),
+        ],
       ),
     );
   }

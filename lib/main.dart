@@ -23,7 +23,9 @@ import 'package:vivia_mobile/features/auth/domain/usecases/set_location_permissi
 import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/features/home/data/datasources/remote/property_remote_datasource.dart';
+import 'package:vivia_mobile/features/home/data/datasources/remote/report_remote_datasource.dart';
 import 'package:vivia_mobile/features/home/data/repositories/property_repository_impl.dart';
+import 'package:vivia_mobile/features/home/data/repositories/report_repository_impl.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_likes_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_usecase.dart';
@@ -31,6 +33,8 @@ import 'package:vivia_mobile/features/home/domain/usecases/get_property_media_us
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_suggestions_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/delete_property_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_report_reasons_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/submit_report_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/toggle_like_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/data/datasources/remote/lessor_remote_datasource.dart';
@@ -139,10 +143,13 @@ void main() async {
   final loginGoogleUseCase = LoginGoogleUseCase(authRepository);
   final registerLesseeUseCase = RegisterLesseeUseCase(authRepository);
   final registerLessorUseCase = RegisterLessorUseCase(authRepository);
-  final registerLesseeGoogleUseCase = RegisterLesseeGoogleUseCase(authRepository);
-  final registerLessorGoogleUseCase = RegisterLessorGoogleUseCase(authRepository);
+  final registerLesseeGoogleUseCase =
+  RegisterLesseeGoogleUseCase(authRepository);
+  final registerLessorGoogleUseCase =
+  RegisterLessorGoogleUseCase(authRepository);
   final logoutUseCase = LogoutUseCase(authRepository);
-  final setLocationPermissionShownUseCase = SetLocationPermissionShownUseCase(authRepository);
+  final setLocationPermissionShownUseCase =
+  SetLocationPermissionShownUseCase(authRepository);
   final putUbicationUseCase = PutUbicationUseCase(authRepository);
 
   final userRemoteDatasource = UserRemoteDatasourceImpl(authHttpClient);
@@ -168,13 +175,17 @@ void main() async {
 
   final userViewModel = UserViewModel(getMeUseCase: getMeUseCase);
 
-  final propertyRemoteDatasource = PropertyRemoteDatasourceImpl(authHttpClient);
-  final propertyRepository = PropertyRepositoryImpl(remote: propertyRemoteDatasource);
+  final propertyRemoteDatasource =
+  PropertyRemoteDatasourceImpl(authHttpClient);
+  final propertyRepository =
+  PropertyRepositoryImpl(remote: propertyRemoteDatasource);
   final propertyViewModel = PropertyViewModel(
     getPropertyTypesUseCase: GetPropertyTypesUseCase(propertyRepository),
     getPropertiesMeUseCase: GetPropertiesMeUseCase(propertyRepository),
-    getPropertiesMeLikesUseCase: GetPropertiesMeLikesUseCase(propertyRepository),
-    getPropertySuggestionsUseCase: GetPropertySuggestionsUseCase(propertyRepository),
+    getPropertiesMeLikesUseCase:
+    GetPropertiesMeLikesUseCase(propertyRepository),
+    getPropertySuggestionsUseCase:
+    GetPropertySuggestionsUseCase(propertyRepository),
     authRepository: authRepository,
   );
   propertyViewModelRef = propertyViewModel;
@@ -194,6 +205,12 @@ void main() async {
     publishPropertyDraftUseCase: PublishPropertyDraftUseCase(lessorRepository),
     watchDraftStatusUseCase: WatchDraftStatusUseCase(lessorRepository),
   );
+
+  final reportRemoteDatasource = ReportRemoteDatasourceImpl(authHttpClient);
+  final reportRepository =
+  ReportRepositoryImpl(remote: reportRemoteDatasource);
+  final submitReportUseCase = SubmitReportUseCase(reportRepository);
+  final getReportReasonsUseCase = GetReportReasonsUseCase(reportRepository);
 
   final isLoggedIn = authRepository.isLoggedIn;
   final savedUserName = authRepository.savedUserName;
@@ -217,7 +234,9 @@ void main() async {
         Provider<GetPropertyMediaUseCase>.value(value: getPropertyMediaUseCase),
         Provider<ToggleLikeUseCase>.value(value: toggleLikeUseCase),
         Provider<DeletePropertyUseCase>.value(value: deletePropertyUseCase),
+        Provider<SubmitReportUseCase>.value(value: submitReportUseCase),
         ChangeNotifierProvider.value(value: propertyDraftViewModel),
+        Provider<GetReportReasonsUseCase>.value(value: getReportReasonsUseCase),
       ],
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)

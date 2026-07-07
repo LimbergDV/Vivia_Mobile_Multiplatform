@@ -6,22 +6,28 @@ import 'package:vivia_mobile/features/home/domain/models/property_detail.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/delete_property_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_report_reasons_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/submit_report_usecase.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/toggle_like_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/fullscreen_image_viewer.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/gallery_page.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/profile_page.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/report_reason_page.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_detail_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/report_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
-import 'package:vivia_mobile/features/home/presentation/pages/profile_page.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final PropertyModel property;
   final UserRole role;
 
-  const PropertyDetailPage({super.key, required this.property, required this.role});
+  const PropertyDetailPage({
+    super.key,
+    required this.property,
+    required this.role,
+  });
 
   @override
   State<PropertyDetailPage> createState() => _PropertyDetailPageState();
@@ -170,7 +176,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       PageView.builder(
                         controller: _pageController,
                         itemCount: images.length,
-                        onPageChanged: (i) => setState(() => _currentPage = i),
+                        onPageChanged: (i) =>
+                            setState(() => _currentPage = i),
                         itemBuilder: (_, index) {
                           return GestureDetector(
                             onTap: () {
@@ -209,8 +216,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                               final isActive = i == _currentPage;
                               return AnimatedContainer(
                                 duration: const Duration(milliseconds: 250),
-                                margin:
-                                const EdgeInsets.symmetric(horizontal: 3),
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 3),
                                 width: isActive ? 24 : 8,
                                 height: 8,
                                 decoration: BoxDecoration(
@@ -226,6 +233,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                     ],
                   ),
                 ),
+
                 Transform.translate(
                   offset: const Offset(0, -20),
                   child: Container(
@@ -240,7 +248,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                     child: _ContentBody(
                       property: widget.property,
                       detail: detail,
-                      isLoading: _vm.status == PropertyDetailStatus.loading,
+                      isLoading:
+                      _vm.status == PropertyDetailStatus.loading,
                       formattedPrice: _formatPrice(
                         detail?.listedPrice ?? widget.property.price,
                       ),
@@ -249,7 +258,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       isLandscape: isLandscape,
                       isLessor: isLessor,
                       isFavorite: _vm.currentLike,
-                      onFavoriteTap: () => _vm.toggleLike(widget.property.id),
+                      onFavoriteTap: () =>
+                          _vm.toggleLike(widget.property.id),
                       onDeleteTap: _confirmDelete,
                     ),
                   ),
@@ -342,13 +352,12 @@ class _ContentBody extends StatelessWidget {
                         if (value == 'delete') onDeleteTap();
                       },
                       itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'edit', child: Text('Editar')),
+                        PopupMenuItem(
+                            value: 'edit', child: Text('Editar')),
                         PopupMenuItem(
                           value: 'delete',
-                          child: Text(
-                            'Eliminar',
-                            style: TextStyle(color: Colors.red),
-                          ),
+                          child: Text('Eliminar',
+                              style: TextStyle(color: Colors.red)),
                         ),
                       ],
                     ),
@@ -370,7 +379,8 @@ class _ContentBody extends StatelessWidget {
           const SizedBox(height: 8),
 
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
             decoration: BoxDecoration(
               color: colorScheme.primaryContainer.withOpacity(0.3),
               borderRadius: BorderRadius.circular(20),
@@ -415,7 +425,9 @@ class _ContentBody extends StatelessWidget {
             _SkeletonLines(colorScheme: colorScheme)
           else
             Text(
-              description.isEmpty ? 'Sin descripción disponible.' : description,
+              description.isEmpty
+                  ? 'Sin descripción disponible.'
+                  : description,
               style: textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
                 height: 1.6,
@@ -446,10 +458,7 @@ class _ContentBody extends StatelessWidget {
                 ),
               );
             },
-            child: _GalleryRow(
-              images: galleryImages,
-              remaining: 0,
-            ),
+            child: _GalleryRow(images: galleryImages, remaining: 0),
           ),
           const SizedBox(height: 24),
 
@@ -458,7 +467,8 @@ class _ContentBody extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.location_on, color: colorScheme.primary, size: 20),
+              Icon(Icons.location_on,
+                  color: colorScheme.primary, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -476,21 +486,25 @@ class _ContentBody extends StatelessWidget {
           if (!isLessor)
             OutlinedButton.icon(
               onPressed: () {
+                final submitUseCase = context.read<SubmitReportUseCase>();
+                final getReasonsUseCase =
+                context.read<GetReportReasonsUseCase>();
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => ChangeNotifierProvider(
-                      create: (_) => ReportViewModel(),
+                      create: (_) => ReportViewModel(
+                        propertyId: property.id,
+                        submitUseCase: submitUseCase,
+                        getReasonsUseCase: getReasonsUseCase,
+                      ),
                       child: const ReportReasonPage(),
                     ),
                   ),
                 );
               },
-              icon: const Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.orange,
-                size: 20,
-              ),
+              icon: const Icon(Icons.warning_amber_rounded,
+                  color: Colors.orange, size: 20),
               label: Text(
                 'Reportar publicación',
                 style: textTheme.labelLarge?.copyWith(
@@ -502,8 +516,7 @@ class _ContentBody extends StatelessWidget {
                 minimumSize: const Size.fromHeight(50),
                 side: const BorderSide(color: Colors.orange),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(12)),
               ),
             ),
 
@@ -764,9 +777,7 @@ class _GalleryRow extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    if (displayCount == 0) {
-      return const SizedBox.shrink();
-    }
+    if (displayCount == 0) return const SizedBox.shrink();
 
     return LayoutBuilder(
       builder: (context, constraints) {

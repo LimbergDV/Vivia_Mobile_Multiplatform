@@ -1,25 +1,52 @@
-import 'package:flutter/material.dart';
-
-enum ReportReason { impreciso, noEsPropiedad, estafa, ofensivo, otraMotivo }
+import 'package:flutter/foundation.dart';
+import 'package:vivia_mobile/features/home/domain/models/report_reason_model.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/get_report_reasons_usecase.dart';
+import 'package:vivia_mobile/features/home/domain/usecases/submit_report_usecase.dart';
 
 class ReportViewModel extends ChangeNotifier {
-  ReportReason? _selectedReason;
+  final String propertyId;
+  final SubmitReportUseCase _submitUseCase;
+  final GetReportReasonsUseCase _getReasonsUseCase;
+
+  ReportViewModel({
+    required this.propertyId,
+    required SubmitReportUseCase submitUseCase,
+    required GetReportReasonsUseCase getReasonsUseCase,
+  })  : _submitUseCase = submitUseCase,
+        _getReasonsUseCase = getReasonsUseCase;
+
+  List<ReportReasonModel> _reasons = [];
+  ReportReasonModel? _selectedReason;
   String _details = '';
+  bool _isLoadingReasons = false;
+  bool _isLoading = false;
+  String? _error;
 
-  ReportReason? get selectedReason => _selectedReason;
+  List<ReportReasonModel> get reasons => _reasons;
+  ReportReasonModel? get selectedReason => _selectedReason;
   String get details => _details;
+  bool get isLoadingReasons => _isLoadingReasons;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
   bool get canProceed => _selectedReason != null;
+  String get reasonLabel => _selectedReason?.name ?? '';
 
-  String get reasonLabel => switch (_selectedReason) {
-    ReportReason.impreciso => 'Es impreciso o incorrecto',
-    ReportReason.noEsPropiedad => 'No es una propiedad real',
-    ReportReason.estafa => 'Es una estafa',
-    ReportReason.ofensivo => 'Es ofensivo',
-    ReportReason.otraMotivo => 'Es por otra motivo',
-    null => '',
-  };
+  Future<void> loadReasons() async {
+    _isLoadingReasons = true;
+    _error = null;
+    notifyListeners();
 
-  void selectReason(ReportReason reason) {
+    try {
+      _reasons = await _getReasonsUseCase.execute();
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      _isLoadingReasons = false;
+      notifyListeners();
+    }
+  }
+
+  void selectReason(ReportReasonModel reason) {
     _selectedReason = reason;
     notifyListeners();
   }
@@ -27,5 +54,26 @@ class ReportViewModel extends ChangeNotifier {
   void setDetails(String value) {
     _details = value;
     notifyListeners();
+  }
+
+  Future<void> submit() async {
+    if (_selectedReason == null) return;
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _submitUseCase.execute(
+        propertyId: propertyId,
+        reasonId: _selectedReason!.id,
+        comment: _details,
+      );
+    } catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }
