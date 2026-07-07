@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/role_selector_page.dart';
+import 'package:vivia_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/get_profile_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/profile_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_avatar_ring.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_completion_bar.dart';
@@ -27,7 +29,10 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => ProfileViewModel(),
+      create: (ctx) => ProfileViewModel(
+        getProfileUseCase: ctx.read<GetProfileUseCase>(),
+        authRepository: ctx.read<AuthRepository>(),
+      )..init(userName, avatarUrl),
       child: _ProfileView(
         userName: userName,
         avatarUrl: avatarUrl,
@@ -103,11 +108,7 @@ class _PortraitLayout extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _ProfileHeader(
-            userName: userName,
-            avatarUrl: avatarUrl,
-            avatarSize: 130,
-          ),
+          const _ProfileHeader(avatarSize: 130),
           const SizedBox(height: 36),
           _SettingsList(role: role, userName: userName, avatarUrl: avatarUrl,),
           const SizedBox(height: 28),
@@ -141,11 +142,7 @@ class _LandscapeLayout extends StatelessWidget {
           child: SingleChildScrollView(
             padding:
             const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: _ProfileHeader(
-              userName: userName,
-              avatarUrl: avatarUrl,
-              avatarSize: 110,
-            ),
+            child: const _ProfileHeader(avatarSize: 110),
           ),
         ),
         VerticalDivider(width: 1, color: colorScheme.outlineVariant),
@@ -164,15 +161,9 @@ class _LandscapeLayout extends StatelessWidget {
 
 // ── Header: nombre + badge + avatar + completado + premium ─────────────────
 class _ProfileHeader extends StatelessWidget {
-  final String userName;
-  final String? avatarUrl;
   final double avatarSize;
 
-  const _ProfileHeader({
-    required this.userName,
-    required this.avatarUrl,
-    required this.avatarSize,
-  });
+  const _ProfileHeader({required this.avatarSize});
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +181,7 @@ class _ProfileHeader extends StatelessWidget {
           children: [
             Flexible(
               child: Text(
-                userName,
+                vm.displayName,
                 textAlign: TextAlign.center,
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
@@ -198,7 +189,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
               ),
             ),
-            if (vm.isVerified) ...[
+            if (vm.showVerifiedBadge) ...[
               const SizedBox(width: 6),
               const _VerifiedBadge(),
             ],
@@ -208,7 +199,7 @@ class _ProfileHeader extends StatelessWidget {
 
         // Avatar con anillo de progreso
         ProfileAvatarRing(
-          avatarUrl: avatarUrl,
+          avatarUrl: vm.avatarUrl,
           progress: vm.completionPercent,
           size: avatarSize,
         ),
@@ -219,14 +210,16 @@ class _ProfileHeader extends StatelessWidget {
           completionPercent: vm.completionPercentInt,
           showDot: true,
         ),
-        const SizedBox(height: 16),
 
-        // Banner premium
-        ProfileSubscriptionBanner(
-          onTap: () {
-            // TODO: navegar a suscripción
-          },
-        ),
+        // Banner premium — solo para lessor
+        if (vm.showSubscriptionBanner) ...[
+          const SizedBox(height: 16),
+          ProfileSubscriptionBanner(
+            onTap: () {
+              // TODO: navegar a suscripción
+            },
+          ),
+        ],
       ],
     );
   }
@@ -257,9 +250,10 @@ class _SettingsList extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        ProfileSettingsItem(
-          icon: Icons.verified_user_outlined,
-          label: 'Verificar Cuenta',
+        if (vm.showVerifyAccount)
+          ProfileSettingsItem(
+            icon: Icons.verified_user_outlined,
+            label: 'Verificar Cuenta',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -267,7 +261,7 @@ class _SettingsList extends StatelessWidget {
                 builder: (_) => const VerifyIntroPage(),
               ),
             ),
-        ),
+          ),
         ProfileSettingsItem(
           icon: Icons.person_outline_rounded,
           label: 'Información Personal',
@@ -283,14 +277,15 @@ class _SettingsList extends StatelessWidget {
             ),
           ),
         ),
-        ProfileSettingsItem(
-          icon: Icons.credit_card_outlined,
-          label: 'Formas De Pago',
-          showNotificationDot: vm.hasPaymentInfoPending,
-          onTap: () {
-            // TODO: navegar a formas de pago
-          },
-        ),
+        if (vm.showPaymentMethods)
+          ProfileSettingsItem(
+            icon: Icons.credit_card_outlined,
+            label: 'Formas De Pago',
+            showNotificationDot: vm.hasPaymentInfoPending,
+            onTap: () {
+              // TODO: navegar a formas de pago
+            },
+          ),
         ProfileSettingsItem(
           icon: Icons.logout_rounded,
           label: 'Cerrar Sesión',
