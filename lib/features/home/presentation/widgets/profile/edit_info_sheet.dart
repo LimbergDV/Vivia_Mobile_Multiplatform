@@ -5,6 +5,7 @@ class EditFieldConfig {
   final String? hint;
   final String initialValue;
   final bool isPassword;
+  final bool isRequired;
   final TextInputType keyboardType;
 
   const EditFieldConfig({
@@ -12,6 +13,7 @@ class EditFieldConfig {
     this.hint,
     this.initialValue = '',
     this.isPassword = false,
+    this.isRequired = true,
     this.keyboardType = TextInputType.text,
   });
 }
@@ -19,7 +21,7 @@ class EditFieldConfig {
 class EditInfoSheet extends StatefulWidget {
   final String title;
   final List<EditFieldConfig> fields;
-  final void Function(List<String> values) onSave;
+  final Future<void> Function(List<String> values) onSave;
 
   const EditInfoSheet({
     super.key,
@@ -32,7 +34,7 @@ class EditInfoSheet extends StatefulWidget {
       BuildContext context, {
         required String title,
         required List<EditFieldConfig> fields,
-        required void Function(List<String> values) onSave,
+        required Future<void> Function(List<String> values) onSave,
       }) {
     return showModalBottomSheet(
       context: context,
@@ -52,6 +54,7 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
   late final List<bool> _obscured;
   final _formKey = GlobalKey<FormState>();
   bool _isSaving = false;
+  String? _saveError;
 
   @override
   void initState() {
@@ -72,10 +75,18 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSaving = true);
+    setState(() {
+      _isSaving = true;
+      _saveError = null;
+    });
     try {
-      widget.onSave(_controllers.map((c) => c.text.trim()).toList());
+      await widget.onSave(_controllers.map((c) => c.text.trim()).toList());
       if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() =>
+            _saveError = e.toString().replaceFirst('Exception: ', ''));
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -83,9 +94,11 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
 
   String? _validator(int index, String? value) {
     final trimmed = value?.trim() ?? '';
-    if (trimmed.isEmpty) return 'Campo requerido';
-
     final field = widget.fields[index];
+
+    if (trimmed.isEmpty) {
+      return field.isRequired ? 'Campo requerido' : null;
+    }
 
     if (field.keyboardType == TextInputType.emailAddress) {
       if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(trimmed)) {
@@ -93,8 +106,8 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
       }
     }
 
-    if (field.isPassword && trimmed.length < 6) {
-      return 'Mínimo 6 caracteres';
+    if (field.isPassword && trimmed.length < 8) {
+      return 'Mínimo 8 caracteres';
     }
 
     if (index > 0 &&
@@ -174,6 +187,18 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
                   ),
                 );
               }),
+
+              if (_saveError != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  _saveError!,
+                  textAlign: TextAlign.center,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.error,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
               const SizedBox(height: 28),
 
               // Guardar button

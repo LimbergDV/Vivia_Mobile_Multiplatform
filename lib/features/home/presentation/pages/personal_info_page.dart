@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
+import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/models/full_profile.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/update_email_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/update_name_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/update_password_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/update_phone_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/update_profile_photo_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/personal_info_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/profile/edit_info_sheet.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/profile/personal_info_field.dart';
@@ -11,28 +19,38 @@ class PersonalInfoPage extends StatelessWidget {
   final String userName;
   final String? avatarUrl;
   final UserRole role;
+  final FullProfile? profile;
 
   const PersonalInfoPage({
     super.key,
     required this.userName,
     required this.role,
     this.avatarUrl,
+    this.profile,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Fallback al seed del login si el perfil completo aún no cargó.
     final parts = userName.trim().split(RegExp(r'\s+'));
-    final first = parts.isNotEmpty ? parts.first : '';
-    final last = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    final seedFirst = parts.isNotEmpty ? parts.first : '';
+    final seedPaternal = parts.length > 1 ? parts[1] : '';
+    final seedMaternal = parts.length > 2 ? parts.sublist(2).join(' ') : '';
 
     return ChangeNotifierProvider(
-      create: (_) => PersonalInfoViewModel(
-        firstName: first,
-        lastName: last,
-        email: '',
-        phone: role == UserRole.lessor ? '' : null,
-        location: role == UserRole.lessee ? '' : null,
-        avatarUrl: avatarUrl,
+      create: (ctx) => PersonalInfoViewModel(
+        updateNameUseCase: ctx.read<UpdateNameUseCase>(),
+        updateEmailUseCase: ctx.read<UpdateEmailUseCase>(),
+        updatePhoneUseCase: ctx.read<UpdatePhoneUseCase>(),
+        updatePasswordUseCase: ctx.read<UpdatePasswordUseCase>(),
+        updateProfilePhotoUseCase: ctx.read<UpdateProfilePhotoUseCase>(),
+        putUbicationUseCase: ctx.read<PutUbicationUseCase>(),
+        firstName: profile?.name ?? seedFirst,
+        paternalSurname: profile?.paternalSurname ?? seedPaternal,
+        maternalSurname: profile?.maternalSurname ?? seedMaternal,
+        email: profile?.email ?? '',
+        phone: role == UserRole.lessor ? (profile?.phoneNumber ?? '') : null,
+        avatarUrl: profile?.photoUrl ?? avatarUrl,
       ),
       child: _PersonalInfoView(role: role),
     );
@@ -155,6 +173,8 @@ class _AvatarSection extends StatelessWidget {
 
     final avatarUrl = context
         .select<PersonalInfoViewModel, String?>((vm) => vm.avatarUrl);
+    final isUploading = context
+        .select<PersonalInfoViewModel, bool>((vm) => vm.isUploadingPhoto);
 
     return Center(
       child: Column(
@@ -181,15 +201,7 @@ class _AvatarSection extends StatelessWidget {
                   right: 6,
                   bottom: 6,
                   child: GestureDetector(
-                    onTap: () {
-                      // TODO: conectar con image_picker
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Próximamente: cambio de foto'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                    onTap: isUploading ? null : () => _pickAndUploadPhoto(context),
                     child: Container(
                       width: 34,
                       height: 34,
@@ -199,11 +211,19 @@ class _AvatarSection extends StatelessWidget {
                         border:
                         Border.all(color: Colors.white, width: 2),
                       ),
-                      child: const Icon(
-                        Icons.edit_rounded,
-                        color: Colors.white,
-                        size: 16,
-                      ),
+                      child: isUploading
+                          ? const Padding(
+                              padding: EdgeInsets.all(7),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.edit_rounded,
+                              color: Colors.white,
+                              size: 16,
+                            ),
                     ),
                   ),
                 ),
@@ -213,6 +233,45 @@ class _AvatarSection extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _pickAndUploadPhoto(BuildContext context) async {
+    final vm = context.read<PersonalInfoViewModel>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final file = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+
+    final isPng = file.name.toLowerCase().endsWith('.png');
+    final contentType =
+        file.mimeType ?? (isPng ? 'image/png' : 'image/jpeg');
+    if (contentType != 'image/jpeg' && contentType != 'image/png') {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Solo se permiten imágenes JPG o PNG'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final bytes = await file.readAsBytes();
+      await vm.updatePhoto(bytes: bytes, contentType: contentType);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Foto de perfil actualizada'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 }
 
@@ -254,14 +313,7 @@ class _FieldsSection extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        if (role == UserRole.lessee) ...[
-          PersonalInfoField(
-            label: 'Ubicación',
-            value: vm.location ?? '',
-            onEdit: () => _editLocation(context, vm),
-          ),
-          const SizedBox(height: 16),
-        ] else ...[
+        if (role == UserRole.lessor) ...[
           PersonalInfoField(
             label: 'Teléfono',
             value: vm.phone ?? '',
@@ -274,8 +326,13 @@ class _FieldsSection extends StatelessWidget {
           label: 'Contraseña',
           value: '••••••••••••',
           isPassword: true,
-          onEdit: () => _editPassword(context),
+          onEdit: () => _editPassword(context, vm),
         ),
+
+        if (role == UserRole.lessee) ...[
+          const SizedBox(height: 24),
+          const _EditLocationButton(),
+        ],
       ],
     );
   }
@@ -291,12 +348,22 @@ class _FieldsSection extends StatelessWidget {
           initialValue: vm.firstName,
         ),
         EditFieldConfig(
-          label: 'Apellidos',
-          hint: 'Gómez Masa',
-          initialValue: vm.lastName,
+          label: 'Apellido Paterno',
+          hint: 'Gómez',
+          initialValue: vm.paternalSurname,
+        ),
+        EditFieldConfig(
+          label: 'Apellido Materno',
+          hint: 'Masa',
+          initialValue: vm.maternalSurname,
+          isRequired: false,
         ),
       ],
-      onSave: (v) => vm.updateName(first: v[0], last: v[1]),
+      onSave: (v) => vm.updateName(
+        name: v[0],
+        paternalSurname: v[1],
+        maternalSurname: v[2],
+      ),
     );
   }
 
@@ -332,22 +399,7 @@ class _FieldsSection extends StatelessWidget {
     );
   }
 
-  void _editLocation(BuildContext context, PersonalInfoViewModel vm) {
-    EditInfoSheet.show(
-      context,
-      title: 'Editar Ubicación',
-      fields: [
-        EditFieldConfig(
-          label: 'Ubicación',
-          hint: 'Ciudad, Estado, País',
-          initialValue: vm.location ?? '',
-        ),
-      ],
-      onSave: (v) => vm.updateLocation(v[0]),
-    );
-  }
-
-  void _editPassword(BuildContext context) {
+  void _editPassword(BuildContext context, PersonalInfoViewModel vm) {
     EditInfoSheet.show(
       context,
       title: 'Editar Contraseña',
@@ -361,9 +413,68 @@ class _FieldsSection extends StatelessWidget {
           isPassword: true,
         ),
       ],
-      onSave: (v) {
-        // TODO: conectar con endpoint de cambio de contraseña
-      },
+      onSave: (v) => vm.updatePassword(v[0]),
+    );
+  }
+}
+
+// Botón para editar ubicación (solo lessee)
+class _EditLocationButton extends StatelessWidget {
+  const _EditLocationButton();
+
+  Future<void> _onPressed(BuildContext context) async {
+    final vm = context.read<PersonalInfoViewModel>();
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await vm.updateUbication();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Ubicación actualizada exitosamente'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isUpdating = context
+        .select<PersonalInfoViewModel, bool>((vm) => vm.isUpdatingLocation);
+
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: FilledButton.icon(
+        onPressed: isUpdating ? null : () => _onPressed(context),
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF0095FF),
+          disabledBackgroundColor: const Color(0xFF0095FF).withOpacity(0.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+        icon: isUpdating
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              )
+            : const Icon(Icons.location_on_outlined, size: 20),
+        label: Text(
+          isUpdating ? 'Actualizando…' : 'Editar Ubicación',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
     );
   }
 }
