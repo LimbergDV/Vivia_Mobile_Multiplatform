@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_detail.dart';
 import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/home/domain/usecases/delete_property_usecase.dart';
@@ -11,8 +12,8 @@ import 'package:vivia_mobile/features/home/presentation/pages/gallery_page.dart'
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_detail_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
-import 'package:vivia_mobile/features/home/presentation/pages/profile_page.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/profile_page.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final PropertyModel property;
@@ -116,11 +117,13 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     }
     if (item == HomeNavItem.profile) {
       final userVm = context.read<UserViewModel>();
+      final isLessor = context.read<PropertyViewModel>().isLessor;
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => ProfilePage(
             userName: userVm.displayName,
             avatarUrl: userVm.avatarUrl,
+            role: isLessor ? UserRole.lessor : UserRole.lessee,   // ← agrega esta línea
           ),
         ),
       );

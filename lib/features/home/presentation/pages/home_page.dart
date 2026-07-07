@@ -114,6 +114,7 @@ class _HomePageState extends State<HomePage> {
           builder: (_) => ProfilePage(
             userName: widget.userName,
             avatarUrl: widget.avatarUrl,
+            role: widget.role,
           ),
         ),
       );
