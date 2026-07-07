@@ -9,16 +9,19 @@ import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_us
 import 'package:vivia_mobile/features/home/domain/usecases/toggle_like_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/fullscreen_image_viewer.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/gallery_page.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/report_reason_page.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_detail_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
+import 'package:vivia_mobile/features/home/presentation/viewmodels/report_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/profile_page.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final PropertyModel property;
+  final UserRole role;
 
-  const PropertyDetailPage({super.key, required this.property});
+  const PropertyDetailPage({super.key, required this.property, required this.role});
 
   @override
   State<PropertyDetailPage> createState() => _PropertyDetailPageState();
@@ -79,8 +82,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
         title: const Text('Eliminar propiedad'),
         content: const Text(
           '¿Estás seguro de que deseas eliminar esta propiedad? '
-          'Esta acción eliminará también todas las imágenes y videos asociados '
-          'y no se puede deshacer.',
+              'Esta acción eliminará también todas las imágenes y videos asociados '
+              'y no se puede deshacer.',
         ),
         actions: [
           TextButton(
@@ -123,7 +126,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
           builder: (_) => ProfilePage(
             userName: userVm.displayName,
             avatarUrl: userVm.avatarUrl,
-            role: isLessor ? UserRole.lessor : UserRole.lessee,   // ← agrega esta línea
+            role: isLessor ? UserRole.lessor : UserRole.lessee,
           ),
         ),
       );
@@ -154,7 +157,6 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
         builder: (context, _) {
           final detail = _vm.detail;
           final images = _images(detail);
-
           final isLessor = context.read<PropertyViewModel>().isLessor;
 
           return SingleChildScrollView(
@@ -224,7 +226,6 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                     ],
                   ),
                 ),
-
                 Transform.translate(
                   offset: const Offset(0, -20),
                   child: Container(
@@ -470,6 +471,42 @@ class _ContentBody extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 24),
+
+          if (!isLessor)
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChangeNotifierProvider(
+                      create: (_) => ReportViewModel(),
+                      child: const ReportReasonPage(),
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange,
+                size: 20,
+              ),
+              label: Text(
+                'Reportar publicación',
+                style: textTheme.labelLarge?.copyWith(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                side: const BorderSide(color: Colors.orange),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+
           const SizedBox(height: 32),
         ],
       ),
