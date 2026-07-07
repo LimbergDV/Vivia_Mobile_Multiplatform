@@ -266,16 +266,21 @@ class _SettingsList extends StatelessWidget {
           icon: Icons.person_outline_rounded,
           label: 'Información Personal',
           showNotificationDot: vm.hasPersonalInfoPending,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PersonalInfoPage(
-                userName: userName,
-                avatarUrl: avatarUrl,
-                role: role,
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PersonalInfoPage(
+                  userName: userName,
+                  avatarUrl: avatarUrl,
+                  role: role,
+                  profile: vm.profile,
+                ),
               ),
-            ),
-          ),
+            );
+            // Al volver, re-consulta por si se editó nombre/foto/etc.
+            vm.refresh();
+          },
         ),
         if (vm.showPaymentMethods)
           ProfileSettingsItem(

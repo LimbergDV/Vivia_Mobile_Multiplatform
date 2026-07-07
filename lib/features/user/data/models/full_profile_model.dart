@@ -5,6 +5,9 @@ class FullProfileModel {
   final String email;
   final String? photoUrl;
   final String verificationStatus;
+  final String? phoneNumber;
+  final double? latitude;
+  final double? longitude;
 
   const FullProfileModel({
     required this.name,
@@ -13,6 +16,9 @@ class FullProfileModel {
     required this.email,
     required this.verificationStatus,
     this.photoUrl,
+    this.phoneNumber,
+    this.latitude,
+    this.longitude,
   });
 
   factory FullProfileModel.fromJson(Map<String, dynamic> json) {
@@ -24,6 +30,9 @@ class FullProfileModel {
       email: data['email'] as String? ?? '',
       photoUrl: data['photoUrl'] as String?,
       verificationStatus: data['verificationStatus'] as String? ?? '',
+      phoneNumber: data['phoneNumber'] as String?,
+      latitude: (data['latitude'] as num?)?.toDouble(),
+      longitude: (data['longitude'] as num?)?.toDouble(),
     );
   }
 }

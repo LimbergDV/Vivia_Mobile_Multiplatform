@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:vivia_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:vivia_mobile/features/user/domain/models/full_profile.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/get_profile_usecase.dart';
 
 class ProfileViewModel extends ChangeNotifier {
@@ -17,6 +18,7 @@ class ProfileViewModel extends ChangeNotifier {
   String? _avatarUrl;
   bool _isVerified = false;
   bool _isLoading = false;
+  FullProfile? _profile;
 
   final double _completionPercent = 0.75;
   final bool _hasPersonalInfoPending = true;
@@ -26,6 +28,7 @@ class ProfileViewModel extends ChangeNotifier {
   String? get avatarUrl => _avatarUrl;
   bool get isVerified => _isVerified;
   bool get isLoading => _isLoading;
+  FullProfile? get profile => _profile;
 
   double get completionPercent => _completionPercent;
   int get completionPercentInt => (_completionPercent * 100).round();
@@ -47,11 +50,15 @@ class ProfileViewModel extends ChangeNotifier {
     _fetchProfile();
   }
 
+  /// Re-consulta el perfil (p. ej. al volver de editar información personal).
+  Future<void> refresh() => _fetchProfile();
+
   Future<void> _fetchProfile() async {
     _isLoading = true;
     notifyListeners();
     try {
       final profile = await _getProfileUseCase.execute();
+      _profile = profile;
       _displayName = profile.fullName;
       _avatarUrl = profile.photoUrl;
       _isVerified = profile.isVerified;

@@ -45,6 +45,11 @@ import 'package:vivia_mobile/features/user/data/datasources/remote/user_remote_d
 import 'package:vivia_mobile/features/user/data/repositories/user_repository_impl.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/get_me_usecase.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/get_profile_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/update_email_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/update_name_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/update_password_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/update_phone_usecase.dart';
+import 'package:vivia_mobile/features/user/domain/usecases/update_profile_photo_usecase.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/register_fcm_token_usecase.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 import 'package:vivia_mobile/firebase_options.dart';
@@ -147,11 +152,17 @@ void main() async {
   final setLocationPermissionShownUseCase = SetLocationPermissionShownUseCase(authRepository);
   final putUbicationUseCase = PutUbicationUseCase(authRepository);
 
-  final userRemoteDatasource = UserRemoteDatasourceImpl(authHttpClient);
+  final userRemoteDatasource =
+      UserRemoteDatasourceImpl(authHttpClient, http.Client());
   final userRepository = UserRepositoryImpl(remote: userRemoteDatasource);
   final registerFcmTokenUseCase = RegisterFcmTokenUseCase(userRepository);
   final getMeUseCase = GetMeUseCase(userRepository);
   final getProfileUseCase = GetProfileUseCase(userRepository);
+  final updateNameUseCase = UpdateNameUseCase(userRepository);
+  final updateEmailUseCase = UpdateEmailUseCase(userRepository);
+  final updatePhoneUseCase = UpdatePhoneUseCase(userRepository);
+  final updatePasswordUseCase = UpdatePasswordUseCase(userRepository);
+  final updateProfilePhotoUseCase = UpdateProfilePhotoUseCase(userRepository);
 
   final authViewModel = AuthViewModel(
     loginUseCase: loginUseCase,
@@ -221,6 +232,13 @@ void main() async {
         Provider<ToggleLikeUseCase>.value(value: toggleLikeUseCase),
         Provider<DeletePropertyUseCase>.value(value: deletePropertyUseCase),
         Provider<GetProfileUseCase>.value(value: getProfileUseCase),
+        Provider<UpdateNameUseCase>.value(value: updateNameUseCase),
+        Provider<UpdateEmailUseCase>.value(value: updateEmailUseCase),
+        Provider<UpdatePhoneUseCase>.value(value: updatePhoneUseCase),
+        Provider<UpdatePasswordUseCase>.value(value: updatePasswordUseCase),
+        Provider<UpdateProfilePhotoUseCase>.value(
+            value: updateProfilePhotoUseCase),
+        Provider<PutUbicationUseCase>.value(value: putUbicationUseCase),
         Provider<AuthRepository>.value(value: authRepository),
         ChangeNotifierProvider.value(value: propertyDraftViewModel),
       ],
