@@ -101,6 +101,10 @@ flutter:
     - assets/icons/blob_blue_small.svg
     - assets/icons/blob_dark.svg
     - .env
+    - assets/images/clock.json
+    - assets/images/INE-back.png
+    - assets/images/INE-front.png
+    - assets/images/scan-face.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

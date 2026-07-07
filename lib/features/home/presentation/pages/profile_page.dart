@@ -10,6 +10,7 @@ import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_
 import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_settings_item.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/profile/profile_subscription_banner.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/personal_info_page.dart';
+import 'package:vivia_mobile/features/home/presentation/pages/verify_intro_page.dart';
 
 class ProfilePage extends StatelessWidget {
   final String userName;
@@ -259,9 +260,13 @@ class _SettingsList extends StatelessWidget {
         ProfileSettingsItem(
           icon: Icons.verified_user_outlined,
           label: 'Verificar Cuenta',
-          onTap: () {
-            // TODO: navegar a verificación
-          },
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                settings: const RouteSettings(name: VerifyIntroPage.routeName),
+                builder: (_) => const VerifyIntroPage(),
+              ),
+            ),
         ),
         ProfileSettingsItem(
           icon: Icons.person_outline_rounded,
