@@ -11,6 +11,8 @@ import 'package:vivia_mobile/features/lessor/presentation/widgets/form_section_h
 import 'package:vivia_mobile/features/lessor/presentation/widgets/property_dropdown_field.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/property_text_field.dart';
 import 'package:vivia_mobile/features/lessor/presentation/widgets/property_type_toggle.dart';
+import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
+import 'package:vivia_mobile/features/maps/presentation/widgets/property_location_map.dart';
 
 class AddPropertyPage extends StatefulWidget {
   const AddPropertyPage({super.key});
@@ -232,7 +234,13 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
+
+                      _LocationPreviewCard(
+                        status: vm.previewStatus,
+                        point: vm.previewPoint,
+                      ),
+                      const SizedBox(height: 12),
 
                       FormSectionHeader(
                         label: 'Tipo De Propiedad',
@@ -433,6 +441,90 @@ class _DropdownWrapper extends StatelessWidget {
           ),
         ),
       ),
+      child: child,
+    );
+  }
+}
+
+/// Vista previa de la ubicación capturada. Solo confirmación visual:
+/// el pin no se envía al backend al publicar.
+class _LocationPreviewCard extends StatelessWidget {
+  final LocationPreviewStatus status;
+  final GeocodeResult? point;
+
+  const _LocationPreviewCard({required this.status, required this.point});
+
+  static const _height = 160.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final child = switch (status) {
+      LocationPreviewStatus.idle => const SizedBox.shrink(),
+      LocationPreviewStatus.loading => Container(
+          key: const ValueKey('preview-skeleton'),
+          height: _height,
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      LocationPreviewStatus.unavailable => Container(
+          key: const ValueKey('preview-unavailable'),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.location_off_outlined,
+                  color: colorScheme.onSurfaceVariant, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'No pudimos ubicar esta dirección en el mapa. '
+                  'Verifica la calle y el código postal.',
+                  style: textTheme.bodySmall
+                      ?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ],
+          ),
+        ),
+      LocationPreviewStatus.ready => Column(
+          key: const ValueKey('preview-ready'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: _height,
+              width: double.infinity,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: PropertyLocationMap(
+                  point: point!,
+                  interactive: false,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              point!.isApproximate
+                  ? 'Ubicación aproximada de tu propiedad'
+                  : 'Ubicación de tu propiedad',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+    };
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
       child: child,
     );
   }

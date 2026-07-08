@@ -12,8 +12,12 @@ import 'package:vivia_mobile/features/lessor/domain/usecases/get_amenities_useca
 import 'package:vivia_mobile/features/lessor/domain/usecases/get_neighborhoods_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/publish_property_draft_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/watch_draft_status_usecase.dart';
+import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
+import 'package:vivia_mobile/features/maps/domain/usecases/geocode_address_usecase.dart';
 
 enum NeighborhoodsStatus { idle, loading, success, error }
+
+enum LocationPreviewStatus { idle, loading, ready, unavailable }
 
 enum AmenitiesStatus { idle, loading, success, error }
 
@@ -26,16 +30,19 @@ class PropertyDraftViewModel extends ChangeNotifier {
   final GetAmenitiesUseCase _getAmenities;
   final PublishPropertyDraftUseCase _publishDraft;
   final WatchDraftStatusUseCase _watchDraftStatus;
+  final GeocodeAddressUseCase? _geocodeAddress;
 
   PropertyDraftViewModel({
     required GetNeighborhoodsUseCase getNeighborhoodsUseCase,
     required GetAmenitiesUseCase getAmenitiesUseCase,
     required PublishPropertyDraftUseCase publishPropertyDraftUseCase,
     required WatchDraftStatusUseCase watchDraftStatusUseCase,
+    GeocodeAddressUseCase? geocodeAddressUseCase,
   }) : _getNeighborhoods = getNeighborhoodsUseCase,
        _getAmenities = getAmenitiesUseCase,
        _publishDraft = publishPropertyDraftUseCase,
-       _watchDraftStatus = watchDraftStatusUseCase;
+       _watchDraftStatus = watchDraftStatusUseCase,
+       _geocodeAddress = geocodeAddressUseCase;
 
   // ── Estado del formulario ─────────────────────────────────────────────────
   NewPropertyForm _form = const NewPropertyForm();
@@ -46,6 +53,15 @@ class PropertyDraftViewModel extends ChangeNotifier {
   PublishStatus _publishStatus = PublishStatus.idle;
   String? _publishError;
   String? _publishedDraftId;
+
+  // ── Vista previa de ubicación en el mapa (solo visual) ───────────────────
+  Timer? _previewDebounce;
+  int _previewGeneration = 0;
+  LocationPreviewStatus _previewStatus = LocationPreviewStatus.idle;
+  GeocodeResult? _previewPoint;
+
+  LocationPreviewStatus get previewStatus => _previewStatus;
+  GeocodeResult? get previewPoint => _previewPoint;
 
   // ── Estado del stream de validación ──────────────────────────────────────
   StreamSubscription<DraftStatusEvent>? _streamSubscription;
@@ -95,6 +111,10 @@ class PropertyDraftViewModel extends ChangeNotifier {
     _publishStatus = PublishStatus.idle;
     _publishError = null;
     _publishedDraftId = null;
+    _previewDebounce?.cancel();
+    _previewGeneration++;
+    _previewStatus = LocationPreviewStatus.idle;
+    _previewPoint = null;
     notifyListeners();
   }
 
@@ -134,6 +154,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _streamSubscription?.cancel();
+    _previewDebounce?.cancel();
     super.dispose();
   }
 
@@ -150,12 +171,14 @@ class PropertyDraftViewModel extends ChangeNotifier {
     _neighborhoods = [];
     _neighborhoodsStatus = NeighborhoodsStatus.idle;
     notifyListeners();
+    _scheduleLocationPreview();
     if (cp.length == 5) fetchNeighborhoods(cp);
   }
 
   void setNeighborhood(NeighborhoodModel neighborhood) {
     _form = _form.copyWith(neighborhood: neighborhood);
     notifyListeners();
+    _scheduleLocationPreview();
   }
 
   void setPropertyType(PropertyTypeModel propertyType) {
@@ -166,6 +189,50 @@ class PropertyDraftViewModel extends ChangeNotifier {
   void setStreet(String street) {
     _form = _form.copyWith(street: street);
     notifyListeners();
+    _scheduleLocationPreview();
+  }
+
+  /// Geocodifica la dirección capturada para la vista previa del mapa.
+  /// Debounce agresivo: el servicio no está pensado para search-as-you-type
+  /// (integration.md §4.7). Solo visual; el pin no se envía al backend.
+  void _scheduleLocationPreview() {
+    final geocode = _geocodeAddress;
+    if (geocode == null) return;
+
+    _previewDebounce?.cancel();
+    final street = _form.street?.trim() ?? '';
+    final neighborhood = _form.neighborhood;
+    if (street.length < 5 || neighborhood == null) {
+      if (_previewStatus != LocationPreviewStatus.idle) {
+        _previewStatus = LocationPreviewStatus.idle;
+        _previewPoint = null;
+        notifyListeners();
+      }
+      return;
+    }
+
+    _previewDebounce = Timer(const Duration(milliseconds: 900), () async {
+      final generation = ++_previewGeneration;
+      _previewStatus = LocationPreviewStatus.loading;
+      notifyListeners();
+      try {
+        // "calle, CP" resuelve mejor que la colonia; sin número exterior
+        // y sin anteponer "Colonia" (integration.md §4).
+        final result =
+            await geocode.execute('$street, ${neighborhood.postalCode}') ??
+                await geocode.execute('$street, ${neighborhood.name}');
+        if (generation != _previewGeneration) return; // respuesta obsoleta
+        _previewPoint = result;
+        _previewStatus = result == null
+            ? LocationPreviewStatus.unavailable
+            : LocationPreviewStatus.ready;
+      } catch (_) {
+        if (generation != _previewGeneration) return;
+        _previewPoint = null;
+        _previewStatus = LocationPreviewStatus.unavailable;
+      }
+      notifyListeners();
+    });
   }
 
   void setExteriorNumber(String number) {
