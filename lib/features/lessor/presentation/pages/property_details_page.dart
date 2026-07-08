@@ -20,14 +20,20 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
   late final TextEditingController _descriptionController;
 
   final List<String> _roomOptions = [
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11+',
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10',
+    '11+',
   ];
-  final List<String> _bathroomOptions = [
-    '1', '2', '3', '4', '5', '6', '7+',
-  ];
-  final List<String> _parkingOptions = [
-    '1', '2', '3', '4', '5', '6', '7+',
-  ];
+  final List<String> _bathroomOptions = ['1', '2', '3', '4', '5', '6', '7+'];
+  final List<String> _parkingOptions = ['1', '2', '3', '4', '5', '6', '7+'];
 
   final List<int> _yearOptions = List.generate(
     DateTime.now().year - 1950 + 1,
@@ -39,8 +45,9 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
     super.initState();
     final form = context.read<PropertyDraftViewModel>().form;
     _titleController = TextEditingController(text: form.title ?? '');
-    _descriptionController =
-        TextEditingController(text: form.description ?? '');
+    _descriptionController = TextEditingController(
+      text: form.description ?? '',
+    );
   }
 
   @override
@@ -97,8 +104,11 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
             elevation: 0,
             scrolledUnderElevation: 0,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back_ios_new_rounded,
-                  color: colorScheme.onSurface, size: 20),
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: colorScheme.onSurface,
+                size: 20,
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Text(
@@ -122,8 +132,9 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   FormSectionHeader(
-                      label: 'Habitaciones',
-                      iconData: Icons.bed_outlined),
+                    label: 'Habitaciones',
+                    iconData: Icons.bed_outlined,
+                  ),
                   const SizedBox(height: 14),
                   NumberSelector(
                     // rooms stores actual count (1-11); selector needs index (0-10)
@@ -131,13 +142,14 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
                         ? (vm.form.rooms! - 1).clamp(0, 10)
                         : null,
                     options: _roomOptions,
-                    onSelected: (i) =>
-                        vm.setRooms(i < 10 ? i + 1 : 11),
+                    onSelected: (i) => vm.setRooms(i < 10 ? i + 1 : 11),
                   ),
                   const SizedBox(height: 28),
 
                   FormSectionHeader(
-                      label: 'Baños', iconData: Icons.bathtub_outlined),
+                    label: 'Baños',
+                    iconData: Icons.bathtub_outlined,
+                  ),
                   const SizedBox(height: 14),
                   NumberSelector(
                     // bathrooms stores actual count (1-7); selector needs index (0-6)
@@ -145,8 +157,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
                         ? (vm.form.bathrooms! - 1).clamp(0, 6)
                         : null,
                     options: _bathroomOptions,
-                    onSelected: (i) =>
-                        vm.setBathrooms(i < 6 ? i + 1 : 7),
+                    onSelected: (i) => vm.setBathrooms(i < 6 ? i + 1 : 7),
                   ),
                   const SizedBox(height: 28),
 
@@ -161,23 +172,22 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
                         ? (vm.form.parkingSpots! - 1).clamp(0, 6)
                         : null,
                     options: _parkingOptions,
-                    onSelected: (i) =>
-                        vm.setParkingSpots(i < 6 ? i + 1 : 7),
+                    onSelected: (i) => vm.setParkingSpots(i < 6 ? i + 1 : 7),
                   ),
                   const SizedBox(height: 28),
 
                   FormSectionHeader(
-                      label: 'Título Breve',
-                      iconData: Icons.sell_outlined),
+                    label: 'Título Breve',
+                    iconData: Icons.sell_outlined,
+                  ),
                   const SizedBox(height: 12),
                   PropertyTextField(
                     controller: _titleController,
                     hint: 'Añade un título breve...',
                     onChanged: vm.setTitle,
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty
-                            ? 'Campo requerido'
-                            : null,
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Campo requerido'
+                        : null,
                   ),
                   const SizedBox(height: 28),
 
@@ -281,8 +291,10 @@ class _DescriptionField extends StatelessWidget {
         ),
         filled: true,
         fillColor: colorScheme.surfaceContainerLowest,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: colorScheme.outlineVariant),
@@ -293,8 +305,7 @@ class _DescriptionField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: Color(0xFF0095FF), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF0095FF), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -330,8 +341,10 @@ class _YearDropdown extends StatelessWidget {
       value: selected,
       isExpanded: true,
       isDense: true,
-      icon: Icon(Icons.keyboard_arrow_down_rounded,
-          color: colorScheme.onSurfaceVariant),
+      icon: Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: colorScheme.onSurfaceVariant,
+      ),
       style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
       decoration: InputDecoration(
         hintText: 'Selecciona el año (opcional)',
@@ -342,8 +355,10 @@ class _YearDropdown extends StatelessWidget {
         filled: true,
         fillColor: colorScheme.surfaceContainerLowest,
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: colorScheme.outlineVariant),
@@ -354,8 +369,7 @@ class _YearDropdown extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: Color(0xFF0095FF), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF0095FF), width: 1.5),
         ),
       ),
       items: [
@@ -369,10 +383,7 @@ class _YearDropdown extends StatelessWidget {
           ),
         ),
         ...years.map(
-          (y) => DropdownMenuItem<int>(
-            value: y,
-            child: Text(y.toString()),
-          ),
+          (y) => DropdownMenuItem<int>(value: y, child: Text(y.toString())),
         ),
       ],
       onChanged: onChanged,
@@ -404,8 +415,11 @@ class _CondominiumRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.apartment_outlined,
-              size: 20, color: colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.apartment_outlined,
+            size: 20,
+            color: colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -459,8 +473,9 @@ class _AmenitiesSection extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             'No se pudieron cargar las amenidades',
-            style: textTheme.bodySmall
-                ?.copyWith(color: colorScheme.onSurfaceVariant),
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       );
@@ -482,8 +497,9 @@ class _AmenitiesSection extends StatelessWidget {
             onChanged: (_) => vm.toggleAmenity(amenity.id),
             title: Text(
               amenity.name,
-              style: textTheme.bodyMedium
-                  ?.copyWith(color: colorScheme.onSurface),
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurface,
+              ),
             ),
             activeColor: const Color(0xFF0095FF),
             controlAffinity: ListTileControlAffinity.trailing,

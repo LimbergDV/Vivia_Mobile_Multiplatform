@@ -30,9 +30,7 @@ class PropertyTextField extends StatelessWidget {
       inputFormatters: inputFormatters,
       validator: validator,
       onChanged: onChanged,
-      style: textTheme.bodyMedium?.copyWith(
-        color: colorScheme.onSurface,
-      ),
+      style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: textTheme.bodyMedium?.copyWith(
@@ -55,10 +53,7 @@ class PropertyTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF0095FF),
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF0095FF), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

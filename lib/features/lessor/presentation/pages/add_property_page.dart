@@ -36,18 +36,16 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
       if (mounted) context.read<PropertyDraftViewModel>().init();
     });
     final form = context.read<PropertyDraftViewModel>().form;
-    _postalCodeController =
-        TextEditingController(text: form.postalCode ?? '');
-    _streetController =
-        TextEditingController(text: form.street ?? '');
-    _exteriorNumberController =
-        TextEditingController(text: form.exteriorNumber ?? '');
-    _interiorNumberController =
-        TextEditingController(text: form.interiorNumber ?? '');
-    _priceController =
-        TextEditingController(text: form.price ?? '');
-    _areaController =
-        TextEditingController(text: form.area ?? '');
+    _postalCodeController = TextEditingController(text: form.postalCode ?? '');
+    _streetController = TextEditingController(text: form.street ?? '');
+    _exteriorNumberController = TextEditingController(
+      text: form.exteriorNumber ?? '',
+    );
+    _interiorNumberController = TextEditingController(
+      text: form.interiorNumber ?? '',
+    );
+    _priceController = TextEditingController(text: form.price ?? '');
+    _areaController = TextEditingController(text: form.area ?? '');
   }
 
   @override
@@ -105,8 +103,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
     return Consumer<PropertyDraftViewModel>(
       builder: (context, vm, _) {
-        final propertyTypes =
-            context.read<PropertyViewModel>().propertyTypes;
+        final propertyTypes = context.read<PropertyViewModel>().propertyTypes;
 
         return PopScope(
           canPop: false,
@@ -120,8 +117,11 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
               elevation: 0,
               scrolledUnderElevation: 0,
               leading: IconButton(
-                icon: Icon(Icons.arrow_back_ios_new_rounded,
-                    color: colorScheme.onSurface, size: 20),
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: colorScheme.onSurface,
+                  size: 20,
+                ),
                 onPressed: _onBack,
               ),
               title: Text(
@@ -149,8 +149,8 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                         selected: vm.form.isAvailableToRent
                             ? PropertyListingType.renta
                             : PropertyListingType.venta,
-                        onChanged: (t) => vm.setListingType(
-                            t == PropertyListingType.renta),
+                        onChanged: (t) =>
+                            vm.setListingType(t == PropertyListingType.renta),
                       ),
                       const SizedBox(height: 28),
 
@@ -162,7 +162,8 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
 
                       _PostalCodeField(
                         controller: _postalCodeController,
-                        isLoading: vm.neighborhoodsStatus ==
+                        isLoading:
+                            vm.neighborhoodsStatus ==
                             NeighborhoodsStatus.loading,
                         onChanged: vm.setPostalCode,
                       ),
@@ -176,10 +177,12 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                               ? 'Ingresa un CP válido primero'
                               : 'Selecciona la colonia',
                           items: vm.neighborhoods
-                              .map((n) => DropdownMenuItem(
-                                    value: n,
-                                    child: Text(n.name),
-                                  ))
+                              .map(
+                                (n) => DropdownMenuItem(
+                                  value: n,
+                                  child: Text(n.name),
+                                ),
+                              )
                               .toList(),
                           onChanged: (n) {
                             if (n != null) vm.setNeighborhood(n);
@@ -201,10 +204,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                         controller: _streetController,
                         hint: 'Nombre de la calle',
                         onChanged: vm.setStreet,
-                        validator: (v) =>
-                            v == null || v.trim().isEmpty
-                                ? 'Campo requerido'
-                                : null,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Campo requerido'
+                            : null,
                       ),
                       const SizedBox(height: 10),
 
@@ -215,10 +217,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                               controller: _exteriorNumberController,
                               hint: 'Núm. Exterior',
                               onChanged: vm.setExteriorNumber,
-                              validator: (v) =>
-                                  v == null || v.trim().isEmpty
-                                      ? 'Requerido'
-                                      : null,
+                              validator: (v) => v == null || v.trim().isEmpty
+                                  ? 'Requerido'
+                                  : null,
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -246,10 +247,12 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                               ? 'Cargando tipos...'
                               : 'Selecciona el tipo',
                           items: propertyTypes
-                              .map((t) => DropdownMenuItem(
-                                    value: t,
-                                    child: Text(t.name),
-                                  ))
+                              .map(
+                                (t) => DropdownMenuItem(
+                                  value: t,
+                                  child: Text(t.name),
+                                ),
+                              )
                               .toList(),
                           onChanged: (t) {
                             if (t != null) vm.setPropertyType(t);
@@ -274,7 +277,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                         hint: 'Escriba el precio',
                         keyboardType: TextInputType.number,
                         inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
+                          FilteringTextInputFormatter.digitsOnly,
                         ],
                         onChanged: vm.setPrice,
                         validator: (v) =>
@@ -293,7 +296,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                         hint: 'Escriba el área en m²',
                         keyboardType: TextInputType.number,
                         inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
+                          FilteringTextInputFormatter.digitsOnly,
                         ],
                         onChanged: vm.setArea,
                         validator: (v) =>
@@ -360,20 +363,21 @@ class _PostalCodeField extends StatelessWidget {
       onChanged: onChanged,
       validator: (v) =>
           v == null || v.length < 5 ? 'Ingresa los 5 dígitos del CP' : null,
-      style: Theme.of(context)
-          .textTheme
-          .bodyMedium
-          ?.copyWith(color: colorScheme.onSurface),
+      style: Theme.of(
+        context,
+      ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
       decoration: InputDecoration(
         hintText: 'Código postal (5 dígitos)',
         hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant.withOpacity(0.55),
-              fontStyle: FontStyle.italic,
-            ),
+          color: colorScheme.onSurfaceVariant.withOpacity(0.55),
+          fontStyle: FontStyle.italic,
+        ),
         filled: true,
         fillColor: colorScheme.surfaceContainerLowest,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         suffixIcon: isLoading
             ? Padding(
                 padding: const EdgeInsets.all(14),
@@ -397,8 +401,7 @@ class _PostalCodeField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: Color(0xFF0095FF), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF0095FF), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -422,12 +425,13 @@ class _DropdownWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Theme(
       data: Theme.of(context).copyWith(
-        inputDecorationTheme:
-            Theme.of(context).inputDecorationTheme.copyWith(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                ),
+        inputDecorationTheme: Theme.of(context).inputDecorationTheme.copyWith(
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+        ),
       ),
       child: child,
     );

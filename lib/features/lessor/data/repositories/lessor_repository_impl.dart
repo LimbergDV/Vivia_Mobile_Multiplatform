@@ -9,7 +9,7 @@ class LessorRepositoryImpl implements LessorRepository {
   final LessorRemoteDatasource _remote;
 
   LessorRepositoryImpl({required LessorRemoteDatasource remote})
-      : _remote = remote;
+    : _remote = remote;
 
   @override
   Future<List<NeighborhoodModel>> getNeighborhoods(String cp) =>
@@ -24,8 +24,10 @@ class LessorRepositoryImpl implements LessorRepository {
 
   @override
   Future<void> uploadFile(
-          String uploadUrl, String contentType, List<int> bytes) =>
-      _remote.uploadFile(uploadUrl, contentType, bytes);
+    String uploadUrl,
+    String contentType,
+    List<int> bytes,
+  ) => _remote.uploadFile(uploadUrl, contentType, bytes);
 
   @override
   Stream<DraftStatusEvent> watchDraftStatus(String draftId) =>

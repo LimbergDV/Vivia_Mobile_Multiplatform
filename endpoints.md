@@ -1,19 +1,19 @@
-# Documentación de Endpoints — Perfil y Credenciales
+# Documentación de Endpoints — Verificación de Identidad del Arrendador
 
-Documentación de referencia para agentes y clientes de la API de Vivia.
+Documentación de referencia para el cliente móvil sobre el flujo de verificación de identidad del arrendador (`/lessors/verifications`).
 
 ## Convenciones generales
 
-- **Autenticación:** todos los endpoints de este documento requieren JWT en el header `Authorization: Bearer <token>`. El usuario objetivo siempre se resuelve desde el token (claim de identidad), nunca desde la URL ni el body.
+- **Autenticación:** todos los endpoints requieren JWT en el header `Authorization: Bearer <token>` y rol `LESSOR`. El arrendador objetivo siempre se resuelve desde el token (claim de identidad).
 - **Content-Type:** `application/json` en request y response.
 - **Formato de respuesta:** todos los endpoints responden con el envelope `BaseResponse<T>`:
 
 ```json
 {
-    "success": true,
-    "data": null,
-    "message": "Mensaje descriptivo",
-    "status": "OK"
+  "success": true,
+  "data": null,
+  "message": "Mensaje descriptivo",
+  "status": "OK"
 }
 ```
 
@@ -27,230 +27,159 @@ Documentación de referencia para agentes y clientes de la API de Vivia.
 - **Errores comunes a todos los endpoints:**
   - `400 Bad Request` — falla de validación del body (`@Valid`); el mensaje indica el campo inválido.
   - `401 Unauthorized` — token ausente, inválido o expirado.
-  - `403 Forbidden` — el rol del usuario no cumple el `@PreAuthorize` del endpoint.
+  - `403 Forbidden` — el usuario autenticado no tiene rol `LESSOR`.
+  - `404 Not Found` — el arrendador del token no existe (`LessorNotFoundException`).
+
+## Estados de verificación
+
+El arrendador siempre está en uno de estos estados (`VerificationStatus`):
+
+| Estado           | Significado                                                    |
+|------------------|----------------------------------------------------------------|
+| `UNVERIFIED`     | No ha iniciado el proceso o fue reiniciado                     |
+| `PENDING_REVIEW` | Solicitó URLs de carga; documentos en revisión por un admin    |
+| `VERIFIED`       | Identidad aprobada por el administrador                        |
+| `REJECTED`       | Rechazada; los motivos vienen en `rejection`                   |
+
+## Tipos de documento
+
+Los documentos requeridos (`DocumentType`) son exactamente tres:
+
+| Valor       | Documento               |
+|-------------|-------------------------|
+| `INE_FRONT` | INE — frente            |
+| `INE_BACK`  | INE — reverso           |
+| `SELFIE`    | Selfie del arrendador   |
 
 ---
 
-## 1. PUT `/lessees/ubication`
+## 1. POST `/lessors/verifications/upload-urls`
 
-Actualiza la latitud y longitud del arrendatario (lessee) autenticado.
+**No recibe las imágenes directamente.** Genera URLs prefirmadas (presigned PUT) de S3 para que el cliente suba los documentos de identidad por su cuenta, y cambia el estado de verificación a `PENDING_REVIEW`. Flujo:
 
-- **Controlador:** `LesseeController.updateUbication`
-- **Rol requerido:** `LESSEE`
-- **Request body** (`UpdateLesseeUbicationDto`):
+1. Llamar este endpoint con la lista de documentos (tipo + `contentType` de cada uno).
+2. Hacer `PUT` del binario de cada imagen a su `uploadUrl` (antes de que expire) con el header `Content-Type` igual al enviado.
+3. Cada documento queda disponible en su `publicUrl`; el backend registra la subida y el admin revisa.
+
+- **Controlador:** `LessorVerificationController.requestUploadUrls`
+- **Rol requerido:** `LESSOR`
+- **Request body** (`VerificationUploadRequestDto`):
 
 ```json
 {
-    "latitude": 19.432608,
-    "longitude": -99.133209
+  "documents": [
+    { "documentType": "INE_FRONT", "contentType": "image/jpeg" },
+    { "documentType": "INE_BACK",  "contentType": "image/jpeg" },
+    { "documentType": "SELFIE",    "contentType": "image/png" }
+  ]
 }
 ```
 
-| Campo       | Tipo    | Requerido | Validación                  |
-|-------------|---------|-----------|-----------------------------|
-| `latitude`  | decimal | Sí        | Entre `-90.0` y `90.0`      |
-| `longitude` | decimal | Sí        | Entre `-180.0` y `180.0`    |
+| Campo                      | Tipo   | Requerido | Validación                                               |
+|----------------------------|--------|-----------|----------------------------------------------------------|
+| `documents`                | array  | Sí        | Al menos un elemento                                     |
+| `documents[].documentType` | string | Sí        | `INE_FRONT`, `INE_BACK` o `SELFIE`                       |
+| `documents[].contentType`  | string | Sí        | `image/jpeg`, `image/png`, `image/heic` o `image/heif`   |
 
-- **Respuesta 200:**
+- **Respuesta 200** (`data` = `VerificationUploadResponseDto`):
+
+```json
+{
+  "success": true,
+  "data": {
+    "uploads": [
+      {
+        "documentType": "INE_FRONT",
+        "uploadUrl": "https://vivia-media-bucket.s3.us-east-1.amazonaws.com/verifications/<uuid>/INE_FRONT?X-Amz-Algorithm=AWS4-HMAC-SHA256&...",
+        "publicUrl": "https://vivia-media-bucket.s3.us-east-1.amazonaws.com/verifications/<uuid>/INE_FRONT"
+      }
+    ],
+    "expiresInSeconds": 300
+  },
+  "message": "URLs de carga generadas",
+  "status": "OK"
+}
+```
+
+| Campo                    | Tipo   | Descripción                                          |
+|--------------------------|--------|------------------------------------------------------|
+| `uploads[].documentType` | string | Tipo de documento al que corresponde la URL          |
+| `uploads[].uploadUrl`    | string | URL PUT prefirmada de S3; expira                     |
+| `uploads[].publicUrl`    | string | URL pública permanente donde quedará el documento    |
+| `expiresInSeconds`       | int    | Segundos de vigencia de las presigned URLs           |
+
+- **Errores específicos:** tipo de contenido no permitido (`InvalidLessorDocumentException`): `"Tipo de contenido no permitido: <tipo>. Solo se aceptan: [image/jpeg, image/png, image/heic, image/heif]"`.
+- **Nota:** el estado pasa a `PENDING_REVIEW` desde el momento en que se generan las URLs, aun si el cliente todavía no sube los archivos.
+
+---
+
+## 2. GET `/lessors/verifications`
+
+Devuelve el estado de verificación actual del arrendador autenticado. Si la verificación fue rechazada, incluye los motivos del rechazo.
+
+- **Controlador:** `LessorVerificationController.getVerificationStatus`
+- **Rol requerido:** `LESSOR`
+- **Request body:** ninguno.
+- **Respuesta 200** (`data` = `VerificationStatusResponseDto`):
+
+```json
+{
+  "success": true,
+  "data": {
+    "verificationStatus": "REJECTED",
+    "rejection": {
+      "comment": "La imagen del INE está borrosa",
+      "reasons": ["INE ilegible", "Selfie no coincide"],
+      "createdAt": "2026-07-01T10:30:00-06:00"
+    }
+  },
+  "message": "Estado de verificación obtenido",
+  "status": "OK"
+}
+```
+
+| Campo                | Tipo         | Descripción                                                          |
+|----------------------|--------------|----------------------------------------------------------------------|
+| `verificationStatus` | string       | `UNVERIFIED`, `PENDING_REVIEW`, `VERIFIED` o `REJECTED`              |
+| `rejection`          | object\|null | Motivos del rechazo; `null` si no hay un rechazo activo             |
+| `rejection.comment`  | string       | Comentario libre del administrador                                   |
+| `rejection.reasons`  | string[]     | Situaciones predefinidas que motivaron el rechazo                    |
+| `rejection.createdAt`| datetime     | Fecha en que se registró el rechazo (ISO 8601 con offset)            |
+
+---
+
+## 3. PATCH `/lessors/verifications`
+
+Reinicia la verificación: resetea el estado a `UNVERIFIED`, elimina los registros de documentos subidos y borra el rechazo activo (si existe). Útil para reintentar después de un `REJECTED`. El arrendador se resuelve desde el JWT — no recibe ID ni body.
+
+- **Controlador:** `LessorVerificationController.resetVerificationStatus`
+- **Rol requerido:** `LESSOR`
+- **Request body:** ninguno.
+- **Respuesta 204:**
 
 ```json
 {
     "success": true,
     "data": null,
-    "message": "Ubicación actualizada exitosamente",
-    "status": "OK"
-}
-```
-
-- **Errores específicos:** `404 Not Found` si el lessee no existe (`LesseeNotFoundException`).
-- **Nota:** existe un endpoint equivalente `PATCH /users/me/ubication` (`LesseeProfileController`) que ejecuta la misma lógica de servicio.
-
----
-
-## 2. PATCH `/auth/me/password`
-
-Cambia la contraseña del usuario autenticado. Solo funciona si el usuario ya tiene una credencial de tipo `PASSWORD` registrada (no crea una nueva).
-
-- **Controlador:** `AuthProfileController.updatePassword`
-- **Rol requerido:** cualquier usuario autenticado
-- **Request body** (`UpdatePasswordRequestDto`):
-
-```json
-{
-    "password": "NuevaContraseña123"
-}
-```
-
-| Campo      | Tipo   | Requerido | Validación             |
-|------------|--------|-----------|------------------------|
-| `password` | string | Sí        | Mínimo 8 caracteres    |
-
-- **Respuesta 200:**
-
-```json
-{
-    "success": true,
-    "data": null,
-    "message": "Contraseña actualizada",
-    "status": "OK"
-}
-```
-
-- **Errores específicos:** error de credencial (`InvalidCredentialException`) con mensaje `"Este usuario no tiene contraseña configurada."` si el usuario solo tiene login biométrico/Google.
-
----
-
-## 3. PUT `/users/me/photo`
-
-**No sube la imagen directamente.** Genera una URL prefirmada (presigned PUT) de S3 para que el cliente suba la foto de perfil por su cuenta. Flujo:
-
-1. Llamar este endpoint con el `contentType` de la imagen.
-2. Hacer `PUT` del binario de la imagen a `presignedUrl` (antes de que expire) con el header `Content-Type` igual al enviado.
-3. La foto queda disponible públicamente en `photoUrl`.
-
-- **Controlador:** `UserController.getPhotoUploadUrl`
-- **Rol requerido:** cualquier usuario autenticado
-- **Request body** (`PhotoPresignRequestDto`):
-
-```json
-{
-    "contentType": "image/jpeg"
-}
-```
-
-| Campo         | Tipo   | Requerido | Validación                              |
-|---------------|--------|-----------|-----------------------------------------|
-| `contentType` | string | Sí        | Solo `image/jpeg` o `image/png`         |
-
-- **Respuesta 200** (`data` = `PhotoPresignResponseDto`):
-
-```json
-{
-    "success": true,
-    "data": {
-        "presignedUrl": "https://vivia-media-bucket.s3.us-east-1.amazonaws.com/profile-photos/<uuid>/avatar?X-Amz-Algorithm=AWS4-HMAC-SHA256&...",
-        "photoUrl": "https://vivia-media-bucket.s3.us-east-1.amazonaws.com/profile-photos/<uuid>/avatar",
-        "expiresInSeconds": 300
-    },
-    "message": "URL generada",
-    "status": "OK"
-}
-```
-
-| Campo              | Tipo   | Descripción                                             |
-|--------------------|--------|---------------------------------------------------------|
-| `presignedUrl`     | string | URL PUT prefirmada de S3; expira                        |
-| `photoUrl`         | string | URL pública permanente donde quedará la foto            |
-| `expiresInSeconds` | int    | Segundos de vigencia de la presigned URL                |
-
-- **Errores específicos:** tipo de contenido no permitido (`InvalidPhotoException`): `"Tipo de contenido no permitido: solo image/jpeg o image/png"`.
-
----
-
-## 4. PATCH `/users/me/name`
-
-Actualiza el nombre y apellidos del usuario autenticado.
-
-- **Controlador:** `UserController.updateName`
-- **Rol requerido:** cualquier usuario autenticado
-- **Request body** (`UpdateUserNameRequestDto`):
-
-```json
-{
-    "name": "Alexis",
-    "paternalSurname": "Guzmán",
-    "maternalSurname": "González"
-}
-```
-
-| Campo             | Tipo   | Requerido | Validación   |
-|-------------------|--------|-----------|--------------|
-| `name`            | string | Sí        | No vacío     |
-| `paternalSurname` | string | Sí        | No vacío     |
-| `maternalSurname` | string | No        | —            |
-
-- **Respuesta 200:**
-
-```json
-{
-    "success": true,
-    "data": null,
-    "message": "Nombre actualizado",
-    "status": "OK"
+    "message": "Verificación reiniciada",
+    "status": "NO_CONTENT"
 }
 ```
 
 ---
 
-## 5. PATCH `/users/me/email`
+## Flujo completo desde el cliente móvil
 
-Actualiza el correo electrónico del usuario autenticado.
-
-- **Controlador:** `UserController.updateEmail`
-- **Rol requerido:** cualquier usuario autenticado
-- **Request body** (`UpdateUserEmailRequestDto`):
-
-```json
-{
-    "email": "nuevo@example.com"
-}
-```
-
-| Campo   | Tipo   | Requerido | Validación                       |
-|---------|--------|-----------|----------------------------------|
-| `email` | string | Sí        | No vacío, formato de email válido |
-
-- **Respuesta 200:**
-
-```json
-{
-    "success": true,
-    "data": null,
-    "message": "Correo actualizado",
-    "status": "OK"
-}
-```
-
----
-
-## 6. PATCH `/users/me/phone`
-
-Actualiza el número de teléfono del arrendador (lessor) autenticado.
-
-- **Controlador:** `LessorProfileController.updatePhone`
-- **Rol requerido:** `LESSOR` (otros roles reciben `403`)
-- **Request body** (`UpdateLessorPhoneRequestDto`):
-
-```json
-{
-    "phoneNumber": "5512345678"
-}
-```
-
-| Campo         | Tipo   | Requerido | Validación                                          |
-|---------------|--------|-----------|-----------------------------------------------------|
-| `phoneNumber` | string | Sí        | 10 a 15 dígitos, prefijo `+` opcional (`^\+?[0-9]{10,15}$`) |
-
-- **Respuesta 200:**
-
-```json
-{
-    "success": true,
-    "data": null,
-    "message": "Teléfono actualizado",
-    "status": "OK"
-}
-```
-
----
+1. `GET /lessors/verifications` → si el estado es `UNVERIFIED` o `REJECTED`, mostrar el flujo de captura de documentos.
+2. `POST /lessors/verifications/upload-urls` con los tres documentos (`INE_FRONT`, `INE_BACK`, `SELFIE`).
+3. Subir cada imagen con `PUT` a su `uploadUrl` antes de `expiresInSeconds`.
+4. Consultar `GET /lessors/verifications` para reflejar `PENDING_REVIEW` y, tras la revisión del admin, `VERIFIED` o `REJECTED`.
+5. Si fue `REJECTED` y el usuario quiere reintentar: `PATCH /lessors/verifications` y volver al paso 2.
 
 ## Resumen rápido
 
-| Método | Ruta                 | Rol      | Body (campos)                              | `data` de respuesta        |
-|--------|----------------------|----------|--------------------------------------------|-----------------------------|
-| PUT    | `/lessees/ubication` | LESSEE   | `latitude`, `longitude`                    | `null`                      |
-| PATCH  | `/auth/me/password`  | Auth     | `password`                                 | `null`                      |
-| PUT    | `/users/me/photo`    | Auth     | `contentType`                              | `PhotoPresignResponseDto`   |
-| PATCH  | `/users/me/name`     | Auth     | `name`, `paternalSurname`, `maternalSurname` | `null`                    |
-| PATCH  | `/users/me/email`    | Auth     | `email`                                    | `null`                      |
-| PATCH  | `/users/me/phone`    | LESSOR   | `phoneNumber`                              | `null`                      |
+| Método | Ruta                                  | Rol    | Body (campos)                       | `data` de respuesta              |
+|--------|---------------------------------------|--------|-------------------------------------|-----------------------------------|
+| POST   | `/lessors/verifications/upload-urls`  | LESSOR | `documents[]` (tipo + contentType)  | `VerificationUploadResponseDto`   |
+| GET    | `/lessors/verifications`              | LESSOR | —                                   | `VerificationStatusResponseDto`   |
+| PATCH  | `/lessors/verifications`              | LESSOR | —                                   | `null` (204)                      |

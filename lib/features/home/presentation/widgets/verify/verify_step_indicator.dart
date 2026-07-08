@@ -28,15 +28,15 @@ class VerifyStepIndicator extends StatelessWidget {
           ),
           child: stepNumber != null
               ? Center(
-            child: Text(
-              '$stepNumber',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          )
+                  child: Text(
+                    '$stepNumber',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                )
               : null,
         ),
         const SizedBox(width: 14),

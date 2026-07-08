@@ -32,10 +32,10 @@ class PropertyDraftViewModel extends ChangeNotifier {
     required GetAmenitiesUseCase getAmenitiesUseCase,
     required PublishPropertyDraftUseCase publishPropertyDraftUseCase,
     required WatchDraftStatusUseCase watchDraftStatusUseCase,
-  })  : _getNeighborhoods = getNeighborhoodsUseCase,
-        _getAmenities = getAmenitiesUseCase,
-        _publishDraft = publishPropertyDraftUseCase,
-        _watchDraftStatus = watchDraftStatusUseCase;
+  }) : _getNeighborhoods = getNeighborhoodsUseCase,
+       _getAmenities = getAmenitiesUseCase,
+       _publishDraft = publishPropertyDraftUseCase,
+       _watchDraftStatus = watchDraftStatusUseCase;
 
   // ── Estado del formulario ─────────────────────────────────────────────────
   NewPropertyForm _form = const NewPropertyForm();
@@ -289,12 +289,14 @@ class PropertyDraftViewModel extends ChangeNotifier {
 
       // Foto principal → classification MAIN
       final mainKey = _fileKey(mainPhotoPath);
-      manifest.add(MediaManifestItem(
-        fileKey: mainKey,
-        contentType: _contentType(mainPhotoPath),
-        sizeBytes: await XFile(mainPhotoPath).length(),
-        classification: 'MAIN',
-      ));
+      manifest.add(
+        MediaManifestItem(
+          fileKey: mainKey,
+          contentType: _contentType(mainPhotoPath),
+          sizeBytes: await XFile(mainPhotoPath).length(),
+          classification: 'MAIN',
+        ),
+      );
       fileKeyToPath[mainKey] = mainPhotoPath;
 
       // Fotos de espacios → classification = nombre de categoría en MAYÚSCULAS
@@ -302,12 +304,14 @@ class PropertyDraftViewModel extends ChangeNotifier {
         final classification = entry.key.toUpperCase();
         for (final path in entry.value) {
           final key = _uniqueFileKey(path, fileKeyToPath);
-          manifest.add(MediaManifestItem(
-            fileKey: key,
-            contentType: _contentType(path),
-            sizeBytes: await XFile(path).length(),
-            classification: classification,
-          ));
+          manifest.add(
+            MediaManifestItem(
+              fileKey: key,
+              contentType: _contentType(path),
+              sizeBytes: await XFile(path).length(),
+              classification: classification,
+            ),
+          );
           fileKeyToPath[key] = path;
         }
       }
@@ -315,12 +319,14 @@ class PropertyDraftViewModel extends ChangeNotifier {
       // Video → classification TOUR
       if (videoPath != null) {
         final videoKey = _uniqueFileKey(videoPath, fileKeyToPath);
-        manifest.add(MediaManifestItem(
-          fileKey: videoKey,
-          contentType: 'video/mp4',
-          sizeBytes: await XFile(videoPath).length(),
-          classification: 'TOUR',
-        ));
+        manifest.add(
+          MediaManifestItem(
+            fileKey: videoKey,
+            contentType: 'video/mp4',
+            sizeBytes: await XFile(videoPath).length(),
+            classification: 'TOUR',
+          ),
+        );
         fileKeyToPath[videoKey] = videoPath;
       }
 
@@ -362,7 +368,8 @@ class PropertyDraftViewModel extends ChangeNotifier {
       _neighborhoods = [];
       _neighborhoodsStatus = NeighborhoodsStatus.idle;
       _publishedDraftId = null;
-      if (_publishStatus != PublishStatus.error) _publishStatus = PublishStatus.idle;
+      if (_publishStatus != PublishStatus.error)
+        _publishStatus = PublishStatus.idle;
       notifyListeners();
     }
   }

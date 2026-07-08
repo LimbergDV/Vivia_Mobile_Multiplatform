@@ -41,7 +41,9 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
     if (result.isSuccess && mounted) {
       context.read<PropertyDraftViewModel>().setMainPhotoPath(result.path!);
     } else if (result.isCameraDenied && mounted) {
-      _showSnack('Permiso de cámara denegado. Usa la galería para subir fotos.');
+      _showSnack(
+        'Permiso de cámara denegado. Usa la galería para subir fotos.',
+      );
     }
   }
 
@@ -79,8 +81,11 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
             elevation: 0,
             scrolledUnderElevation: 0,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back_ios_new_rounded,
-                  color: colorScheme.onSurface, size: 20),
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: colorScheme.onSurface,
+                size: 20,
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Text(
@@ -93,7 +98,11 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
           ),
           body: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
-                horizontalPadding, 16, horizontalPadding, 32),
+              horizontalPadding,
+              16,
+              horizontalPadding,
+              32,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -116,8 +125,11 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
                   height: 52,
                   child: ElevatedButton.icon(
                     onPressed: _onTakePhoto,
-                    icon: const Icon(Icons.camera_alt_outlined,
-                        color: Colors.white, size: 20),
+                    icon: const Icon(
+                      Icons.camera_alt_outlined,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                     label: Text(
                       'Tomar Foto',
                       style: textTheme.labelLarge?.copyWith(
@@ -130,7 +142,8 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
                 ),
@@ -145,7 +158,8 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: Text(
                       'Cambiar',
@@ -169,8 +183,7 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
                   builder: (context, constraints) {
                     const gap = 12.0;
                     const mockupWidth = 170.0;
-                    final cardWidth =
-                        constraints.maxWidth - gap - mockupWidth;
+                    final cardWidth = constraints.maxWidth - gap - mockupWidth;
 
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,7 +192,8 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
                           width: cardWidth,
                           height: 260,
                           child: PropertyPreviewCard(
-                              property: _previewProperty),
+                            property: _previewProperty,
+                          ),
                         ),
                         const SizedBox(width: gap),
                         SizedBox(
@@ -208,7 +222,8 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: Text(
                       'Fotografías De Los Espacios',

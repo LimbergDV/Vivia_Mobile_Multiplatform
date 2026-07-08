@@ -8,6 +8,9 @@ abstract class LessorRepository {
   Future<List<AmenityModel>> getAmenities();
   Future<DraftUploadModel> createDraft(Map<String, dynamic> body);
   Future<void> uploadFile(
-      String uploadUrl, String contentType, List<int> bytes);
+    String uploadUrl,
+    String contentType,
+    List<int> bytes,
+  );
   Stream<DraftStatusEvent> watchDraftStatus(String draftId);
 }

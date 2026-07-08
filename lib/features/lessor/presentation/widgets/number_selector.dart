@@ -51,11 +51,8 @@ class NumberSelector extends StatelessWidget {
             child: Text(
               options[i],
               style: textTheme.bodyMedium?.copyWith(
-                color: isSelected
-                    ? Colors.white
-                    : colorScheme.onSurfaceVariant,
-                fontWeight:
-                isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? Colors.white : colorScheme.onSurfaceVariant,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 fontStyle: FontStyle.italic,
               ),
             ),

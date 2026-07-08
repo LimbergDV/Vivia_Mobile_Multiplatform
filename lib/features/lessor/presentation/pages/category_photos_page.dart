@@ -41,10 +41,12 @@ class _CategoryPhotosPageState extends State<CategoryPhotosPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
-              'Permiso de cámara denegado. Usa la galería para subir fotos.'),
+            'Permiso de cámara denegado. Usa la galería para subir fotos.',
+          ),
           behavior: SnackBarBehavior.floating,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
@@ -75,8 +77,11 @@ class _CategoryPhotosPageState extends State<CategoryPhotosPage> {
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded,
-                color: colorScheme.onSurface, size: 20),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: colorScheme.onSurface,
+              size: 20,
+            ),
             onPressed: () => Navigator.of(context).pop(_photos),
           ),
           title: Text(
@@ -88,8 +93,12 @@ class _CategoryPhotosPageState extends State<CategoryPhotosPage> {
           ),
         ),
         body: Padding(
-          padding:
-          EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 0),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            16,
+            horizontalPadding,
+            0,
+          ),
           child: Column(
             children: [
               Row(
@@ -112,8 +121,11 @@ class _CategoryPhotosPageState extends State<CategoryPhotosPage> {
                         color: Color(0xFF04364A),
                         shape: BoxShape.circle,
                       ),
-                      child:
-                      const Icon(Icons.add, color: Colors.white, size: 28),
+                      child: const Icon(
+                        Icons.add,
+                        color: Colors.white,
+                        size: 28,
+                      ),
                     ),
                   ),
                 ],
@@ -122,59 +134,63 @@ class _CategoryPhotosPageState extends State<CategoryPhotosPage> {
               Expanded(
                 child: _photos.isEmpty
                     ? Center(
-                  child: Text(
-                    'No hay fotos en esta categoría',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                )
+                        child: Text(
+                          'No hay fotos en esta categoría',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      )
                     : GridView.builder(
-                  gridDelegate:
-                  SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 4,
-                    mainAxisSpacing: 4,
-                  ),
-                  itemCount: _photos.length,
-                  itemBuilder: (context, i) {
-                    return Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.file(
-                            File(_photos[i]),
-                            fit: BoxFit.cover,
-                            cacheWidth: 300,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: colorScheme.surfaceContainerHigh,
-                              child: Icon(Icons.broken_image_outlined,
-                                  color: colorScheme.onSurfaceVariant),
-                            ),
-                          ),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 4,
+                          mainAxisSpacing: 4,
                         ),
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: GestureDetector(
-                            onTap: () => _deletePhoto(i),
-                            child: Container(
-                              width: 26,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.5),
-                                shape: BoxShape.circle,
+                        itemCount: _photos.length,
+                        itemBuilder: (context, i) {
+                          return Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Image.file(
+                                  File(_photos[i]),
+                                  fit: BoxFit.cover,
+                                  cacheWidth: 300,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: colorScheme.surfaceContainerHigh,
+                                    child: Icon(
+                                      Icons.broken_image_outlined,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
                               ),
-                              child: const Icon(Icons.close,
-                                  size: 16, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: () => _deletePhoto(i),
+                                  child: Container(
+                                    width: 26,
+                                    height: 26,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.5),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
               ),
             ],
           ),

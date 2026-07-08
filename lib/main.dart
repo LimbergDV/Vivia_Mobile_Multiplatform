@@ -39,12 +39,19 @@ import 'package:vivia_mobile/features/home/domain/usecases/submit_report_usecase
 import 'package:vivia_mobile/features/home/domain/usecases/toggle_like_usecase.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/data/datasources/remote/lessor_remote_datasource.dart';
+import 'package:vivia_mobile/features/lessor/data/datasources/remote/lessor_verification_remote_datasource.dart';
 import 'package:vivia_mobile/features/lessor/data/repositories/lessor_repository_impl.dart';
+import 'package:vivia_mobile/features/lessor/data/repositories/lessor_verification_repository_impl.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/get_verification_status_usecase.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/request_verification_upload_urls_usecase.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/reset_verification_usecase.dart';
+import 'package:vivia_mobile/features/lessor/domain/usecases/upload_verification_document_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/get_amenities_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/get_neighborhoods_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/publish_property_draft_usecase.dart';
 import 'package:vivia_mobile/features/lessor/domain/usecases/watch_draft_status_usecase.dart';
 import 'package:vivia_mobile/features/lessor/presentation/viewmodels/property_draft_viewmodel.dart';
+import 'package:vivia_mobile/features/lessor/presentation/viewmodels/verification_viewmodel.dart';
 import 'package:vivia_mobile/features/user/data/datasources/remote/user_remote_datasource.dart';
 import 'package:vivia_mobile/features/user/data/repositories/user_repository_impl.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/get_me_usecase.dart';
@@ -220,6 +227,22 @@ void main() async {
     watchDraftStatusUseCase: WatchDraftStatusUseCase(lessorRepository),
   );
 
+  final lessorVerificationRemoteDatasource =
+  LessorVerificationRemoteDatasourceImpl(authHttpClient, http.Client());
+  final lessorVerificationRepository = LessorVerificationRepositoryImpl(
+    remote: lessorVerificationRemoteDatasource,
+  );
+  final verificationViewModel = VerificationViewModel(
+    getVerificationStatusUseCase:
+    GetVerificationStatusUseCase(lessorVerificationRepository),
+    requestUploadUrlsUseCase:
+    RequestVerificationUploadUrlsUseCase(lessorVerificationRepository),
+    resetVerificationUseCase:
+    ResetVerificationUseCase(lessorVerificationRepository),
+    uploadDocumentUseCase:
+    UploadVerificationDocumentUseCase(lessorVerificationRepository),
+  );
+
   final reportRemoteDatasource = ReportRemoteDatasourceImpl(authHttpClient);
   final reportRepository =
   ReportRepositoryImpl(remote: reportRemoteDatasource);
@@ -259,6 +282,7 @@ void main() async {
         Provider<AuthRepository>.value(value: authRepository),
         Provider<SubmitReportUseCase>.value(value: submitReportUseCase),
         ChangeNotifierProvider.value(value: propertyDraftViewModel),
+        ChangeNotifierProvider.value(value: verificationViewModel),
         Provider<GetReportReasonsUseCase>.value(value: getReportReasonsUseCase),
       ],
       child: kIsWeb

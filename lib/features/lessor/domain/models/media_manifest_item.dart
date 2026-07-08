@@ -12,9 +12,9 @@ class MediaManifestItem {
   });
 
   Map<String, dynamic> toJson() => {
-        'fileKey': fileKey,
-        'contentType': contentType,
-        'sizeBytes': sizeBytes,
-        'classification': classification,
-      };
+    'fileKey': fileKey,
+    'contentType': contentType,
+    'sizeBytes': sizeBytes,
+    'classification': classification,
+  };
 }

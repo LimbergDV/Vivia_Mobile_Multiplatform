@@ -12,7 +12,10 @@ abstract class LessorRemoteDatasource {
   Future<List<AmenityModel>> getAmenities();
   Future<DraftUploadModel> createDraft(Map<String, dynamic> body);
   Future<void> uploadFile(
-      String uploadUrl, String contentType, List<int> bytes);
+    String uploadUrl,
+    String contentType,
+    List<int> bytes,
+  );
   Stream<DraftStatusEvent> watchDraftStatus(String draftId);
 }
 
@@ -24,7 +27,8 @@ class LessorRemoteDatasourceImpl implements LessorRemoteDatasource {
 
   @override
   Future<List<NeighborhoodModel>> getNeighborhoodsByPostalCode(
-      String cp) async {
+    String cp,
+  ) async {
     final response = await _authClient.get(
       Uri.parse(LessorApiConstants.neighborhoodsByPostalCode(cp)),
       headers: LessorApiConstants.headers(),
@@ -66,12 +70,16 @@ class LessorRemoteDatasourceImpl implements LessorRemoteDatasource {
       throw Exception('Error al crear draft: ${response.statusCode}');
     }
     return DraftUploadModel.fromJson(
-        jsonDecode(response.body) as Map<String, dynamic>);
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 
   @override
   Future<void> uploadFile(
-      String uploadUrl, String contentType, List<int> bytes) async {
+    String uploadUrl,
+    String contentType,
+    List<int> bytes,
+  ) async {
     final response = await _plainClient.put(
       Uri.parse(uploadUrl),
       headers: {'Content-Type': contentType},
@@ -119,9 +127,10 @@ class LessorRemoteDatasourceImpl implements LessorRemoteDatasource {
     String? eventType;
     final buf = StringBuffer();
 
-    await for (final line in streamed.stream
-        .transform(const Utf8Decoder())
-        .transform(const LineSplitter())) {
+    await for (final line
+        in streamed.stream
+            .transform(const Utf8Decoder())
+            .transform(const LineSplitter())) {
       if (line.startsWith('event:')) {
         eventType = line.substring(6).trim();
       } else if (line.startsWith('data:')) {
@@ -131,7 +140,9 @@ class LessorRemoteDatasourceImpl implements LessorRemoteDatasource {
           try {
             final payload = jsonDecode(buf.toString()) as Map<String, dynamic>;
             final ev = switch (eventType) {
-              'publication_success' => DraftPublicationSuccess.fromJson(payload),
+              'publication_success' => DraftPublicationSuccess.fromJson(
+                payload,
+              ),
               'publication_failed' => DraftPublicationFailed.fromJson(payload),
               _ => null,
             };

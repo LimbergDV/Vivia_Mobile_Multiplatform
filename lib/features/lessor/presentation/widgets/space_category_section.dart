@@ -240,10 +240,12 @@ class _DashedBorderPainter extends CustomPainter {
     const radius = 12.0;
 
     final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        const Radius.circular(radius),
-      ));
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          const Radius.circular(radius),
+        ),
+      );
 
     for (final metric in path.computeMetrics()) {
       double distance = 0;

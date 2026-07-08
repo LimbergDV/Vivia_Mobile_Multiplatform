@@ -93,8 +93,11 @@ class _GalleryPageState extends State<GalleryPage> {
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded,
-                color: colorScheme.onSurface, size: 20),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: colorScheme.onSurface,
+              size: 20,
+            ),
             onPressed: () => Navigator.of(context).pop(_updatedForm),
           ),
           title: Text(
@@ -107,7 +110,11 @@ class _GalleryPageState extends State<GalleryPage> {
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
-              horizontalPadding, 16, horizontalPadding, 32),
+            horizontalPadding,
+            16,
+            horizontalPadding,
+            32,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -160,10 +167,7 @@ class _GalleryPageState extends State<GalleryPage> {
             padding: const EdgeInsets.only(bottom: 16),
             child: GestureDetector(
               onTap: () => _openCategory(name),
-              child: _CategoryCard(
-                categoryName: name,
-                photoPaths: photos,
-              ),
+              child: _CategoryCard(categoryName: name, photoPaths: photos),
             ),
           );
         }),
@@ -235,17 +239,17 @@ class _GalleryPageState extends State<GalleryPage> {
                       children: [
                         Text(
                           'Video de recorrido',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurface,
+                              ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           _videoPath!.split('/').last,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -254,10 +258,11 @@ class _GalleryPageState extends State<GalleryPage> {
                           onTap: _addVideo,
                           child: Text(
                             'Cambiar',
-                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ),
                       ],
@@ -389,19 +394,23 @@ class _MainPhotoSection extends StatelessWidget {
               height: 80,
               child: imagePath != null
                   ? Image.file(
-                File(imagePath!),
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: colorScheme.surfaceContainerHigh,
-                  child: Icon(Icons.image_outlined,
-                      color: colorScheme.onSurfaceVariant),
-                ),
-              )
+                      File(imagePath!),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: colorScheme.surfaceContainerHigh,
+                        child: Icon(
+                          Icons.image_outlined,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    )
                   : Container(
-                color: colorScheme.surfaceContainerHigh,
-                child: Icon(Icons.image_outlined,
-                    color: colorScheme.onSurfaceVariant),
-              ),
+                      color: colorScheme.surfaceContainerHigh,
+                      child: Icon(
+                        Icons.image_outlined,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 16),
@@ -421,8 +430,11 @@ class _MainPhotoSection extends StatelessWidget {
                   onTap: onChangePhoto,
                   child: Row(
                     children: [
-                      Icon(Icons.refresh_rounded,
-                          size: 20, color: const Color(0xFF04364A)),
+                      Icon(
+                        Icons.refresh_rounded,
+                        size: 20,
+                        color: const Color(0xFF04364A),
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Cambiar',
@@ -475,9 +487,7 @@ class _CategoryChips extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
-                color: isActive
-                    ? const Color(0xFF0095FF)
-                    : Colors.transparent,
+                color: isActive ? const Color(0xFF0095FF) : Colors.transparent,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isActive
@@ -504,17 +514,13 @@ class _CategoryCard extends StatelessWidget {
   final String categoryName;
   final List<String> photoPaths;
 
-  const _CategoryCard({
-    required this.categoryName,
-    required this.photoPaths,
-  });
+  const _CategoryCard({required this.categoryName, required this.photoPaths});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final remaining =
-    photoPaths.length > 3 ? photoPaths.length - 3 : 0;
+    final remaining = photoPaths.length > 3 ? photoPaths.length - 3 : 0;
 
     return Container(
       decoration: BoxDecoration(
@@ -528,82 +534,81 @@ class _CategoryCard extends StatelessWidget {
             height: 160,
             child: photoPaths.isEmpty
                 ? Container(
-              color: colorScheme.surfaceContainerHighest,
-              child: Center(
-                child: Icon(Icons.image_outlined,
-                    size: 48,
-                    color: colorScheme.onSurfaceVariant.withOpacity(0.3)),
-              ),
-            )
-                : Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Image.file(
-                    File(photoPaths[0]),
-                    fit: BoxFit.cover,
-                    height: 160,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: colorScheme.surfaceContainerHigh,
+                    color: colorScheme.surfaceContainerHighest,
+                    child: Center(
+                      child: Icon(
+                        Icons.image_outlined,
+                        size: 48,
+                        color: colorScheme.onSurfaceVariant.withOpacity(0.3),
+                      ),
                     ),
-                  ),
-                ),
-                if (photoPaths.length > 1)
-                  const SizedBox(width: 2),
-                if (photoPaths.length > 1)
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: Image.file(
-                            File(photoPaths[1]),
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: colorScheme.surfaceContainerHigh,
-                            ),
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Image.file(
+                          File(photoPaths[0]),
+                          fit: BoxFit.cover,
+                          height: 160,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: colorScheme.surfaceContainerHigh,
                           ),
                         ),
-                        if (photoPaths.length > 2) ...[
-                          const SizedBox(height: 2),
-                          Expanded(
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Image.file(
-                                  File(photoPaths[2]),
+                      ),
+                      if (photoPaths.length > 1) const SizedBox(width: 2),
+                      if (photoPaths.length > 1)
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: Image.file(
+                                  File(photoPaths[1]),
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      Container(
-                                        color: colorScheme
-                                            .surfaceContainerHigh,
-                                      ),
+                                  width: double.infinity,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: colorScheme.surfaceContainerHigh,
+                                  ),
                                 ),
-                                if (remaining > 0)
-                                  Container(
-                                    color:
-                                    Colors.black.withOpacity(0.5),
-                                    child: Center(
-                                      child: Text(
-                                        '$remaining+',
-                                        style: textTheme.titleMedium
-                                            ?.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
+                              ),
+                              if (photoPaths.length > 2) ...[
+                                const SizedBox(height: 2),
+                                Expanded(
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Image.file(
+                                        File(photoPaths[2]),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          color:
+                                              colorScheme.surfaceContainerHigh,
                                         ),
                                       ),
-                                    ),
+                                      if (remaining > 0)
+                                        Container(
+                                          color: Colors.black.withOpacity(0.5),
+                                          child: Center(
+                                            child: Text(
+                                              '$remaining+',
+                                              style: textTheme.titleMedium
+                                                  ?.copyWith(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
+                                ),
                               ],
-                            ),
+                            ],
                           ),
-                        ],
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
-              ],
-            ),
           ),
           Container(
             width: double.infinity,
@@ -621,8 +626,11 @@ class _CategoryCard extends StatelessWidget {
                 ),
                 Row(
                   children: [
-                    const Icon(Icons.image_outlined,
-                        color: Colors.white, size: 18),
+                    const Icon(
+                      Icons.image_outlined,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       '${photoPaths.length}',
