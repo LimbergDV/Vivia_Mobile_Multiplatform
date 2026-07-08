@@ -74,14 +74,15 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
       });
       _syncToViewModel();
     } else if (result.isCameraDenied && mounted) {
-      _showSnack('Permiso de cámara denegado. Usa la galería para subir fotos.');
+      _showSnack(
+        'Permiso de cámara denegado. Usa la galería para subir fotos.',
+      );
     }
   }
 
   void _onDeleteImage(int categoryIndex, int imageIndex) {
     setState(() {
-      final updated =
-          List<String>.of(_categories[categoryIndex].imagePaths);
+      final updated = List<String>.of(_categories[categoryIndex].imagePaths);
       updated.removeAt(imageIndex);
       _categories[categoryIndex] = _SpaceCategory(
         label: _categories[categoryIndex].label,
@@ -132,8 +133,11 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              color: colorScheme.onSurface, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: colorScheme.onSurface,
+            size: 20,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(

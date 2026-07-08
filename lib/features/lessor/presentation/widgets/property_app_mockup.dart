@@ -62,13 +62,19 @@ class PropertyAppMockup extends StatelessWidget {
                 ),
                 Row(
                   children: [
-                    Icon(Icons.signal_cellular_alt,
-                        size: 7, color: colorScheme.onSurface),
+                    Icon(
+                      Icons.signal_cellular_alt,
+                      size: 7,
+                      color: colorScheme.onSurface,
+                    ),
                     const SizedBox(width: 2),
                     Icon(Icons.wifi, size: 7, color: colorScheme.onSurface),
                     const SizedBox(width: 2),
-                    Icon(Icons.battery_full,
-                        size: 7, color: colorScheme.onSurface),
+                    Icon(
+                      Icons.battery_full,
+                      size: 7,
+                      color: colorScheme.onSurface,
+                    ),
                   ],
                 ),
               ],
@@ -79,18 +85,30 @@ class PropertyAppMockup extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(Icons.arrow_back_ios_new_rounded,
-                    size: 10, color: colorScheme.onSurface),
+                Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 10,
+                  color: colorScheme.onSurface,
+                ),
                 Row(
                   children: [
-                    Icon(Icons.edit_outlined,
-                        size: 10, color: colorScheme.onSurface),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: 10,
+                      color: colorScheme.onSurface,
+                    ),
                     const SizedBox(width: 4),
-                    Icon(Icons.favorite_border_rounded,
-                        size: 10, color: colorScheme.onSurface),
+                    Icon(
+                      Icons.favorite_border_rounded,
+                      size: 10,
+                      color: colorScheme.onSurface,
+                    ),
                     const SizedBox(width: 4),
-                    Icon(Icons.send_outlined,
-                        size: 10, color: colorScheme.onSurface),
+                    Icon(
+                      Icons.send_outlined,
+                      size: 10,
+                      color: colorScheme.onSurface,
+                    ),
                   ],
                 ),
               ],
@@ -102,12 +120,11 @@ class PropertyAppMockup extends StatelessWidget {
               width: double.infinity,
               child: imageUrl.isNotEmpty
                   ? Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: colorScheme.surfaceContainerHigh,
-                ),
-              )
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          Container(color: colorScheme.surfaceContainerHigh),
+                    )
                   : Container(color: colorScheme.surfaceContainerHigh),
             ),
           ),
@@ -128,8 +145,10 @@ class PropertyAppMockup extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0095FF).withOpacity(0.12),
                     borderRadius: BorderRadius.circular(3),
@@ -208,10 +227,7 @@ class _MiniStat extends StatelessWidget {
         const SizedBox(width: 2),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 5.5,
-            color: colorScheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 5.5, color: colorScheme.onSurfaceVariant),
         ),
       ],
     );

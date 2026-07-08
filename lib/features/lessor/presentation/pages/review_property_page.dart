@@ -49,8 +49,10 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
     return parts.isNotEmpty ? parts.join(', ') : 'Ubicación no especificada';
   }
 
-  Future<void> _onEditImages(BuildContext context,
-      PropertyDraftViewModel vm) async {
+  Future<void> _onEditImages(
+    BuildContext context,
+    PropertyDraftViewModel vm,
+  ) async {
     final updated = await Navigator.push<NewPropertyForm>(
       context,
       MaterialPageRoute(builder: (_) => GalleryPage(form: vm.form)),
@@ -73,18 +75,23 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
   void _onEditInfo() {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const AddPropertyPage()),
-          (route) => route.isFirst,
+      (route) => route.isFirst,
     );
   }
 
-  Future<void> _onPublish(BuildContext context, PropertyDraftViewModel vm) async {
+  Future<void> _onPublish(
+    BuildContext context,
+    PropertyDraftViewModel vm,
+  ) async {
     final mainPhoto = vm.form.mainPhotoPath;
     if (mainPhoto == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Agrega al menos una fotografía principal'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       return;
@@ -115,16 +122,22 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
         SnackBar(
           content: const Text('Publicando tu propiedad...'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Ocurrió un error al publicar. Intenta de nuevo.'),
+          content: const Text(
+            'Ocurrió un error al publicar. Intenta de nuevo.',
+          ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: Theme.of(context).colorScheme.error,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
@@ -155,15 +168,18 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
                     pageController: _pageController,
                     currentPage: _currentPage,
                     screenWidth: screenWidth,
-                    onPageChanged: (i) =>
-                        setState(() => _currentPage = i),
+                    onPageChanged: (i) => setState(() => _currentPage = i),
                     onBack: () => Navigator.of(context).pop(),
                     onEditImages: () => _onEditImages(context, vm),
                   ),
                 ),
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(
-                      horizontalPadding, 20, horizontalPadding, 0),
+                    horizontalPadding,
+                    20,
+                    horizontalPadding,
+                    0,
+                  ),
                   sliver: SliverToBoxAdapter(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,8 +216,7 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
                           area: vm.form.area ?? '0',
                         ),
                         const SizedBox(height: 24),
-                        Divider(
-                            color: colorScheme.outlineVariant, height: 1),
+                        Divider(color: colorScheme.outlineVariant, height: 1),
                         const SizedBox(height: 24),
                         Text(
                           'Overview',
@@ -219,15 +234,13 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        _GallerySection(
-                            spacePhotos: vm.form.spacePhotos),
+                        _GallerySection(spacePhotos: vm.form.spacePhotos),
                         const SizedBox(height: 24),
-                        _LocationSection(
-                            locationText: _locationText(vm)),
+                        _LocationSection(locationText: _locationText(vm)),
                         const SizedBox(height: 32),
                         _ActionButtons(
-                          isPublishing: vm.publishStatus ==
-                              PublishStatus.loading,
+                          isPublishing:
+                              vm.publishStatus == PublishStatus.loading,
                           onEditInfo: _onEditInfo,
                           onPublish: () => _onPublish(context, vm),
                         ),
@@ -279,9 +292,11 @@ class _ImageCarousel extends StatelessWidget {
             Container(
               color: colorScheme.surfaceContainerHighest,
               child: Center(
-                child: Icon(Icons.image_outlined,
-                    size: 64,
-                    color: colorScheme.onSurfaceVariant.withOpacity(0.4)),
+                child: Icon(
+                  Icons.image_outlined,
+                  size: 64,
+                  color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+                ),
               ),
             )
           else
@@ -294,8 +309,11 @@ class _ImageCarousel extends StatelessWidget {
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
                   color: colorScheme.surfaceContainerHighest,
-                  child: Icon(Icons.broken_image_outlined,
-                      size: 48, color: colorScheme.onSurfaceVariant),
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    size: 48,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
@@ -309,10 +327,7 @@ class _ImageCarousel extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.4),
-                    Colors.transparent,
-                  ],
+                  colors: [Colors.black.withOpacity(0.4), Colors.transparent],
                 ),
               ),
             ),
@@ -323,16 +338,19 @@ class _ImageCarousel extends StatelessWidget {
             right: 12,
             child: Row(
               children: [
-                _CircleIconButton(icon: Icons.arrow_back_ios_new_rounded,
-                    onTap: onBack),
+                _CircleIconButton(
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  onTap: onBack,
+                ),
                 const Spacer(),
                 _CircleIconButton(icon: Icons.link_rounded, onTap: () {}),
                 const SizedBox(width: 8),
                 _CircleIconButton(
-                    icon: Icons.favorite_border_rounded, onTap: () {}),
+                  icon: Icons.favorite_border_rounded,
+                  onTap: () {},
+                ),
                 const SizedBox(width: 8),
-                _CircleIconButton(
-                    icon: Icons.send_outlined, onTap: () {}),
+                _CircleIconButton(icon: Icons.send_outlined, onTap: () {}),
               ],
             ),
           ),
@@ -363,9 +381,12 @@ class _ImageCarousel extends StatelessWidget {
                   foregroundColor: Colors.white,
                   elevation: 2,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 10),
+                    horizontal: 24,
+                    vertical: 10,
+                  ),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
                 child: Text(
                   'Editar Imágenes',
@@ -386,7 +407,7 @@ class _ImageCarousel extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
                   images.length,
-                      (i) => AnimatedContainer(
+                  (i) => AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     margin: const EdgeInsets.symmetric(horizontal: 3),
                     width: i == currentPage ? 10 : 8,
@@ -495,7 +516,9 @@ class _StatItem extends StatelessWidget {
           width: 18,
           height: 18,
           colorFilter: ColorFilter.mode(
-              colorScheme.onSurfaceVariant, BlendMode.srcIn),
+            colorScheme.onSurfaceVariant,
+            BlendMode.srcIn,
+          ),
         ),
         const SizedBox(width: 6),
         Text(
@@ -527,8 +550,9 @@ class _GallerySection extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final photos = _allPhotos;
     const maxVisible = 3;
-    final remaining =
-    photos.length > maxVisible ? photos.length - maxVisible : 0;
+    final remaining = photos.length > maxVisible
+        ? photos.length - maxVisible
+        : 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -551,8 +575,9 @@ class _GallerySection extends StatelessWidget {
             child: Center(
               child: Text(
                 'Sin fotografías de espacios',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           )
@@ -561,8 +586,9 @@ class _GallerySection extends StatelessWidget {
             height: 90,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount:
-              photos.length > maxVisible ? maxVisible : photos.length,
+              itemCount: photos.length > maxVisible
+                  ? maxVisible
+                  : photos.length,
               separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (context, i) {
                 final isLast = i == maxVisible - 1 && remaining > 0;
@@ -574,14 +600,17 @@ class _GallerySection extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.file(File(photos[i]),
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color:
-                              colorScheme.surfaceContainerHighest,
-                              child: Icon(Icons.image_outlined,
-                                  color: colorScheme.onSurfaceVariant),
-                            )),
+                        Image.file(
+                          File(photos[i]),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: colorScheme.surfaceContainerHighest,
+                            child: Icon(
+                              Icons.image_outlined,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
                         if (isLast)
                           Container(
                             color: Colors.black.withOpacity(0.55),
@@ -635,8 +664,9 @@ class _LocationSection extends StatelessWidget {
             Expanded(
               child: Text(
                 locationText,
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],
@@ -651,11 +681,12 @@ class _LocationSection extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Icon(Icons.map_outlined,
-                    size: 48,
-                    color: colorScheme.onSurfaceVariant.withOpacity(0.3)),
-                Icon(Icons.location_on,
-                    size: 36, color: colorScheme.onSurface),
+                Icon(
+                  Icons.map_outlined,
+                  size: 48,
+                  color: colorScheme.onSurfaceVariant.withOpacity(0.3),
+                ),
+                Icon(Icons.location_on, size: 36, color: colorScheme.onSurface),
               ],
             ),
           ),
@@ -692,7 +723,8 @@ class _ActionButtons extends StatelessWidget {
               foregroundColor: Colors.red.shade400,
               side: BorderSide(color: Colors.red.shade400, width: 1.5),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
             child: Text(
               'Editar Información',
@@ -724,24 +756,25 @@ class _ActionButtons extends StatelessWidget {
               disabledBackgroundColor: Colors.red.shade200,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
             child: isPublishing
                 ? const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: Colors.white,
-              ),
-            )
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
                 : Text(
-              'Publicar',
-              style: textTheme.labelLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+                    'Publicar',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
         ),
         const SizedBox(height: 6),

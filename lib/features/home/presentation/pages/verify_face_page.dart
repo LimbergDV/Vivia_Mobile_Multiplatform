@@ -1,21 +1,75 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/auth_background_blobs.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/verify_intro_page.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/verify_results_page.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/verify/verify_loader.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/verify/verify_step_indicator.dart';
+import 'package:vivia_mobile/features/lessor/domain/enums/verification_document_type.dart';
+import 'package:vivia_mobile/features/lessor/presentation/helpers/verify_capture_helper.dart';
+import 'package:vivia_mobile/features/lessor/presentation/viewmodels/verification_viewmodel.dart';
 
 class VerifyFacePage extends StatelessWidget {
   const VerifyFacePage({super.key});
 
-  void _onTakePhoto(BuildContext context) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const VerifyResultsPage()),
-    );
+  Future<void> _takeSelfie(BuildContext context) async {
+    final vm = context.read<VerificationViewModel>();
+    final path = await VerifyCaptureHelper.takeSelfie();
+    if (path != null) {
+      vm.stageDocument(VerificationDocumentType.selfie, path);
+    }
+  }
+
+  /// Pide las presigned URLs y sube los tres documentos a S3. Mientras tanto
+  /// la vista muestra el loader (vm.isSubmitting).
+  Future<void> _submit(BuildContext context) async {
+    final vm = context.read<VerificationViewModel>();
+    final ok = await vm.submitDocuments();
+    if (!context.mounted) return;
+
+    if (ok) {
+      // Elimina todo el flujo de captura (selfie, reverso, frente e intro)
+      // del stack para que "volver" regrese al perfil y no a las fotos.
+      var introRemoved = false;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              const VerifyResultsPage(status: VerifyResultStatus.pending),
+        ),
+        (route) {
+          if (introRemoved) return true;
+          if (route.settings.name == VerifyIntroPage.routeName) {
+            introRemoved = true;
+          }
+          return false;
+        },
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            vm.submitError ??
+                'Error al enviar los documentos. Intenta de nuevo.',
+          ),
+        ),
+      );
+    }
+  }
+
+  void _onMainAction(BuildContext context, bool hasSelfie) {
+    if (hasSelfie) {
+      _submit(context);
+    } else {
+      _takeSelfie(context);
+    }
   }
 
   void _onCancel(BuildContext context) {
+    context.read<VerificationViewModel>().abandonCapture();
     Navigator.of(
       context,
     ).popUntil((route) => route.settings.name == VerifyIntroPage.routeName);
@@ -49,12 +103,69 @@ class VerifyFacePage extends StatelessWidget {
           ),
         ),
       ),
-      body: isLandscape ? _buildLandscape(context) : _buildPortrait(context),
+      body: Consumer<VerificationViewModel>(
+        builder: (context, vm, _) {
+          if (vm.isSubmitting) return const VerifyLoader();
+
+          final selfiePath = vm.stagedPath(VerificationDocumentType.selfie);
+          return isLandscape
+              ? _buildLandscape(context, selfiePath)
+              : _buildPortrait(context, selfiePath);
+        },
+      ),
     );
   }
 
-  Widget _buildPortrait(BuildContext context) {
+  Widget _preview(String? selfiePath, {double size = 200}) {
+    if (selfiePath == null) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Lottie.asset(
+          'assets/images/scan-face.json',
+          fit: BoxFit.contain,
+        ),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size / 2),
+      child: Image.file(
+        File(selfiePath),
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  Widget _retakeButton(BuildContext context) {
+    return TextButton(
+      onPressed: () => _takeSelfie(context),
+      child: const Text(
+        'Repetir foto',
+        style: TextStyle(color: Color(0xFF0095FF), fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _cancelButton(BuildContext context) {
+    return TextButton(
+      onPressed: () => _onCancel(context),
+      child: const Text(
+        'Cancelar',
+        style: TextStyle(
+          color: Colors.black87,
+          fontWeight: FontWeight.w500,
+          decoration: TextDecoration.underline,
+          decorationColor: Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPortrait(BuildContext context, String? selfiePath) {
     final textTheme = Theme.of(context).textTheme;
+    final hasSelfie = selfiePath != null;
 
     return Stack(
       children: [
@@ -90,33 +201,29 @@ class VerifyFacePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 48),
-              Center(
-                child: SizedBox(
-                  width: 200,
-                  height: 200,
-                  child: Lottie.asset(
-                    'assets/images/scan-face.json',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 52),
+              Center(child: _preview(selfiePath)),
+              if (hasSelfie) ...[
+                const SizedBox(height: 8),
+                Center(child: _retakeButton(context)),
+                const SizedBox(height: 8),
+              ] else
+                const SizedBox(height: 52),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: FilledButton(
-                    onPressed: () => _onTakePhoto(context),
+                    onPressed: () => _onMainAction(context, hasSelfie),
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF0095FF),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: const Text(
-                      'Tomar foto',
-                      style: TextStyle(
+                    child: Text(
+                      hasSelfie ? 'Enviar documentos' : 'Tomar foto',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -125,20 +232,7 @@ class VerifyFacePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              Center(
-                child: TextButton(
-                  onPressed: () => _onCancel(context),
-                  child: const Text(
-                    'Cancelar',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w500,
-                      decoration: TextDecoration.underline,
-                      decorationColor: Colors.black87,
-                    ),
-                  ),
-                ),
-              ),
+              Center(child: _cancelButton(context)),
               const SizedBox(height: 16),
             ],
           ),
@@ -147,8 +241,9 @@ class VerifyFacePage extends StatelessWidget {
     );
   }
 
-  Widget _buildLandscape(BuildContext context) {
+  Widget _buildLandscape(BuildContext context, String? selfiePath) {
     final textTheme = Theme.of(context).textTheme;
+    final hasSelfie = selfiePath != null;
 
     return Row(
       children: [
@@ -188,14 +283,7 @@ class VerifyFacePage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 16, 24, 16),
             child: Column(
               children: [
-                Expanded(
-                  child: Center(
-                    child: Lottie.asset(
-                      'assets/images/scan-face.json',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
+                Expanded(child: Center(child: _preview(selfiePath))),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -203,16 +291,16 @@ class VerifyFacePage extends StatelessWidget {
                       child: SizedBox(
                         height: 46,
                         child: FilledButton(
-                          onPressed: () => _onTakePhoto(context),
+                          onPressed: () => _onMainAction(context, hasSelfie),
                           style: FilledButton.styleFrom(
                             backgroundColor: const Color(0xFF0095FF),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
                           ),
-                          child: const Text(
-                            'Tomar foto',
-                            style: TextStyle(
+                          child: Text(
+                            hasSelfie ? 'Enviar documentos' : 'Tomar foto',
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
@@ -221,18 +309,8 @@ class VerifyFacePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 14),
-                    TextButton(
-                      onPressed: () => _onCancel(context),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w500,
-                          decoration: TextDecoration.underline,
-                          decorationColor: Colors.black87,
-                        ),
-                      ),
-                    ),
+                    if (hasSelfie) _retakeButton(context),
+                    _cancelButton(context),
                   ],
                 ),
               ],

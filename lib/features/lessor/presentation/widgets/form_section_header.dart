@@ -12,9 +12,9 @@ class FormSectionHeader extends StatelessWidget {
     this.svgIconPath,
     this.iconData,
   }) : assert(
-  svgIconPath != null || iconData != null,
-  'Debes proveer svgIconPath o iconData',
-  );
+         svgIconPath != null || iconData != null,
+         'Debes proveer svgIconPath o iconData',
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -25,17 +25,9 @@ class FormSectionHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (svgIconPath != null)
-          SvgPicture.asset(
-            svgIconPath!,
-            width: 20,
-            height: 20,
-          )
+          SvgPicture.asset(svgIconPath!, width: 20, height: 20)
         else
-          Icon(
-            iconData,
-            size: 20,
-            color: colorScheme.onSurface,
-          ),
+          Icon(iconData, size: 20, color: colorScheme.onSurface),
         const SizedBox(width: 8),
         Text(
           label,

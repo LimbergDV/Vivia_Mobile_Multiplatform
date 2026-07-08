@@ -70,29 +70,24 @@ class _ToggleOption extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           height: double.infinity,
           decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFF0095FF)
-                : Colors.transparent,
+            color: isSelected ? const Color(0xFF0095FF) : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             boxShadow: isSelected
                 ? [
-              BoxShadow(
-                color: const Color(0xFF0095FF).withOpacity(0.25),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ]
+                    BoxShadow(
+                      color: const Color(0xFF0095FF).withOpacity(0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
                 : null,
           ),
           alignment: Alignment.center,
           child: Text(
             label,
             style: textTheme.labelLarge?.copyWith(
-              color: isSelected
-                  ? Colors.white
-                  : colorScheme.onSurfaceVariant,
-              fontWeight:
-              isSelected ? FontWeight.w600 : FontWeight.w400,
+              color: isSelected ? Colors.white : colorScheme.onSurfaceVariant,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
         ),

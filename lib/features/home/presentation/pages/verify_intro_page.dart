@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/auth_background_blobs.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/verify_front_id_page.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/verify/verify_step_indicator.dart';
+import 'package:vivia_mobile/features/lessor/presentation/viewmodels/verification_viewmodel.dart';
 
 class VerifyIntroPage extends StatelessWidget {
   static const routeName = 'verify/intro';
@@ -13,6 +15,7 @@ class VerifyIntroPage extends StatelessWidget {
       'de extorciones y estafas. Gracias por colaborar con nosotros.';
 
   void _goNext(BuildContext context) {
+    context.read<VerificationViewModel>().clearStagedDocuments();
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const VerifyFrontIdPage()),

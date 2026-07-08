@@ -37,11 +37,11 @@ class PropertyPreviewCard extends StatelessWidget {
               width: double.infinity,
               child: property.imageUrl.isNotEmpty
                   ? Image.network(
-                property.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    _Placeholder(colorScheme: colorScheme),
-              )
+                      property.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          _Placeholder(colorScheme: colorScheme),
+                    )
                   : _Placeholder(colorScheme: colorScheme),
             ),
           ),
@@ -105,10 +105,7 @@ class PropertyPreviewCard extends StatelessWidget {
   String _formatPrice(double price) {
     return price
         .toStringAsFixed(0)
-        .replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+$)'),
-          (m) => '${m[1]},',
-    );
+        .replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
   }
 }
 

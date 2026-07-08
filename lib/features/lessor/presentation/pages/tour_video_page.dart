@@ -22,11 +22,11 @@ class TourVideoPage extends StatelessWidget {
     } else if (result.isCameraDenied && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              const Text('Permiso de cámara denegado. Usa la galería.'),
+          content: const Text('Permiso de cámara denegado. Usa la galería.'),
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
@@ -55,8 +55,11 @@ class TourVideoPage extends StatelessWidget {
             elevation: 0,
             scrolledUnderElevation: 0,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back_ios_new_rounded,
-                  color: colorScheme.onSurface, size: 20),
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: colorScheme.onSurface,
+                size: 20,
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Text(
@@ -96,8 +99,11 @@ class TourVideoPage extends StatelessWidget {
                   height: 52,
                   child: ElevatedButton.icon(
                     onPressed: () => _onRecordVideo(context),
-                    icon: const Icon(Icons.camera_alt_outlined,
-                        color: Colors.white, size: 20),
+                    icon: const Icon(
+                      Icons.camera_alt_outlined,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                     label: Text(
                       'Grabar Video',
                       style: textTheme.labelLarge?.copyWith(
@@ -110,7 +116,8 @@ class TourVideoPage extends StatelessWidget {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
                 ),
@@ -134,7 +141,8 @@ class TourVideoPage extends StatelessWidget {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     child: Text(
                       'Revisar Publicación',

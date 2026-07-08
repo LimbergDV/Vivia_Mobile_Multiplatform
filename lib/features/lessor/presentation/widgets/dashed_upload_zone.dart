@@ -32,47 +32,46 @@ class DashedUploadZone extends StatelessWidget {
           ),
           child: imagePath != null
               ? ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: isVideo
-                ? _VideoSelectedIndicator(
-              fileName: imagePath!.split('/').last,
-              colorScheme: colorScheme,
-              textTheme: textTheme,
-            )
-                : Image.file(
-              File(imagePath!),
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-              errorBuilder: (_, __, ___) => _ErrorPlaceholder(
-                colorScheme: colorScheme,
-              ),
-            ),
-          )
+                  borderRadius: BorderRadius.circular(12),
+                  child: isVideo
+                      ? _VideoSelectedIndicator(
+                          fileName: imagePath!.split('/').last,
+                          colorScheme: colorScheme,
+                          textTheme: textTheme,
+                        )
+                      : Image.file(
+                          File(imagePath!),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (_, __, ___) =>
+                              _ErrorPlaceholder(colorScheme: colorScheme),
+                        ),
+                )
               : Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                isVideo ? Icons.videocam_outlined : Icons.image_outlined,
-                size: 42,
-                color: colorScheme.onSurfaceVariant.withOpacity(0.4),
-              ),
-              const SizedBox(height: 4),
-              Icon(
-                Icons.upload_outlined,
-                size: 20,
-                color: colorScheme.onSurfaceVariant.withOpacity(0.4),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Explorar archivos desde su teléfono',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant.withOpacity(0.5),
-                  fontStyle: FontStyle.italic,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isVideo ? Icons.videocam_outlined : Icons.image_outlined,
+                      size: 42,
+                      color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+                    ),
+                    const SizedBox(height: 4),
+                    Icon(
+                      Icons.upload_outlined,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Explorar archivos desde su teléfono',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -99,11 +98,7 @@ class _VideoSelectedIndicator extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.videocam_rounded,
-            size: 48,
-            color: colorScheme.primary,
-          ),
+          Icon(Icons.videocam_rounded, size: 48, color: colorScheme.primary),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -31,9 +31,7 @@ class PropertyDropdownField<T> extends StatelessWidget {
         Icons.keyboard_arrow_down_rounded,
         color: colorScheme.onSurfaceVariant,
       ),
-      style: textTheme.bodyMedium?.copyWith(
-        color: colorScheme.onSurface,
-      ),
+      style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: textTheme.bodyMedium?.copyWith(
@@ -57,10 +55,7 @@ class PropertyDropdownField<T> extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF0095FF),
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF0095FF), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
