@@ -49,6 +49,8 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -94,11 +96,13 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                             maxLength: _maxLength,
                             maxLines: 5,
                             buildCounter: (
-                                _, {
+                                _,
+                                {
                                   required currentLength,
                                   required isFocused,
                                   maxLength,
-                                }) =>
+                                }
+                                ) =>
                             null,
                             decoration: InputDecoration(
                               hintText:
@@ -161,7 +165,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                 ),
               ),
             ),
-            if (!keyboardVisible)
+            if (!keyboardVisible && !isLandscape)
               SizedBox(
                 height: 150,
                 child: ClipRect(

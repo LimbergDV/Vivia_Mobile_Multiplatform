@@ -41,80 +41,89 @@ class _ReportReviewPageState extends State<ReportReviewPage> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
-              const ReportStepHeader(currentStep: 3),
-              const SizedBox(height: 32),
-              Text(
-                'Revisar reporte',
-                style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Confirma que la información es correcta antes de enviar.',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 28),
-              _ReviewItem(
-                label: 'Motivo',
-                value: vm.reasonLabel,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-              const SizedBox(height: 12),
-              _ReviewItem(
-                label: 'Detalles',
-                value: vm.details.isEmpty
-                    ? 'Sin detalles adicionales'
-                    : vm.details,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: vm.isLoading ? null : _onSubmit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0095FF),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor:
-                    const Color(0xFF0095FF).withOpacity(0.6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 0,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 24),
+                      const ReportStepHeader(currentStep: 3),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Revisar reporte',
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Confirma que la información es correcta antes de enviar.',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      _ReviewItem(
+                        label: 'Motivo',
+                        value: vm.reasonLabel,
+                        colorScheme: colorScheme,
+                        textTheme: textTheme,
+                      ),
+                      const SizedBox(height: 12),
+                      _ReviewItem(
+                        label: 'Detalles',
+                        value: vm.details.isEmpty
+                            ? 'Sin detalles adicionales'
+                            : vm.details,
+                        colorScheme: colorScheme,
+                        textTheme: textTheme,
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: vm.isLoading ? null : _onSubmit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0095FF),
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor:
+                            const Color(0xFF0095FF).withOpacity(0.6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: vm.isLoading
+                              ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                              : Text(
+                            'Enviar reporte',
+                            style: textTheme.labelLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
                   ),
-                  child: vm.isLoading
-                      ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.5,
-                    ),
-                  )
-                      : Text(
-                    'Enviar reporte',
-                    style: textTheme.labelLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
                 ),
               ),
-              const SizedBox(height: 32),
-            ],
+            ),
           ),
         ),
       ),

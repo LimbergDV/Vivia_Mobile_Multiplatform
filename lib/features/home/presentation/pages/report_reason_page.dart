@@ -39,6 +39,8 @@ class _ReportReasonPageState extends State<ReportReasonPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final vm = context.watch<ReportViewModel>();
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -48,9 +50,9 @@ class _ReportReasonPageState extends State<ReportReasonPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 24),
+              SizedBox(height: isLandscape ? 8 : 24),
               const ReportStepHeader(currentStep: 1),
-              const SizedBox(height: 32),
+              SizedBox(height: isLandscape ? 8 : 32),
               Text(
                 'Razón del reporte',
                 style: textTheme.titleLarge?.copyWith(
@@ -65,11 +67,11 @@ class _ReportReasonPageState extends State<ReportReasonPage> {
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: isLandscape ? 8 : 24),
               Expanded(
                 child: _buildContent(vm, colorScheme, textTheme),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: isLandscape ? 8 : 16),
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -94,7 +96,7 @@ class _ReportReasonPageState extends State<ReportReasonPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: isLandscape ? 12 : 24),
             ],
           ),
         ),
