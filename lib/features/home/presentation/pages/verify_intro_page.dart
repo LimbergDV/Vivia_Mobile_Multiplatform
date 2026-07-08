@@ -58,7 +58,7 @@ class VerifyIntroPage extends StatelessWidget {
       children: [
         Positioned.fill(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 170),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -90,6 +90,35 @@ class VerifyIntroPage extends StatelessWidget {
                   subtitle:
                   'El equipo de Vivia se encargará del resto. Te notificaremos cuando seas verificado.',
                 ),
+                const SizedBox(height: 36),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: () => _goNext(context),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF0095FF),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'Empezar',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  _privacyNote,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    height: 1.55,
+                  ),
+                ),
               ],
             ),
           ),
@@ -99,46 +128,8 @@ class VerifyIntroPage extends StatelessWidget {
           bottom: 0,
           left: 0,
           right: 0,
-          child: RepaintBoundary(child: AuthBackgroundBlobs()),
-        ),
-
-        Positioned(
-          bottom: 0,
-          left: 24,
-          right: 24,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton(
-                  onPressed: () => _goNext(context),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF43A047),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: const Text(
-                    'Empezar',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                _privacyNote,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  height: 1.55,
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
+          child: IgnorePointer(
+            child: RepaintBoundary(child: AuthBackgroundBlobs()),
           ),
         ),
       ],

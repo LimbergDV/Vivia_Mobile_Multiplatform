@@ -16,9 +16,9 @@ class VerifyFacePage extends StatelessWidget {
   }
 
   void _onCancel(BuildContext context) {
-    Navigator.of(context).popUntil(
-          (route) => route.settings.name == VerifyIntroPage.routeName,
-    );
+    Navigator.of(
+      context,
+    ).popUntil((route) => route.settings.name == VerifyIntroPage.routeName);
   }
 
   @override
@@ -56,84 +56,91 @@ class VerifyFacePage extends StatelessWidget {
   Widget _buildPortrait(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-          child: Text(
-            'Toma una foto a tu identificación',
-            style: textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
+        const Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            child: RepaintBoundary(child: AuthBackgroundBlobs()),
           ),
         ),
-        const SizedBox(height: 16),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
-          child: VerifyStepIndicator(
-            stepNumber: 3,
-            title:
-            'Toma una foto de tu rostro para comprobar que eres el mismo de la identificación',
-          ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: Center(
-            child: Lottie.asset(
-              'assets/images/scan-face.json',
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-        const SizedBox(height: 28),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: FilledButton(
-              onPressed: () => _onTakePhoto(context),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF0095FF),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+        Positioned.fill(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                child: Text(
+                  'Toma una foto a tu identificación',
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
               ),
-              child: const Text(
-                'Tomar foto',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              const SizedBox(height: 32),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: VerifyStepIndicator(
+                  stepNumber: 3,
+                  title:
+                      'Toma una foto de tu rostro para comprobar que eres el mismo de la identificación',
+                ),
               ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Center(
-          child: TextButton(
-            onPressed: () => _onCancel(context),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w500,
-                decoration: TextDecoration.underline,
-                decorationColor: Colors.black87,
+              const SizedBox(height: 48),
+              Center(
+                child: SizedBox(
+                  width: 200,
+                  height: 200,
+                  child: Lottie.asset(
+                    'assets/images/scan-face.json',
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        RepaintBoundary(
-          child: SizedBox(
-            height: 160,
-            child: ClipRect(
-              child: OverflowBox(
-                alignment: Alignment.bottomCenter,
-                maxHeight: 260,
-                child: const AuthBackgroundBlobs(),
+              const SizedBox(height: 52),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: () => _onTakePhoto(context),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF0095FF),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'Tomar foto',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 10),
+              Center(
+                child: TextButton(
+                  onPressed: () => _onCancel(context),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w500,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Colors.black87,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
           ),
         ),
       ],
@@ -164,14 +171,17 @@ class VerifyFacePage extends StatelessWidget {
                 const VerifyStepIndicator(
                   stepNumber: 3,
                   title:
-                  'Toma una foto de tu rostro para comprobar que eres el mismo de la identificación',
+                      'Toma una foto de tu rostro para comprobar que eres el mismo de la identificación',
                 ),
               ],
             ),
           ),
         ),
         const VerticalDivider(
-            width: 1, thickness: 0.5, color: Color(0xFFE0E0E0)),
+          width: 1,
+          thickness: 0.5,
+          color: Color(0xFFE0E0E0),
+        ),
         Expanded(
           flex: 6,
           child: Padding(

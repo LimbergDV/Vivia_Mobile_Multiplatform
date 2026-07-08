@@ -19,9 +19,9 @@ class VerifyResultsPage extends StatelessWidget {
   });
 
   void _returnToIntro(BuildContext context) {
-    Navigator.of(context).popUntil(
-          (route) => route.settings.name == VerifyIntroPage.routeName,
-    );
+    Navigator.of(
+      context,
+    ).popUntil((route) => route.settings.name == VerifyIntroPage.routeName);
   }
 
   @override
@@ -49,9 +49,17 @@ class VerifyResultsPage extends StatelessWidget {
           style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
+          const Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: RepaintBoundary(child: AuthBackgroundBlobs()),
+            ),
+          ),
+          Positioned.fill(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
               child: Column(
@@ -81,16 +89,6 @@ class VerifyResultsPage extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 150,
-            child: ClipRect(
-              child: OverflowBox(
-                alignment: Alignment.bottomCenter,
-                maxHeight: 260,
-                child: const AuthBackgroundBlobs(),
               ),
             ),
           ),
@@ -136,7 +134,7 @@ class VerifyResultsPage extends StatelessWidget {
                   const SizedBox(height: 20),
                   switch (status) {
                     VerifyResultStatus.verified =>
-                    const _VerifiedLandscapeLeft(),
+                      const _VerifiedLandscapeLeft(),
                     VerifyResultStatus.invalid => _InvalidLandscapeLeft(
                       reasons: rejectionReasons,
                     ),
@@ -182,23 +180,23 @@ class _VerifiedContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Column(
-      children: [
-        Text(
-          '¡Haz sido verificado!',
-          textAlign: TextAlign.center,
-          style: textTheme.headlineSmall?.copyWith(
-            color: const Color(0xFF0095FF),
-            fontWeight: FontWeight.bold,
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            '¡Haz sido verificado!',
+            textAlign: TextAlign.center,
+            style: textTheme.headlineSmall?.copyWith(
+              color: const Color(0xFF0095FF),
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        const SizedBox(height: 32),
-        Image.asset(
-          'assets/images/verify.png',
-          width: 180,
-          height: 180,
-        ),
-      ],
+          const SizedBox(height: 32),
+          Image.asset('assets/images/verify.png', width: 180, height: 180),
+        ],
+      ),
     );
   }
 }
@@ -294,7 +292,7 @@ class _RejectionCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ...reasons.map(
-                (r) => Padding(
+            (r) => Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,11 +339,7 @@ class _VerifiedLandscapeRight extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Image.asset(
-        'assets/images/verify.png',
-        width: 180,
-        height: 180,
-      ),
+      child: Image.asset('assets/images/verify.png', width: 180, height: 180),
     );
   }
 }
