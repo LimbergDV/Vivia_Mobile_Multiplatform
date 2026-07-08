@@ -51,6 +51,7 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   video_player: ^2.9.2
   chewie: ^1.8.5
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -120,3 +121,11 @@ flutter:
 
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
+
+flutter_launcher_icons:
+    android: true
+    ios: true
+    image_path: "assets/images/logo.png"
+    web:
+      generate: true
+      image_path: "assets/images/logo.png"
