@@ -38,6 +38,7 @@ abstract class AuthRepository {
   String? get savedRole;
   String? get savedUserName;
   String? get savedAvatarUrl;
+  String? get savedUserId;
 
   bool get hasSeenLocationPermission;
   Future<void> setLocationPermissionShown();
