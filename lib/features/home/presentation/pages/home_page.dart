@@ -15,6 +15,7 @@ import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_p
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 import 'package:vivia_mobile/features/user/presentation/pages/profile_page.dart';
+import 'package:vivia_mobile/shared/chat/presentation/pages/chats_page.dart';
 import 'package:vivia_mobile/shared/notifications/domain/usecases/get_unread_count_usecase.dart';
 import 'package:vivia_mobile/shared/notifications/presentation/pages/notifications_page.dart';
 
@@ -128,11 +129,22 @@ class _HomePageState extends State<HomePage> {
       _openNotifications();
       return;
     }
+    if (item == HomeNavItem.messages) {
+      _openChats();
+      return;
+    }
     if (item == HomeNavItem.profile) {
       _openProfile();
       return;
     }
     setState(() => _selectedNav = item);
+  }
+
+  void _openChats() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ChatsPage()),
+    );
   }
 
   void _openProfile() {
