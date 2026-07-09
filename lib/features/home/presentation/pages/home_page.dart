@@ -124,20 +124,28 @@ class _HomePageState extends State<HomePage> {
       );
       return;
     }
+    if (item == HomeNavItem.notifications) {
+      _openNotifications();
+      return;
+    }
     if (item == HomeNavItem.profile) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ProfilePage(
-            userName: widget.userName,
-            avatarUrl: widget.avatarUrl,
-            role: widget.role,
-          ),
-        ),
-      );
+      _openProfile();
       return;
     }
     setState(() => _selectedNav = item);
+  }
+
+  void _openProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProfilePage(
+          userName: widget.userName,
+          avatarUrl: widget.avatarUrl,
+          role: widget.role,
+        ),
+      ),
+    );
   }
 
   @override
@@ -160,6 +168,7 @@ class _HomePageState extends State<HomePage> {
         onNavSelected: _onNavSelected,
         notificationCount: _unreadCount,
         onNotificationTap: _openNotifications,
+        onProfileTap: _openProfile,
       );
     }
 
@@ -170,6 +179,7 @@ class _HomePageState extends State<HomePage> {
       onNavSelected: _onNavSelected,
       notificationCount: _unreadCount,
       onNotificationTap: _openNotifications,
+      onProfileTap: _openProfile,
     );
   }
 }
@@ -181,6 +191,7 @@ class _PortraitScaffold extends StatelessWidget {
   final ValueChanged<HomeNavItem> onNavSelected;
   final int notificationCount;
   final VoidCallback onNotificationTap;
+  final VoidCallback onProfileTap;
 
   const _PortraitScaffold({
     required this.role,
@@ -189,6 +200,7 @@ class _PortraitScaffold extends StatelessWidget {
     required this.onNavSelected,
     required this.notificationCount,
     required this.onNotificationTap,
+    required this.onProfileTap,
   });
 
   @override
@@ -217,6 +229,7 @@ class _PortraitScaffold extends StatelessWidget {
                         HomeHeader(
                           notificationCount: notificationCount,
                           onNotificationTap: onNotificationTap,
+                          onAvatarTap: onProfileTap,
                         ),
                         SizedBox(height: screenHeight * 0.025),
                         HomeSearchBar(controller: searchController),
@@ -338,6 +351,7 @@ class _LandscapeScaffold extends StatelessWidget {
   final ValueChanged<HomeNavItem> onNavSelected;
   final int notificationCount;
   final VoidCallback onNotificationTap;
+  final VoidCallback onProfileTap;
 
   const _LandscapeScaffold({
     required this.role,
@@ -346,6 +360,7 @@ class _LandscapeScaffold extends StatelessWidget {
     required this.onNavSelected,
     required this.notificationCount,
     required this.onNotificationTap,
+    required this.onProfileTap,
   });
 
   @override
@@ -388,6 +403,7 @@ class _LandscapeScaffold extends StatelessWidget {
                               HomeHeader(
                                 notificationCount: notificationCount,
                                 onNotificationTap: onNotificationTap,
+                                onAvatarTap: onProfileTap,
                               ),
                               const SizedBox(height: 14),
                               HomeSearchBar(controller: searchController),
