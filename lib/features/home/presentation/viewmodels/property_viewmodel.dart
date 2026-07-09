@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/auth/domain/repositories/auth_repository.dart';
-import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
-import 'package:vivia_mobile/features/home/domain/models/property_type_model.dart';
-import 'package:vivia_mobile/features/home/domain/models/selected_category.dart';
-import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_likes_usecase.dart';
-import 'package:vivia_mobile/features/home/domain/usecases/get_properties_me_usecase.dart';
-import 'package:vivia_mobile/features/home/domain/usecases/get_property_suggestions_usecase.dart';
-import 'package:vivia_mobile/features/home/domain/usecases/get_property_types_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/models/property_model.dart';
+import 'package:vivia_mobile/shared/property/domain/models/property_type_model.dart';
+import 'package:vivia_mobile/shared/property/domain/models/selected_category.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/get_properties_me_likes_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/get_properties_me_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/get_property_suggestions_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/get_property_types_usecase.dart';
 
 enum PropertyLoadStatus { idle, loading, success, error }
 

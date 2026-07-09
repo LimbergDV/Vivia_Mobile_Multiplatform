@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
+import 'package:vivia_mobile/shared/property/domain/models/property_model.dart';
 
 class NearbyPropertyCard extends StatelessWidget {
   final PropertyModel property;
