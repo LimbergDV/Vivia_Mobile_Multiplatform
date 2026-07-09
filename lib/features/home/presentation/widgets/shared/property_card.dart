@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
+import 'package:vivia_mobile/shared/property/domain/models/property_model.dart';
 
 class PropertyCard extends StatelessWidget {
   final PropertyModel property;

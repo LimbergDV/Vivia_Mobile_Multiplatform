@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
-import 'package:vivia_mobile/features/home/domain/models/property_model.dart';
+import 'package:vivia_mobile/shared/property/domain/models/property_model.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/property_detail_page.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
@@ -11,10 +11,10 @@ import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_head
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_search_bar.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_property_card.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
-import 'package:vivia_mobile/features/lessor/presentation/pages/add_property_page.dart';
-import 'package:vivia_mobile/features/lessor/presentation/viewmodels/property_draft_viewmodel.dart';
+import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_property_page.dart';
+import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
-import 'package:vivia_mobile/features/home/presentation/pages/profile_page.dart';
+import 'package:vivia_mobile/features/user/presentation/pages/profile_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;

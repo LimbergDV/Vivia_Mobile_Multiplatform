@@ -1,0 +1,5 @@
+-dontwarn com.huawei.**
+-dontwarn com.android.org.conscrypt.**
+-dontwarn org.bouncycastle.crypto.**
+-dontwarn org.chromium.net.**
+-dontwarn org.conscrypt.**

@@ -1,17 +1,17 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vivia_mobile/features/home/domain/models/property_type_model.dart';
-import 'package:vivia_mobile/features/lessor/data/models/amenity_model.dart';
-import 'package:vivia_mobile/features/lessor/data/models/draft_upload_model.dart';
-import 'package:vivia_mobile/features/lessor/data/models/neighborhood_model.dart';
-import 'package:vivia_mobile/features/lessor/domain/models/draft_status_event.dart';
-import 'package:vivia_mobile/features/lessor/domain/repositories/lessor_repository.dart';
-import 'package:vivia_mobile/features/lessor/domain/usecases/get_amenities_usecase.dart';
-import 'package:vivia_mobile/features/lessor/domain/usecases/get_neighborhoods_usecase.dart';
-import 'package:vivia_mobile/features/lessor/domain/usecases/publish_property_draft_usecase.dart';
-import 'package:vivia_mobile/features/lessor/domain/usecases/watch_draft_status_usecase.dart';
-import 'package:vivia_mobile/features/lessor/presentation/viewmodels/property_draft_viewmodel.dart';
+import 'package:vivia_mobile/shared/property/domain/models/property_type_model.dart';
+import 'package:vivia_mobile/features/lessor/publishing/data/models/amenity_model.dart';
+import 'package:vivia_mobile/features/lessor/publishing/data/models/draft_upload_model.dart';
+import 'package:vivia_mobile/features/lessor/publishing/data/models/neighborhood_model.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/models/draft_status_event.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/repositories/lessor_repository.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_amenities_usecase.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_neighborhoods_usecase.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/publish_property_draft_usecase.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/watch_draft_status_usecase.dart';
+import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 
 class FakeLessorRepository implements LessorRepository {
   final List<String> log = [];

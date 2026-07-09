@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vivia_mobile/features/home/domain/models/selected_category.dart';
+import 'package:vivia_mobile/shared/property/domain/models/selected_category.dart';
 
 class CategoryChipList extends StatelessWidget {
   final List<SelectedCategory> categories;

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:vivia_mobile/features/home/domain/models/property_detail.dart';
-import 'package:vivia_mobile/features/home/domain/usecases/get_property_by_id_usecase.dart';
-import 'package:vivia_mobile/features/home/domain/usecases/toggle_like_usecase.dart';
 import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
 import 'package:vivia_mobile/features/maps/domain/usecases/geocode_address_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/models/property_detail.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/get_property_by_id_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/toggle_like_usecase.dart';
 
 enum PropertyDetailStatus { idle, loading, success, error }
 
