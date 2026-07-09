@@ -25,6 +25,10 @@ import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/core/database/app_database.dart';
 import 'package:vivia_mobile/core/utils/jwt_utils.dart';
+import 'package:vivia_mobile/shared/chat/data/datasources/local/chat_mock_datasource.dart';
+import 'package:vivia_mobile/shared/chat/data/repositories/chat_repository_impl.dart';
+import 'package:vivia_mobile/shared/chat/domain/usecases/get_conversations_usecase.dart';
+import 'package:vivia_mobile/shared/chat/domain/usecases/get_messages_usecase.dart';
 import 'package:vivia_mobile/shared/notifications/data/datasources/local/notification_local_datasource.dart';
 import 'package:vivia_mobile/shared/notifications/data/mappers/notification_message_mapper.dart';
 import 'package:vivia_mobile/shared/notifications/data/models/notification_entity.dart';
@@ -294,6 +298,10 @@ void main() async {
   final getUnreadCountUseCase =
   GetUnreadCountUseCase(notificationRepository);
 
+  final chatRepository = ChatRepositoryImpl(local: ChatMockDatasourceImpl());
+  final getConversationsUseCase = GetConversationsUseCase(chatRepository);
+  final getMessagesUseCase = GetMessagesUseCase(chatRepository);
+
   _listenForegroundMessages(
     (message) => saveNotificationUseCase.execute(
       NotificationMessageMapper.toModel(message),
@@ -340,6 +348,9 @@ void main() async {
         Provider<MarkNotificationsReadUseCase>.value(
             value: markNotificationsReadUseCase),
         Provider<GetUnreadCountUseCase>.value(value: getUnreadCountUseCase),
+        Provider<GetConversationsUseCase>.value(
+            value: getConversationsUseCase),
+        Provider<GetMessagesUseCase>.value(value: getMessagesUseCase),
       ],
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)
