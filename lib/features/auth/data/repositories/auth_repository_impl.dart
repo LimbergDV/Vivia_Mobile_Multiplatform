@@ -165,6 +165,16 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   String? get savedAvatarUrl => _local.getAvatarUrl();
 
+  @override
+  String? get savedUserId {
+    final token = _local.getAccessToken();
+    if (token == null) return null;
+    final claims = JwtUtils.decodePayload(token);
+    return claims['sub']?.toString() ??
+        claims['userId']?.toString() ??
+        claims['id']?.toString();
+  }
+
   // ── Ubicación ─────────────────────────────────────────────────────────
 
   @override

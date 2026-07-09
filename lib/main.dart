@@ -23,6 +23,16 @@ import 'package:vivia_mobile/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/set_location_permission_shown_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
+import 'package:vivia_mobile/core/database/app_database.dart';
+import 'package:vivia_mobile/core/utils/jwt_utils.dart';
+import 'package:vivia_mobile/shared/notifications/data/datasources/local/notification_local_datasource.dart';
+import 'package:vivia_mobile/shared/notifications/data/mappers/notification_message_mapper.dart';
+import 'package:vivia_mobile/shared/notifications/data/models/notification_entity.dart';
+import 'package:vivia_mobile/shared/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:vivia_mobile/shared/notifications/domain/usecases/get_notifications_usecase.dart';
+import 'package:vivia_mobile/shared/notifications/domain/usecases/get_unread_count_usecase.dart';
+import 'package:vivia_mobile/shared/notifications/domain/usecases/mark_notifications_read_usecase.dart';
+import 'package:vivia_mobile/shared/notifications/domain/usecases/save_notification_usecase.dart';
 import 'package:vivia_mobile/shared/property/data/datasources/remote/property_remote_datasource.dart';
 import 'package:vivia_mobile/features/lessee/reports/data/datasources/remote/report_remote_datasource.dart';
 import 'package:vivia_mobile/shared/property/data/repositories/property_repository_impl.dart';
@@ -76,6 +86,25 @@ FlutterLocalNotificationsPlugin();
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await _persistIncoming(message);
+}
+
+String? _userIdFromToken(String token) {
+  final claims = JwtUtils.decodePayload(token);
+  return claims['sub']?.toString() ??
+      claims['userId']?.toString() ??
+      claims['id']?.toString();
+}
+
+Future<void> _persistIncoming(RemoteMessage message) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('access_token');
+  if (token == null) return;
+  final userId = _userIdFromToken(token);
+  if (userId == null) return;
+  final model = NotificationMessageMapper.toModel(message);
+  final datasource = NotificationLocalDatasourceImpl(AppDatabase.instance);
+  await datasource.insert(NotificationEntity.fromModel(model, userId));
 }
 
 Future<void> _initLocalNotifications() async {
@@ -95,8 +124,10 @@ Future<void> _initLocalNotifications() async {
       ?.createNotificationChannel(channel);
 }
 
-void _listenForegroundMessages() {
+void _listenForegroundMessages(void Function(RemoteMessage) onCapture) {
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    onCapture(message);
+
     final notification = message.notification;
     if (notification == null) return;
 
@@ -126,7 +157,6 @@ void main() async {
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   await _initLocalNotifications();
-  _listenForegroundMessages();
 
   await FirebaseMessaging.instance.requestPermission(
     alert: true,
@@ -249,6 +279,27 @@ void main() async {
   final submitReportUseCase = SubmitReportUseCase(reportRepository);
   final getReportReasonsUseCase = GetReportReasonsUseCase(reportRepository);
 
+  final notificationLocalDatasource =
+  NotificationLocalDatasourceImpl(AppDatabase.instance);
+  final notificationRepository = NotificationRepositoryImpl(
+    local: notificationLocalDatasource,
+    getUserId: () => authRepository.savedUserId,
+  );
+  final getNotificationsUseCase =
+  GetNotificationsUseCase(notificationRepository);
+  final saveNotificationUseCase =
+  SaveNotificationUseCase(notificationRepository);
+  final markNotificationsReadUseCase =
+  MarkNotificationsReadUseCase(notificationRepository);
+  final getUnreadCountUseCase =
+  GetUnreadCountUseCase(notificationRepository);
+
+  _listenForegroundMessages(
+    (message) => saveNotificationUseCase.execute(
+      NotificationMessageMapper.toModel(message),
+    ),
+  );
+
   final isLoggedIn = authRepository.isLoggedIn;
   final savedUserName = authRepository.savedUserName;
   final savedRole = authRepository.savedRole;
@@ -284,6 +335,11 @@ void main() async {
         ChangeNotifierProvider.value(value: propertyDraftViewModel),
         ChangeNotifierProvider.value(value: verificationViewModel),
         Provider<GetReportReasonsUseCase>.value(value: getReportReasonsUseCase),
+        Provider<GetNotificationsUseCase>.value(
+            value: getNotificationsUseCase),
+        Provider<MarkNotificationsReadUseCase>.value(
+            value: markNotificationsReadUseCase),
+        Provider<GetUnreadCountUseCase>.value(value: getUnreadCountUseCase),
       ],
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)
