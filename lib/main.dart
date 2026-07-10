@@ -43,6 +43,7 @@ import 'package:vivia_mobile/shared/property/data/repositories/property_reposito
 import 'package:vivia_mobile/features/lessee/reports/data/repositories/report_repository_impl.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_properties_me_likes_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_properties_me_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/get_properties_near_me_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_by_id_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_media_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_suggestions_usecase.dart';
@@ -76,6 +77,10 @@ import 'package:vivia_mobile/features/user/domain/usecases/update_password_useca
 import 'package:vivia_mobile/features/user/domain/usecases/update_phone_usecase.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/update_profile_photo_usecase.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/register_fcm_token_usecase.dart';
+import 'package:vivia_mobile/features/maps/data/datasources/remote/maps_remote_datasource.dart';
+import 'package:vivia_mobile/features/maps/data/repositories/maps_repository_impl.dart';
+import 'package:vivia_mobile/features/maps/domain/usecases/geocode_address_usecase.dart';
+import 'package:vivia_mobile/features/maps/domain/usecases/reverse_geocode_usecase.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 import 'package:vivia_mobile/firebase_options.dart';
 
@@ -241,6 +246,8 @@ void main() async {
     GetPropertiesMeLikesUseCase(propertyRepository),
     getPropertySuggestionsUseCase:
     GetPropertySuggestionsUseCase(propertyRepository),
+    getPropertiesNearMeUseCase:
+    GetPropertiesNearMeUseCase(propertyRepository),
     authRepository: authRepository,
   );
   propertyViewModelRef = propertyViewModel;
@@ -249,6 +256,12 @@ void main() async {
   final getPropertyMediaUseCase = GetPropertyMediaUseCase(propertyRepository);
   final toggleLikeUseCase = ToggleLikeUseCase(propertyRepository);
   final deletePropertyUseCase = DeletePropertyUseCase(propertyRepository);
+
+  // Servicio de mapas propio (sin auth): cliente plano para no enviar el JWT.
+  final mapsRemoteDatasource = MapsRemoteDatasourceImpl(http.Client());
+  final mapsRepository = MapsRepositoryImpl(remote: mapsRemoteDatasource);
+  final geocodeAddressUseCase = GeocodeAddressUseCase(mapsRepository);
+  final reverseGeocodeUseCase = ReverseGeocodeUseCase(mapsRepository);
 
   final lessorRemoteDatasource =
   LessorRemoteDatasourceImpl(authHttpClient, http.Client());
@@ -259,6 +272,8 @@ void main() async {
     getAmenitiesUseCase: GetAmenitiesUseCase(lessorRepository),
     publishPropertyDraftUseCase: PublishPropertyDraftUseCase(lessorRepository),
     watchDraftStatusUseCase: WatchDraftStatusUseCase(lessorRepository),
+    geocodeAddressUseCase: geocodeAddressUseCase,
+    reverseGeocodeUseCase: reverseGeocodeUseCase,
   );
 
   final lessorVerificationRemoteDatasource =
@@ -343,6 +358,7 @@ void main() async {
         ChangeNotifierProvider.value(value: propertyDraftViewModel),
         ChangeNotifierProvider.value(value: verificationViewModel),
         Provider<GetReportReasonsUseCase>.value(value: getReportReasonsUseCase),
+        Provider<GeocodeAddressUseCase>.value(value: geocodeAddressUseCase),
         Provider<GetNotificationsUseCase>.value(
             value: getNotificationsUseCase),
         Provider<MarkNotificationsReadUseCase>.value(

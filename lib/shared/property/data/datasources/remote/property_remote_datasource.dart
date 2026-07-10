@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:vivia_mobile/shared/property/data/datasources/remote/constants/property_api_constants.dart';
@@ -16,6 +17,7 @@ abstract class PropertyRemoteDatasource {
   Future<PropertyDetail> getPropertyById(String id);
   Future<List<PropertyMedia>> getPropertyMedia(String id);
   Future<List<PropertySummaryModel>> getPropertySuggestions();
+  Future<List<PropertySummaryModel>> getPropertiesNearMe();
   Future<bool> toggleLike(String propertyId);
   Future<void> deleteProperty(String id);
 }
@@ -101,6 +103,18 @@ class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
       Uri.parse(PropertyApiConstants.propertiesSuggestions),
       headers: PropertyApiConstants.headers(),
     ).timeout(_timeout);
+    return _parseList(res, PropertySummaryModel.fromJson);
+  }
+
+  @override
+  Future<List<PropertySummaryModel>> getPropertiesNearMe() async {
+    // TODO(debug): logs temporales para diagnosticar /properties/nearme
+    debugPrint('[nearme] GET ${PropertyApiConstants.propertiesNearMe}');
+    final res = await _client.get(
+      Uri.parse(PropertyApiConstants.propertiesNearMe),
+      headers: PropertyApiConstants.headers(),
+    ).timeout(_timeout);
+    debugPrint('[nearme] status=${res.statusCode} body=${res.body}');
     return _parseList(res, PropertySummaryModel.fromJson);
   }
 

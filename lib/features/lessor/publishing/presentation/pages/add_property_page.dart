@@ -232,7 +232,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
 
                       FormSectionHeader(
                         label: 'Tipo De Propiedad',
@@ -437,3 +437,4 @@ class _DropdownWrapper extends StatelessWidget {
     );
   }
 }
+

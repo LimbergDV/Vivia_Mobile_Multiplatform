@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
+import 'package:vivia_mobile/features/maps/domain/usecases/geocode_address_usecase.dart';
+import 'package:vivia_mobile/features/maps/domain/usecases/reverse_geocode_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_type_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/amenity_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/draft_upload_model.dart';
@@ -15,6 +18,10 @@ import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/watch_dr
 
 enum NeighborhoodsStatus { idle, loading, success, error }
 
+/// [needsPin]: el geocoding solo resolvió a nivel colonia/CP (o 404) y el
+/// usuario debe colocar el pin manualmente en el mapa de la revisión.
+enum LocationPreviewStatus { idle, loading, ready, needsPin, unavailable }
+
 enum AmenitiesStatus { idle, loading, success, error }
 
 enum PublishStatus { idle, loading, success, error }
@@ -26,16 +33,22 @@ class PropertyDraftViewModel extends ChangeNotifier {
   final GetAmenitiesUseCase _getAmenities;
   final PublishPropertyDraftUseCase _publishDraft;
   final WatchDraftStatusUseCase _watchDraftStatus;
+  final GeocodeAddressUseCase? _geocodeAddress;
+  final ReverseGeocodeUseCase? _reverseGeocode;
 
   PropertyDraftViewModel({
     required GetNeighborhoodsUseCase getNeighborhoodsUseCase,
     required GetAmenitiesUseCase getAmenitiesUseCase,
     required PublishPropertyDraftUseCase publishPropertyDraftUseCase,
     required WatchDraftStatusUseCase watchDraftStatusUseCase,
+    GeocodeAddressUseCase? geocodeAddressUseCase,
+    ReverseGeocodeUseCase? reverseGeocodeUseCase,
   }) : _getNeighborhoods = getNeighborhoodsUseCase,
        _getAmenities = getAmenitiesUseCase,
        _publishDraft = publishPropertyDraftUseCase,
-       _watchDraftStatus = watchDraftStatusUseCase;
+       _watchDraftStatus = watchDraftStatusUseCase,
+       _geocodeAddress = geocodeAddressUseCase,
+       _reverseGeocode = reverseGeocodeUseCase;
 
   // ── Estado del formulario ─────────────────────────────────────────────────
   NewPropertyForm _form = const NewPropertyForm();
@@ -46,6 +59,34 @@ class PropertyDraftViewModel extends ChangeNotifier {
   PublishStatus _publishStatus = PublishStatus.idle;
   String? _publishError;
   String? _publishedDraftId;
+
+  // ── Vista previa de ubicación en el mapa (solo visual) ───────────────────
+  Timer? _previewDebounce;
+  int _previewGeneration = 0;
+  LocationPreviewStatus _previewStatus = LocationPreviewStatus.idle;
+  GeocodeResult? _previewPoint;
+
+  // Pin colocado manualmente por el usuario cuando el geocoding no resolvió
+  // el predio exacto. Tiene prioridad sobre _previewPoint al publicar.
+  GeocodeResult? _manualPoint;
+  String? _manualAddressLabel;
+
+  LocationPreviewStatus get previewStatus => _previewStatus;
+  GeocodeResult? get previewPoint => _previewPoint;
+  GeocodeResult? get manualPoint => _manualPoint;
+  String? get manualAddressLabel => _manualAddressLabel;
+
+  // Centro del mapa para colocar el pin: el pin manual si ya existe, luego
+  // el punto aproximado del geocoding, y como último recurso Tuxtla (sin
+  // catálogo de municipios aún no hay mejor ancla tras un 404).
+  static const _tuxtlaCenter = GeocodeResult(
+    lat: 16.7452,
+    lon: -93.1418,
+    displayName: 'Tuxtla Gutiérrez',
+    precision: GeocodePrecision.postcode,
+  );
+  GeocodeResult get pinMapCenter =>
+      _manualPoint ?? _previewPoint ?? _tuxtlaCenter;
 
   // ── Estado del stream de validación ──────────────────────────────────────
   StreamSubscription<DraftStatusEvent>? _streamSubscription;
@@ -95,6 +136,12 @@ class PropertyDraftViewModel extends ChangeNotifier {
     _publishStatus = PublishStatus.idle;
     _publishError = null;
     _publishedDraftId = null;
+    _previewDebounce?.cancel();
+    _previewGeneration++;
+    _previewStatus = LocationPreviewStatus.idle;
+    _previewPoint = null;
+    _manualPoint = null;
+    _manualAddressLabel = null;
     notifyListeners();
   }
 
@@ -134,6 +181,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _streamSubscription?.cancel();
+    _previewDebounce?.cancel();
     super.dispose();
   }
 
@@ -150,12 +198,14 @@ class PropertyDraftViewModel extends ChangeNotifier {
     _neighborhoods = [];
     _neighborhoodsStatus = NeighborhoodsStatus.idle;
     notifyListeners();
+    _scheduleLocationPreview();
     if (cp.length == 5) fetchNeighborhoods(cp);
   }
 
   void setNeighborhood(NeighborhoodModel neighborhood) {
     _form = _form.copyWith(neighborhood: neighborhood);
     notifyListeners();
+    _scheduleLocationPreview();
   }
 
   void setPropertyType(PropertyTypeModel propertyType) {
@@ -166,11 +216,95 @@ class PropertyDraftViewModel extends ChangeNotifier {
   void setStreet(String street) {
     _form = _form.copyWith(street: street);
     notifyListeners();
+    _scheduleLocationPreview();
+  }
+
+  /// Geocodifica la dirección capturada con el endpoint estructurado
+  /// (/geocode/address): manda cp + calle + numero + colonia — cada campo
+  /// extra sube la precisión. Debounce agresivo: el servicio no está pensado
+  /// para search-as-you-type (integration.md §4.7). El punto resuelto (o el
+  /// pin manual) viaja como latitude/longitude en el draft (_buildFormBody).
+  void _scheduleLocationPreview() {
+    final geocode = _geocodeAddress;
+    if (geocode == null) return;
+
+    _previewDebounce?.cancel();
+    final street = _form.street?.trim() ?? '';
+    final neighborhood = _form.neighborhood;
+    final cp = (neighborhood?.postalCode ?? _form.postalCode ?? '').trim();
+    if (street.length < 5 || neighborhood == null || cp.length != 5) {
+      if (_previewStatus != LocationPreviewStatus.idle) {
+        _previewStatus = LocationPreviewStatus.idle;
+        _previewPoint = null;
+        _manualPoint = null;
+        _manualAddressLabel = null;
+        notifyListeners();
+      }
+      return;
+    }
+
+    _previewDebounce = Timer(const Duration(milliseconds: 900), () async {
+      final generation = ++_previewGeneration;
+      _previewStatus = LocationPreviewStatus.loading;
+      notifyListeners();
+      try {
+        final result = await geocode.execute(
+          cp: cp,
+          street: street,
+          exteriorNumber: _form.exteriorNumber,
+          neighborhood: neighborhood.name,
+        );
+        if (generation != _previewGeneration) return; // respuesta obsoleta
+        _previewPoint = result;
+        // null = 404 (fuera de zona de servicio según OSM) y aproximado =
+        // colonia/CP: en ambos casos el usuario coloca el pin manualmente.
+        _previewStatus = (result == null || result.isApproximate)
+            ? LocationPreviewStatus.needsPin
+            : LocationPreviewStatus.ready;
+      } catch (_) {
+        if (generation != _previewGeneration) return;
+        _previewPoint = null;
+        _previewStatus = LocationPreviewStatus.unavailable;
+      }
+      // La dirección cambió: un pin manual anterior ya no aplica.
+      _manualPoint = null;
+      _manualAddressLabel = null;
+      notifyListeners();
+    });
+  }
+
+  /// Pin colocado por el usuario en el mapa. Confirma la dirección con
+  /// /reverse; las coordenadas son válidas aunque el reverse no resuelva.
+  Future<void> setManualPoint(double lat, double lon) async {
+    _manualPoint = GeocodeResult(
+      lat: lat,
+      lon: lon,
+      displayName: '',
+      precision: GeocodePrecision.exact,
+    );
+    _manualAddressLabel = null;
+    notifyListeners();
+
+    final reverse = _reverseGeocode;
+    if (reverse == null) return;
+    try {
+      final name = await reverse.execute(lat, lon);
+      // Ignorar si el usuario ya movió el pin a otro lado.
+      if (_manualPoint?.lat != lat || _manualPoint?.lon != lon) return;
+      _manualAddressLabel = name ??
+          'Ubicación sin dirección registrada '
+              '(${lat.toStringAsFixed(5)}, ${lon.toStringAsFixed(5)})';
+    } catch (_) {
+      // Reverse falló: el pin sigue siendo válido, solo sin etiqueta.
+    }
+    notifyListeners();
   }
 
   void setExteriorNumber(String number) {
     _form = _form.copyWith(exteriorNumber: number);
     notifyListeners();
+    // El número exterior habilita la precisión "exact" del geocoding.
+    _scheduleLocationPreview();
   }
 
   void setInteriorNumber(String number) {
@@ -394,8 +528,19 @@ class PropertyDraftViewModel extends ChangeNotifier {
       'isCondominium': _form.isCondominium,
       'listedPrice': double.tryParse(_form.price ?? '0') ?? 0.0,
       'amenityIds': _form.amenityIds,
+      // Guardar siempre las coordenadas resultantes: el pin manual tiene
+      // prioridad; si no hay, el geocoding solo cuando resolvió el predio
+      // (ready). Sin punto, el draft va sin coordenadas (opcionales).
+      if (_publishPoint != null) ...{
+        'latitude': _publishPoint!.lat,
+        'longitude': _publishPoint!.lon,
+      },
     };
   }
+
+  GeocodeResult? get _publishPoint =>
+      _manualPoint ??
+      (_previewStatus == LocationPreviewStatus.ready ? _previewPoint : null);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   String _fileKey(String path) {

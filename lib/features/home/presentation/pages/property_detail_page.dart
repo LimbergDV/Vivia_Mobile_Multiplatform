@@ -17,6 +17,10 @@ import 'package:vivia_mobile/features/home/presentation/viewmodels/property_deta
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/lessee/reports/presentation/viewmodels/report_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
+import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
+import 'package:vivia_mobile/features/maps/domain/usecases/geocode_address_usecase.dart';
+import 'package:vivia_mobile/features/maps/presentation/pages/map_fullscreen_page.dart';
+import 'package:vivia_mobile/features/maps/presentation/widgets/property_location_map.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 
 class PropertyDetailPage extends StatefulWidget {
@@ -47,6 +51,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     _vm = PropertyDetailViewModel(
       getPropertyByIdUseCase: context.read<GetPropertyByIdUseCase>(),
       toggleLikeUseCase: context.read<ToggleLikeUseCase>(),
+      geocodeAddressUseCase: context.read<GeocodeAddressUseCase>(),
       initialLike: widget.property.isFavorite,
       onLikeChanged: propertyVm.updatePropertyLike,
     );
@@ -258,6 +263,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       isLandscape: isLandscape,
                       isLessor: isLessor,
                       isFavorite: _vm.currentLike,
+                      mapStatus: _vm.mapStatus,
+                      mapPoint: _vm.mapPoint,
                       onFavoriteTap: () =>
                           _vm.toggleLike(widget.property.id),
                       onDeleteTap: _confirmDelete,
@@ -283,6 +290,8 @@ class _ContentBody extends StatelessWidget {
   final bool isLandscape;
   final bool isLessor;
   final bool isFavorite;
+  final PropertyMapStatus mapStatus;
+  final GeocodeResult? mapPoint;
   final VoidCallback onFavoriteTap;
   final VoidCallback onDeleteTap;
 
@@ -296,6 +305,8 @@ class _ContentBody extends StatelessWidget {
     required this.isLandscape,
     required this.isLessor,
     required this.isFavorite,
+    required this.mapStatus,
+    required this.mapPoint,
     required this.onFavoriteTap,
     required this.onDeleteTap,
   });
@@ -481,6 +492,13 @@ class _ContentBody extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+
+          _LocationMapCard(
+            status: mapStatus,
+            point: mapPoint,
+            address: location,
+          ),
           const SizedBox(height: 24),
 
           if (!isLessor)
@@ -523,6 +541,80 @@ class _ContentBody extends StatelessWidget {
           const SizedBox(height: 32),
         ],
       ),
+    );
+  }
+}
+
+/// Card del mapa en la sección Ubicación: skeleton mientras se
+/// geocodifica, mapa con pin si hay resultado, nada si no lo hay.
+class _LocationMapCard extends StatelessWidget {
+  final PropertyMapStatus status;
+  final GeocodeResult? point;
+  final String address;
+
+  const _LocationMapCard({
+    required this.status,
+    required this.point,
+    required this.address,
+  });
+
+  static const _height = 200.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final child = switch (status) {
+      PropertyMapStatus.loading => Container(
+          key: const ValueKey('map-skeleton'),
+          height: _height,
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      PropertyMapStatus.unavailable => const SizedBox.shrink(),
+      PropertyMapStatus.ready => Column(
+          key: const ValueKey('map-ready'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: _height,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: PropertyLocationMap(
+                  point: point!,
+                  onExpand: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => MapFullscreenPage(
+                          point: point!,
+                          address: address,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            if (point!.isApproximate) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Ubicación aproximada',
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ],
+        ),
+    };
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: child,
     );
   }
 }

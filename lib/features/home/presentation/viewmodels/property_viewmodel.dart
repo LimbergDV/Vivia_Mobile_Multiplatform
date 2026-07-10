@@ -5,6 +5,7 @@ import 'package:vivia_mobile/shared/property/domain/models/property_type_model.d
 import 'package:vivia_mobile/shared/property/domain/models/selected_category.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_properties_me_likes_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_properties_me_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/get_properties_near_me_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_suggestions_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_types_usecase.dart';
 
@@ -15,6 +16,7 @@ class PropertyViewModel extends ChangeNotifier {
   final GetPropertiesMeUseCase _getPropertiesMe;
   final GetPropertiesMeLikesUseCase _getPropertiesMeLikes;
   final GetPropertySuggestionsUseCase _getPropertySuggestions;
+  final GetPropertiesNearMeUseCase _getPropertiesNearMe;
   final AuthRepository _authRepository;
 
   PropertyViewModel({
@@ -22,11 +24,13 @@ class PropertyViewModel extends ChangeNotifier {
     required GetPropertiesMeUseCase getPropertiesMeUseCase,
     required GetPropertiesMeLikesUseCase getPropertiesMeLikesUseCase,
     required GetPropertySuggestionsUseCase getPropertySuggestionsUseCase,
+    required GetPropertiesNearMeUseCase getPropertiesNearMeUseCase,
     required AuthRepository authRepository,
   })  : _getPropertyTypes = getPropertyTypesUseCase,
         _getPropertiesMe = getPropertiesMeUseCase,
         _getPropertiesMeLikes = getPropertiesMeLikesUseCase,
         _getPropertySuggestions = getPropertySuggestionsUseCase,
+        _getPropertiesNearMe = getPropertiesNearMeUseCase,
         _authRepository = authRepository;
 
   PropertyLoadStatus _typesStatus = PropertyLoadStatus.idle;
@@ -39,6 +43,7 @@ class PropertyViewModel extends ChangeNotifier {
   SelectedCategory _selectedCategory = const AllCategory();
   List<PropertyModel> _allProperties = [];
   List<PropertyModel> _likedProperties = [];
+  List<PropertyModel> _nearbyProperties = [];
 
   List<SelectedCategory> get categoryTabs => _categoryTabs;
   SelectedCategory get selectedCategory => _selectedCategory;
@@ -50,7 +55,7 @@ class PropertyViewModel extends ChangeNotifier {
         _allProperties.where((p) => p.type == t.name).toList(),
   };
 
-  List<PropertyModel> get nearbyProperties => _allProperties.take(4).toList();
+  List<PropertyModel> get nearbyProperties => _nearbyProperties;
 
   bool get isLessor => _authRepository.savedRole == 'ROLE_LESSOR';
 
@@ -72,6 +77,7 @@ class PropertyViewModel extends ChangeNotifier {
     await Future.wait([
       _loadTypes(),
       isLessor ? _loadPropertiesMe() : _loadPropertySuggestions(),
+      if (!isLessor) _loadNearby(),
       _loadLikesEager(),
     ]);
     _syncLikedIntoAll();
@@ -126,6 +132,7 @@ class PropertyViewModel extends ChangeNotifier {
     await Future.wait([
       _loadTypes(),
       isLessor ? _loadPropertiesMe() : _loadPropertySuggestions(),
+      if (!isLessor) _loadNearby(),
       if (_selectedCategory is FavoritesCategory) _loadLikes(),
     ]);
   }
@@ -153,6 +160,19 @@ class PropertyViewModel extends ChangeNotifier {
     }
   }
 
+  // Carga silenciosa: si /properties/nearme falla, la sección se oculta sola
+  Future<void> _loadNearby() async {
+    try {
+      _nearbyProperties = await _getPropertiesNearMe.execute();
+      debugPrint('[nearme] OK: ${_nearbyProperties.length} propiedades');
+    } catch (e) {
+      debugPrint('[nearme] ERROR: $e');
+      _nearbyProperties = [];
+    } finally {
+      notifyListeners();
+    }
+  }
+
   // Carga silenciosa de favoritos sin tocar propertiesStatus (usada en init)
   Future<void> _loadLikesEager() async {
     try {
@@ -160,11 +180,19 @@ class PropertyViewModel extends ChangeNotifier {
     } catch (_) {}
   }
 
-  // Marca isFavorite: true en _allProperties para items que estén en _likedProperties
+  // Marca isFavorite: true en _allProperties y _nearbyProperties para items
+  // que estén en _likedProperties
   void _syncLikedIntoAll() {
-    if (_likedProperties.isEmpty || _allProperties.isEmpty) return;
+    if (_likedProperties.isEmpty) return;
     final likedIds = {for (final p in _likedProperties) p.id};
-    _allProperties = _allProperties.map((p) {
+    _allProperties = _markFavorites(_allProperties, likedIds);
+    _nearbyProperties = _markFavorites(_nearbyProperties, likedIds);
+  }
+
+  List<PropertyModel> _markFavorites(
+      List<PropertyModel> list, Set<String> likedIds) {
+    if (list.isEmpty) return list;
+    return list.map((p) {
       if (!likedIds.contains(p.id)) return p;
       return PropertyModel(
         id: p.id, title: p.title, type: p.type, price: p.price,
@@ -182,12 +210,13 @@ class PropertyViewModel extends ChangeNotifier {
   void removeProperty(String propertyId) {
     _allProperties = _allProperties.where((p) => p.id != propertyId).toList();
     _likedProperties = _likedProperties.where((p) => p.id != propertyId).toList();
+    _nearbyProperties = _nearbyProperties.where((p) => p.id != propertyId).toList();
     notifyListeners();
   }
 
   void updatePropertyLike(String propertyId, bool liked) {
     PropertyModel? updated;
-    _allProperties = _allProperties.map((p) {
+    List<PropertyModel> apply(List<PropertyModel> list) => list.map((p) {
       if (p.id != propertyId) return p;
       updated = PropertyModel(
         id: p.id,
@@ -203,6 +232,9 @@ class PropertyViewModel extends ChangeNotifier {
       );
       return updated!;
     }).toList();
+
+    _allProperties = apply(_allProperties);
+    _nearbyProperties = apply(_nearbyProperties);
 
     if (liked) {
       if (updated != null && !_likedProperties.any((p) => p.id == propertyId)) {
@@ -222,6 +254,7 @@ class PropertyViewModel extends ChangeNotifier {
     _selectedCategory = const AllCategory();
     _allProperties = [];
     _likedProperties = [];
+    _nearbyProperties = [];
     notifyListeners();
   }
 }

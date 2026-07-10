@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/new_property_form.dart';
+import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
+import 'package:vivia_mobile/features/maps/presentation/widgets/property_location_map.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_property_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/gallery_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
@@ -236,7 +238,10 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
                         const SizedBox(height: 24),
                         _GallerySection(spacePhotos: vm.form.spacePhotos),
                         const SizedBox(height: 24),
-                        _LocationSection(locationText: _locationText(vm)),
+                        _LocationSection(
+                          locationText: _locationText(vm),
+                          vm: vm,
+                        ),
                         const SizedBox(height: 32),
                         _ActionButtons(
                           isPublishing:
@@ -638,8 +643,11 @@ class _GallerySection extends StatelessWidget {
 
 class _LocationSection extends StatelessWidget {
   final String locationText;
+  final PropertyDraftViewModel vm;
 
-  const _LocationSection({required this.locationText});
+  const _LocationSection({required this.locationText, required this.vm});
+
+  static const _mapHeight = 200.0;
 
   @override
   Widget build(BuildContext context) {
@@ -672,23 +680,89 @@ class _LocationSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        ClipRRect(
+        _buildMap(colorScheme, textTheme),
+      ],
+    );
+  }
+
+  Widget _buildMap(ColorScheme colorScheme, TextTheme textTheme) {
+    final manual = vm.manualPoint;
+    final preview = vm.previewPoint;
+    final status = vm.previewStatus;
+
+    if (status == LocationPreviewStatus.loading) {
+      return Container(
+        width: double.infinity,
+        height: _mapHeight,
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(14),
-          child: Container(
-            width: double.infinity,
-            height: 160,
-            color: colorScheme.surfaceContainerHighest,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(
-                  Icons.map_outlined,
-                  size: 48,
-                  color: colorScheme.onSurfaceVariant.withOpacity(0.3),
-                ),
-                Icon(Icons.location_on, size: 36, color: colorScheme.onSurface),
-              ],
+        ),
+      );
+    }
+
+    // Pin visible: el manual manda; si no, el del geocoding cuando resolvió
+    // el predio/calle (ready). En needsPin sin pin manual solo se centra el
+    // mapa y el usuario coloca el pin tocando.
+    final pinPoint =
+        manual ?? (status == LocationPreviewStatus.ready ? preview : null);
+    final showsMap = pinPoint != null ||
+        status == LocationPreviewStatus.needsPin;
+
+    if (!showsMap) {
+      // idle / unavailable: la dirección no resolvió en el mapa
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: double.infinity,
+          height: _mapHeight,
+          color: colorScheme.surfaceContainerHighest,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(
+                Icons.map_outlined,
+                size: 48,
+                color: colorScheme.onSurfaceVariant.withOpacity(0.3),
+              ),
+              Icon(Icons.location_on, size: 36, color: colorScheme.onSurface),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final caption = switch ((manual, pinPoint)) {
+      (final m?, _) => vm.manualAddressLabel ??
+          'Pin colocado manualmente '
+              '(${m.lat.toStringAsFixed(5)}, ${m.lon.toStringAsFixed(5)})',
+      (null, final p?) when p.precision == GeocodePrecision.street =>
+        'Ubicación aproximada — toca el mapa para ajustar el pin',
+      (null, _?) => 'Ubicación de tu propiedad',
+      _ => 'No ubicamos la dirección exacta — toca el mapa para colocar el pin',
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: _mapHeight,
+          width: double.infinity,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: PropertyLocationMap(
+              point: pinPoint ?? vm.pinMapCenter,
+              showPin: pinPoint != null,
+              onTap: vm.setManualPoint,
             ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          caption,
+          style: textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            fontStyle: FontStyle.italic,
           ),
         ),
       ],

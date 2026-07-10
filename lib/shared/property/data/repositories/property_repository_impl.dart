@@ -57,6 +57,12 @@ class PropertyRepositoryImpl implements PropertyRepository {
   }
 
   @override
+  Future<List<PropertyModel>> getPropertiesNearMe() async {
+    final summaries = await _remote.getPropertiesNearMe();
+    return summaries.map((s) => _toModel(s)).toList();
+  }
+
+  @override
   Future<bool> toggleLike(String propertyId) => _remote.toggleLike(propertyId);
 
   @override

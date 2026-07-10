@@ -24,6 +24,11 @@ class PropertyDetail {
   final bool condominium;
   final List<PropertyMedia> media;
 
+  /// Coordenadas persistidas al publicar; null en propiedades anteriores
+  /// a que el draft las aceptara (ahí el mapa se resuelve geocodificando).
+  final double? latitude;
+  final double? longitude;
+
   const PropertyDetail({
     required this.id,
     required this.title,
@@ -43,6 +48,8 @@ class PropertyDetail {
     required this.availableToRent,
     required this.condominium,
     required this.media,
+    this.latitude,
+    this.longitude,
   });
 
   /// URLs de los medios de tipo imagen.
@@ -57,6 +64,7 @@ class PropertyDetail {
   factory PropertyDetail.fromResponse(Map<String, dynamic> data) {
     final content = data['content'] as Map<String, dynamic>;
     final mediaJson = data['contentMedia'] as List<dynamic>? ?? const [];
+    final addressJson = content['address'] as Map<String, dynamic>;
 
     return PropertyDetail(
       id: content['id'] as String,
@@ -72,9 +80,7 @@ class PropertyDetail {
       propertyType: PropertyTypeModel.fromJson(
         content['propertyType'] as Map<String, dynamic>,
       ),
-      address: PropertyAddress.fromJson(
-        content['address'] as Map<String, dynamic>,
-      ),
+      address: PropertyAddress.fromJson(addressJson),
       amenities: (content['amenities'] as List<dynamic>? ?? const [])
           .map((e) => PropertyAmenity.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -87,6 +93,9 @@ class PropertyDetail {
       media: mediaJson
           .map((e) => PropertyMedia.fromJson(e as Map<String, dynamic>))
           .toList(),
+      // El backend las expone dentro de content.address.
+      latitude: (addressJson['latitude'] as num?)?.toDouble(),
+      longitude: (addressJson['longitude'] as num?)?.toDouble(),
     );
   }
 }
