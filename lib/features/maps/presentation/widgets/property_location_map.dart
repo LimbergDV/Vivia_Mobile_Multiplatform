@@ -16,11 +16,19 @@ class PropertyLocationMap extends StatefulWidget {
   final bool interactive;
   final VoidCallback? onExpand;
 
+  /// false: solo centra el mapa, sin marcador (para colocar pin manual).
+  final bool showPin;
+
+  /// Tap del usuario sobre el mapa (colocación/ajuste del pin).
+  final void Function(double lat, double lon)? onTap;
+
   const PropertyLocationMap({
     super.key,
     required this.point,
     this.interactive = true,
     this.onExpand,
+    this.showPin = true,
+    this.onTap,
   });
 
   static bool get isPlatformSupported =>
@@ -61,6 +69,9 @@ class _PropertyLocationMapState extends State<PropertyLocationMap> {
       myLocationEnabled: false,
       onMapCreated: (controller) => _controller = controller,
       onStyleLoadedCallback: () => _onStyleLoaded(context),
+      onMapClick: widget.onTap == null
+          ? null
+          : (_, latLng) => widget.onTap!(latLng.latitude, latLng.longitude),
       // Dentro de scrolls, el mapa reclama los gestos antes que la lista.
       gestureRecognizers: widget.interactive
           ? {Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new)}
@@ -96,6 +107,18 @@ class _PropertyLocationMapState extends State<PropertyLocationMap> {
   }
 
   MapLibreMapController? _controller;
+  Symbol? _symbol;
+  bool _styleLoaded = false;
+
+  @override
+  void didUpdateWidget(covariant PropertyLocationMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final moved = oldWidget.point.lat != widget.point.lat ||
+        oldWidget.point.lon != widget.point.lon;
+    if (_styleLoaded && (moved || oldWidget.showPin != widget.showPin)) {
+      _syncPin();
+    }
+  }
 
   Future<void> _onStyleLoaded(BuildContext context) async {
     // El controller lo entrega onMapCreated antes de cargar el estilo,
@@ -105,12 +128,41 @@ class _PropertyLocationMapState extends State<PropertyLocationMap> {
     try {
       final pin = await _pinBytes(Theme.of(context).colorScheme.primary);
       await controller.addImage(_pinImageId, pin);
-      await controller.addSymbol(SymbolOptions(
-        geometry: LatLng(widget.point.lat, widget.point.lon),
-        iconImage: _pinImageId,
-        iconSize: kIsWeb ? 0.5 : 1.0,
-        iconAnchor: 'bottom',
-      ));
+      _styleLoaded = true;
+      await _syncPin();
+    } catch (_) {
+      // Sin pin el mapa sigue siendo útil; no interrumpir la vista.
+    }
+  }
+
+  /// Agrega, mueve o quita el marcador según [widget.point] y [widget.showPin].
+  Future<void> _syncPin() async {
+    final controller = _controller;
+    if (controller == null || !mounted) return;
+    try {
+      if (!widget.showPin) {
+        if (_symbol != null) {
+          await controller.removeSymbol(_symbol!);
+          _symbol = null;
+        }
+        return;
+      }
+      final geometry = LatLng(widget.point.lat, widget.point.lon);
+      if (_symbol != null) {
+        await controller.updateSymbol(
+          _symbol!,
+          SymbolOptions(geometry: geometry),
+        );
+      } else {
+        _symbol = await controller.addSymbol(SymbolOptions(
+          geometry: geometry,
+          iconImage: _pinImageId,
+          iconSize: kIsWeb ? 0.5 : 1.0,
+          iconAnchor: 'bottom',
+        ));
+      }
+      // Mantener el pin a la vista cuando lo mueve el geocoding o el usuario.
+      await controller.animateCamera(CameraUpdate.newLatLng(geometry));
     } catch (_) {
       // Sin pin el mapa sigue siendo útil; no interrumpir la vista.
     }

@@ -6,6 +6,17 @@ class GeocodeAddressUseCase {
 
   GeocodeAddressUseCase(this._repository);
 
-  Future<GeocodeResult?> execute(String query) =>
-      _repository.geocodeAddress(query);
+  /// Mandar todos los campos disponibles: cada uno sube la precisión.
+  Future<GeocodeResult?> execute({
+    required String cp,
+    String? street,
+    String? exteriorNumber,
+    String? neighborhood,
+  }) =>
+      _repository.geocodeAddress(
+        cp: cp,
+        street: street,
+        exteriorNumber: exteriorNumber,
+        neighborhood: neighborhood,
+      );
 }

@@ -29,6 +29,7 @@ import 'package:vivia_mobile/shared/property/data/repositories/property_reposito
 import 'package:vivia_mobile/features/lessee/reports/data/repositories/report_repository_impl.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_properties_me_likes_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_properties_me_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/get_properties_near_me_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_by_id_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_media_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_suggestions_usecase.dart';
@@ -65,6 +66,7 @@ import 'package:vivia_mobile/features/user/domain/usecases/register_fcm_token_us
 import 'package:vivia_mobile/features/maps/data/datasources/remote/maps_remote_datasource.dart';
 import 'package:vivia_mobile/features/maps/data/repositories/maps_repository_impl.dart';
 import 'package:vivia_mobile/features/maps/domain/usecases/geocode_address_usecase.dart';
+import 'package:vivia_mobile/features/maps/domain/usecases/reverse_geocode_usecase.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 import 'package:vivia_mobile/firebase_options.dart';
 
@@ -210,6 +212,8 @@ void main() async {
     GetPropertiesMeLikesUseCase(propertyRepository),
     getPropertySuggestionsUseCase:
     GetPropertySuggestionsUseCase(propertyRepository),
+    getPropertiesNearMeUseCase:
+    GetPropertiesNearMeUseCase(propertyRepository),
     authRepository: authRepository,
   );
   propertyViewModelRef = propertyViewModel;
@@ -223,6 +227,7 @@ void main() async {
   final mapsRemoteDatasource = MapsRemoteDatasourceImpl(http.Client());
   final mapsRepository = MapsRepositoryImpl(remote: mapsRemoteDatasource);
   final geocodeAddressUseCase = GeocodeAddressUseCase(mapsRepository);
+  final reverseGeocodeUseCase = ReverseGeocodeUseCase(mapsRepository);
 
   final lessorRemoteDatasource =
   LessorRemoteDatasourceImpl(authHttpClient, http.Client());
@@ -234,6 +239,7 @@ void main() async {
     publishPropertyDraftUseCase: PublishPropertyDraftUseCase(lessorRepository),
     watchDraftStatusUseCase: WatchDraftStatusUseCase(lessorRepository),
     geocodeAddressUseCase: geocodeAddressUseCase,
+    reverseGeocodeUseCase: reverseGeocodeUseCase,
   );
 
   final lessorVerificationRemoteDatasource =

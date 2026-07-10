@@ -63,38 +63,47 @@ class PropertyDetailViewModel extends ChangeNotifier {
     }
   }
 
-  /// Geocodifica la dirección del detalle con la cadena de fallback
-  /// recomendada por el servicio: "calle, CP" → "calle, colonia" → "CP".
-  /// Nunca incluye número exterior ni la palabra "Colonia" (integration.md §4).
+  /// Si el detalle trae coordenadas persistidas las usa directo (pin exacto,
+  /// sin llamar al servicio). Solo cuando vienen nulas geocodifica con el
+  /// endpoint estructurado (/geocode/address) mandando todos los campos de
+  /// la dirección; null (404) = fuera de zona de servicio → mapa oculto.
   Future<void> _resolveMapPoint() async {
+    final detail = _detail;
+    final lat = detail?.latitude;
+    final lon = detail?.longitude;
+    if (detail != null && lat != null && lon != null) {
+      _mapPoint = GeocodeResult(
+        lat: lat,
+        lon: lon,
+        displayName: detail.address.formatted,
+        precision: GeocodePrecision.exact,
+      );
+      _mapStatus = PropertyMapStatus.ready;
+      notifyListeners();
+      return;
+    }
+
     final geocode = _geocodeAddress;
-    final address = _detail?.address;
-    if (geocode == null || address == null) {
+    final address = detail?.address;
+    final postalCode = address?.neighborhood.postalCode.trim() ?? '';
+    if (geocode == null || address == null || postalCode.length != 5) {
       _mapStatus = PropertyMapStatus.unavailable;
       return;
     }
 
-    final street = address.street.trim();
-    final postalCode = address.neighborhood.postalCode.trim();
-    final neighborhood = address.neighborhood.name.trim();
-    final queries = <String>[
-      if (street.isNotEmpty && postalCode.isNotEmpty) '$street, $postalCode',
-      if (street.isNotEmpty && neighborhood.isNotEmpty)
-        '$street, $neighborhood',
-      if (postalCode.isNotEmpty) postalCode,
-    ];
-
     try {
-      for (final query in queries) {
-        final result = await geocode.execute(query);
-        if (result != null) {
-          _mapPoint = result;
-          _mapStatus = PropertyMapStatus.ready;
-          notifyListeners();
-          return;
-        }
+      final result = await geocode.execute(
+        cp: postalCode,
+        street: address.street,
+        exteriorNumber: address.exteriorNumber,
+        neighborhood: address.neighborhood.name,
+      );
+      if (result != null) {
+        _mapPoint = result;
+        _mapStatus = PropertyMapStatus.ready;
+      } else {
+        _mapStatus = PropertyMapStatus.unavailable;
       }
-      _mapStatus = PropertyMapStatus.unavailable;
     } catch (_) {
       // El mapa es secundario: si el servicio falla, solo se oculta.
       _mapStatus = PropertyMapStatus.unavailable;

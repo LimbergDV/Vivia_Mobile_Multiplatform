@@ -12,6 +12,7 @@ class PropertyApiConstants {
   static String propertyDelete(String id) => '$baseUrl/properties/$id';
   static String propertyMedia(String id) => '$baseUrl/properties/media/$id';
   static String get propertiesSuggestions => '$baseUrl/properties/suggestions';
+  static String get propertiesNearMe => '$baseUrl/properties/nearme';
 
   static Map<String, String> headers() => AuthApiConstants.headers();
 }

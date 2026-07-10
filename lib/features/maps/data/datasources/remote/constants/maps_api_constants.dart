@@ -8,6 +8,7 @@ class MapsApiConstants {
   static String get baseUrl =>
       (dotenv.env['MAPS_BASE_URL'] ?? '').replaceAll(RegExp(r'/+$'), '');
 
-  static String get geocode => '$baseUrl/geocode';
+  static String get geocodeAddress => '$baseUrl/geocode/address';
+  static String get reverse => '$baseUrl/reverse';
   static String get styleUrl => '$baseUrl/style.json';
 }

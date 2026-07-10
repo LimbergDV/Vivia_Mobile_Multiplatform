@@ -1,36 +1,48 @@
 import 'package:vivia_mobile/features/maps/data/datasources/remote/maps_remote_datasource.dart';
-import 'package:vivia_mobile/features/maps/data/models/geocode_result_data_model.dart';
+import 'package:vivia_mobile/features/maps/data/models/geocode_address_data_model.dart';
 import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
 import 'package:vivia_mobile/features/maps/domain/repositories/maps_repository.dart';
 
 class MapsRepositoryImpl implements MapsRepository {
   final MapsRemoteDatasource _remote;
 
-  // Tipos que resuelven al eje de la calle o al centroide de una zona,
-  // no al predio exacto (ver integration.md §4).
-  static const _approximateTypes = {
-    'primary',
-    'secondary',
-    'tertiary',
-    'residential',
-    'postcode',
-    'administrative',
-  };
-
   MapsRepositoryImpl({required MapsRemoteDatasource remote})
       : _remote = remote;
 
   @override
-  Future<GeocodeResult?> geocodeAddress(String query) async {
-    final hits = await _remote.geocode(query, limit: 1);
-    if (hits.isEmpty) return null;
-    return _toModel(hits.first);
+  Future<GeocodeResult?> geocodeAddress({
+    required String cp,
+    String? street,
+    String? exteriorNumber,
+    String? neighborhood,
+  }) async {
+    final hit = await _remote.geocodeAddress(
+      cp: cp,
+      calle: street,
+      numero: exteriorNumber,
+      colonia: neighborhood,
+    );
+    if (hit == null) return null;
+    return _toModel(hit);
   }
 
-  GeocodeResult _toModel(GeocodeResultDataModel d) => GeocodeResult(
+  @override
+  Future<String?> reverseGeocode(double lat, double lon) =>
+      _remote.reverse(lat, lon);
+
+  GeocodeResult _toModel(GeocodeAddressDataModel d) => GeocodeResult(
         lat: d.lat,
         lon: d.lon,
         displayName: d.displayName,
-        isApproximate: _approximateTypes.contains(d.type),
+        precision: _parsePrecision(d.precision),
       );
+
+  // Valor desconocido → neighbourhood: se trata como aproximado y la UI
+  // pide pin manual, el comportamiento más seguro.
+  GeocodePrecision _parsePrecision(String raw) => switch (raw) {
+        'exact' => GeocodePrecision.exact,
+        'street' => GeocodePrecision.street,
+        'postcode' => GeocodePrecision.postcode,
+        _ => GeocodePrecision.neighbourhood,
+      };
 }
