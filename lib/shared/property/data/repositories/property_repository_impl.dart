@@ -1,4 +1,5 @@
 import 'package:vivia_mobile/shared/property/data/datasources/remote/property_remote_datasource.dart';
+import 'package:vivia_mobile/shared/property/data/models/media_upload_session_model.dart';
 import 'package:vivia_mobile/shared/property/data/models/property_summary_model.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_detail.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_media.dart';
@@ -67,4 +68,25 @@ class PropertyRepositoryImpl implements PropertyRepository {
 
   @override
   Future<void> deleteProperty(String id) => _remote.deleteProperty(id);
+
+  @override
+  Future<MediaUploadSessionModel> createMediaUploadSession(
+    Map<String, dynamic> body,
+  ) =>
+      _remote.createMediaUploadSession(body);
+
+  @override
+  Future<void> changeMainImage(String mainImageId, String newMainImageId) =>
+      _remote.changeMainImage(mainImageId, newMainImageId);
+
+  @override
+  Future<void> deleteMedia(String mediaId) => _remote.deleteMedia(mediaId);
+
+  @override
+  Future<void> uploadFile(
+    String uploadUrl,
+    String contentType,
+    List<int> bytes,
+  ) =>
+      _remote.uploadFile(uploadUrl, contentType, bytes);
 }

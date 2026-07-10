@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:vivia_mobile/features/lessor/publishing/presentation/helpers/media_picker_helper.dart';
+import 'package:vivia_mobile/shared/media/presentation/helpers/media_picker_helper.dart';
 
 class CategoryPhotosPage extends StatefulWidget {
   final String categoryName;

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:vivia_mobile/core/utils/media_file_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
@@ -9,7 +10,7 @@ import 'package:vivia_mobile/features/lessor/publishing/data/models/amenity_mode
 import 'package:vivia_mobile/features/lessor/publishing/data/models/draft_upload_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/neighborhood_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/draft_status_event.dart';
-import 'package:vivia_mobile/features/lessor/publishing/domain/models/media_manifest_item.dart';
+import 'package:vivia_mobile/shared/property/domain/models/media_manifest_item.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_amenities_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_neighborhoods_usecase.dart';
@@ -422,11 +423,11 @@ class PropertyDraftViewModel extends ChangeNotifier {
       final fileKeyToPath = <String, String>{};
 
       // Foto principal → classification MAIN
-      final mainKey = _fileKey(mainPhotoPath);
+      final mainKey = MediaFileUtils.fileKey(mainPhotoPath);
       manifest.add(
         MediaManifestItem(
           fileKey: mainKey,
-          contentType: _contentType(mainPhotoPath),
+          contentType: MediaFileUtils.contentType(mainPhotoPath),
           sizeBytes: await XFile(mainPhotoPath).length(),
           classification: 'MAIN',
         ),
@@ -437,11 +438,11 @@ class PropertyDraftViewModel extends ChangeNotifier {
       for (final entry in spacePhotos.entries) {
         final classification = entry.key.toUpperCase();
         for (final path in entry.value) {
-          final key = _uniqueFileKey(path, fileKeyToPath);
+          final key = MediaFileUtils.uniqueFileKey(path, fileKeyToPath);
           manifest.add(
             MediaManifestItem(
               fileKey: key,
-              contentType: _contentType(path),
+              contentType: MediaFileUtils.contentType(path),
               sizeBytes: await XFile(path).length(),
               classification: classification,
             ),
@@ -452,7 +453,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
 
       // Video → classification TOUR
       if (videoPath != null) {
-        final videoKey = _uniqueFileKey(videoPath, fileKeyToPath);
+        final videoKey = MediaFileUtils.uniqueFileKey(videoPath, fileKeyToPath);
         manifest.add(
           MediaManifestItem(
             fileKey: videoKey,
@@ -541,31 +542,4 @@ class PropertyDraftViewModel extends ChangeNotifier {
   GeocodeResult? get _publishPoint =>
       _manualPoint ??
       (_previewStatus == LocationPreviewStatus.ready ? _previewPoint : null);
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  String _fileKey(String path) {
-    final filename = path.split('/').last.split('\\').last;
-    final dotIndex = filename.lastIndexOf('.');
-    return dotIndex != -1 ? filename.substring(0, dotIndex) : filename;
-  }
-
-  String _uniqueFileKey(String path, Map<String, String> existing) {
-    String key = _fileKey(path);
-    int suffix = 1;
-    while (existing.containsKey(key)) {
-      key = '${_fileKey(path)}_$suffix';
-      suffix++;
-    }
-    return key;
-  }
-
-  String _contentType(String path) {
-    final ext = path.split('.').last.toLowerCase();
-    return switch (ext) {
-      'mp4' => 'video/mp4',
-      'png' => 'image/png',
-      'webp' => 'image/webp',
-      _ => 'image/jpeg',
-    };
-  }
 }
