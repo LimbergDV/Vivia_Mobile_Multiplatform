@@ -15,6 +15,9 @@ import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_p
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 import 'package:vivia_mobile/features/user/presentation/pages/profile_page.dart';
+import 'package:vivia_mobile/shared/chat/presentation/pages/chats_page.dart';
+import 'package:vivia_mobile/shared/notifications/domain/usecases/get_unread_count_usecase.dart';
+import 'package:vivia_mobile/shared/notifications/presentation/pages/notifications_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -34,6 +37,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   HomeNavItem _selectedNav = HomeNavItem.home;
+  int _unreadCount = 0;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -44,7 +48,21 @@ class _HomePageState extends State<HomePage> {
       context.read<UserViewModel>().init(widget.userName, widget.avatarUrl);
       context.read<PropertyViewModel>().init();
       context.read<PropertyDraftViewModel>().addListener(_onDraftStreamUpdate);
+      _loadUnreadCount();
     });
+  }
+
+  Future<void> _loadUnreadCount() async {
+    final count = await context.read<GetUnreadCountUseCase>().execute();
+    if (mounted) setState(() => _unreadCount = count);
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotificationsPage()),
+    );
+    _loadUnreadCount();
   }
 
   void _onDraftStreamUpdate() {
@@ -107,20 +125,39 @@ class _HomePageState extends State<HomePage> {
       );
       return;
     }
+    if (item == HomeNavItem.notifications) {
+      _openNotifications();
+      return;
+    }
+    if (item == HomeNavItem.messages) {
+      _openChats();
+      return;
+    }
     if (item == HomeNavItem.profile) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ProfilePage(
-            userName: widget.userName,
-            avatarUrl: widget.avatarUrl,
-            role: widget.role,
-          ),
-        ),
-      );
+      _openProfile();
       return;
     }
     setState(() => _selectedNav = item);
+  }
+
+  void _openChats() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ChatsPage()),
+    );
+  }
+
+  void _openProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProfilePage(
+          userName: widget.userName,
+          avatarUrl: widget.avatarUrl,
+          role: widget.role,
+        ),
+      ),
+    );
   }
 
   @override
@@ -141,6 +178,9 @@ class _HomePageState extends State<HomePage> {
         selectedNav: _selectedNav,
         searchController: _searchController,
         onNavSelected: _onNavSelected,
+        notificationCount: _unreadCount,
+        onNotificationTap: _openNotifications,
+        onProfileTap: _openProfile,
       );
     }
 
@@ -149,6 +189,9 @@ class _HomePageState extends State<HomePage> {
       selectedNav: _selectedNav,
       searchController: _searchController,
       onNavSelected: _onNavSelected,
+      notificationCount: _unreadCount,
+      onNotificationTap: _openNotifications,
+      onProfileTap: _openProfile,
     );
   }
 }
@@ -158,12 +201,18 @@ class _PortraitScaffold extends StatelessWidget {
   final HomeNavItem selectedNav;
   final TextEditingController searchController;
   final ValueChanged<HomeNavItem> onNavSelected;
+  final int notificationCount;
+  final VoidCallback onNotificationTap;
+  final VoidCallback onProfileTap;
 
   const _PortraitScaffold({
     required this.role,
     required this.selectedNav,
     required this.searchController,
     required this.onNavSelected,
+    required this.notificationCount,
+    required this.onNotificationTap,
+    required this.onProfileTap,
   });
 
   @override
@@ -189,7 +238,11 @@ class _PortraitScaffold extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        const HomeHeader(notificationCount: 1),
+                        HomeHeader(
+                          notificationCount: notificationCount,
+                          onNotificationTap: onNotificationTap,
+                          onAvatarTap: onProfileTap,
+                        ),
                         SizedBox(height: screenHeight * 0.025),
                         HomeSearchBar(controller: searchController),
                         SizedBox(height: screenHeight * 0.02),
@@ -308,12 +361,18 @@ class _LandscapeScaffold extends StatelessWidget {
   final HomeNavItem selectedNav;
   final TextEditingController searchController;
   final ValueChanged<HomeNavItem> onNavSelected;
+  final int notificationCount;
+  final VoidCallback onNotificationTap;
+  final VoidCallback onProfileTap;
 
   const _LandscapeScaffold({
     required this.role,
     required this.selectedNav,
     required this.searchController,
     required this.onNavSelected,
+    required this.notificationCount,
+    required this.onNotificationTap,
+    required this.onProfileTap,
   });
 
   @override
@@ -353,7 +412,11 @@ class _LandscapeScaffold extends StatelessWidget {
                           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                           sliver: SliverList(
                             delegate: SliverChildListDelegate([
-                              const HomeHeader(notificationCount: 1),
+                              HomeHeader(
+                                notificationCount: notificationCount,
+                                onNotificationTap: onNotificationTap,
+                                onAvatarTap: onProfileTap,
+                              ),
                               const SizedBox(height: 14),
                               HomeSearchBar(controller: searchController),
                               const SizedBox(height: 14),
