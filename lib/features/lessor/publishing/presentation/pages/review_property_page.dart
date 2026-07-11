@@ -10,6 +10,8 @@ import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/galle
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 
 class ReviewPropertyPage extends StatefulWidget {
+  static const routeName = '/review-property';
+
   const ReviewPropertyPage({super.key});
 
   @override
@@ -75,9 +77,12 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
   }
 
   void _onEditInfo() {
-    Navigator.of(context).pushAndRemoveUntil(
+    // La review queda debajo en el stack; el formulario salta las páginas
+    // de fotos y regresa aquí con popUntil (modo editPreview).
+    context.read<PropertyDraftViewModel>().startPreviewEdit();
+    Navigator.push(
+      context,
       MaterialPageRoute(builder: (_) => const AddPropertyPage()),
-      (route) => route.isFirst,
     );
   }
 

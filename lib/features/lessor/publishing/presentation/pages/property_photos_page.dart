@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_model.dart';
-import 'package:vivia_mobile/features/lessor/publishing/presentation/helpers/media_picker_helper.dart';
+import 'package:vivia_mobile/shared/media/presentation/helpers/media_picker_helper.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/space_photos_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/dashed_upload_zone.dart';

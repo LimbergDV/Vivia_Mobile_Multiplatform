@@ -1,6 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:vivia_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:vivia_mobile/shared/media/presentation/helpers/media_picker_helper.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_media.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/add_property_media_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/change_main_image_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/delete_property_media_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_media_usecase.dart';
 import 'package:vivia_mobile/shared/media/presentation/pages/fullscreen_image_viewer.dart';
 import 'package:vivia_mobile/shared/media/presentation/pages/video_player_page.dart';
@@ -24,21 +31,44 @@ class _GalleryPageState extends State<GalleryPage> {
     super.initState();
     _vm = GalleryViewModel(
       getPropertyMediaUseCase: context.read<GetPropertyMediaUseCase>(),
+      addPropertyMediaUseCase: context.read<AddPropertyMediaUseCase>(),
+      changeMainImageUseCase: context.read<ChangeMainImageUseCase>(),
+      deletePropertyMediaUseCase: context.read<DeletePropertyMediaUseCase>(),
+      authRepository: context.read<AuthRepository>(),
     );
+    _vm.addListener(_showActionMessage);
     _vm.load(widget.propertyId);
   }
 
   @override
   void dispose() {
+    _vm.removeListener(_showActionMessage);
     _vm.dispose();
     super.dispose();
   }
 
-  void _openFullscreen(List<String> images, int index) {
+  void _showActionMessage() {
+    final message = _vm.consumeActionMessage();
+    if (message == null || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  void _openFullscreen(List<PropertyMedia> photos, int index) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) =>
-            FullscreenImageViewer(imageUrls: images, initialIndex: index),
+        builder: (_) => FullscreenImageViewer(
+          imageUrls: photos.map((m) => m.url).toList(growable: false),
+          initialIndex: index,
+          media: _vm.canEdit ? photos : null,
+          onDelete: _vm.canEdit ? _vm.deleteMedia : null,
+          onSetMain: _vm.canEdit ? _vm.setAsMain : null,
+        ),
       ),
     );
   }
@@ -51,9 +81,22 @@ class _GalleryPageState extends State<GalleryPage> {
           title: video.classification.trim().isEmpty
               ? null
               : video.classification,
+          onDelete: _vm.canEdit ? () => _vm.deleteMedia(video) : null,
         ),
       ),
     );
+  }
+
+  Future<void> _addMedia() async {
+    if (_isPhotosTab) {
+      final paths = await MediaPickerHelper.pickMultipleImages();
+      if (paths.isEmpty) return;
+      await _vm.addPhotos(paths);
+    } else {
+      final result = await MediaPickerHelper.pickVideoFromGallery();
+      if (!result.isSuccess) return;
+      await _vm.addVideo(result.path!);
+    }
   }
 
   @override
@@ -84,6 +127,25 @@ class _GalleryPageState extends State<GalleryPage> {
             color: colorScheme.onSurface,
           ),
         ),
+      ),
+      floatingActionButton: AnimatedBuilder(
+        animation: _vm,
+        builder: (context, _) {
+          final canAdd = _isPhotosTab ? _vm.canAddInCurrentCategory : _vm.canEdit;
+          if (!canAdd || _vm.isLoading || _vm.hasError) {
+            return const SizedBox.shrink();
+          }
+          return FloatingActionButton(
+            onPressed: _vm.isSubmitting ? null : _addMedia,
+            child: _vm.isSubmitting
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add),
+          );
+        },
       ),
       body: AnimatedBuilder(
         animation: _vm,
@@ -170,7 +232,7 @@ class _GalleryPageState extends State<GalleryPage> {
         const SizedBox(height: 16),
 
         Expanded(
-          child: photos.isEmpty
+          child: photos.isEmpty && _vm.displayedPendingPhotos.isEmpty
               ? _StatusMessage(
                   icon: Icons.photo_library_outlined,
                   message: 'No hay fotos en esta categoría',
@@ -189,7 +251,7 @@ class _GalleryPageState extends State<GalleryPage> {
     ColorScheme colorScheme,
   ) {
     final crossAxisCount = isLandscape ? 4 : 3;
-    final urls = photos.map((m) => m.url).toList(growable: false);
+    final pending = _vm.displayedPendingPhotos;
 
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -199,14 +261,17 @@ class _GalleryPageState extends State<GalleryPage> {
         mainAxisSpacing: 6,
         childAspectRatio: 0.75,
       ),
-      itemCount: urls.length,
+      itemCount: photos.length + pending.length,
       itemBuilder: (_, i) {
+        if (i >= photos.length) {
+          return _PendingTile(media: pending[i - photos.length]);
+        }
         return GestureDetector(
-          onTap: () => _openFullscreen(urls, i),
+          onTap: () => _openFullscreen(photos, i),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Image.network(
-              urls[i],
+              photos[i].url,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   Container(color: colorScheme.surfaceContainerHigh),
@@ -223,8 +288,9 @@ class _GalleryPageState extends State<GalleryPage> {
     bool isLandscape,
   ) {
     final videos = _vm.videos;
+    final pending = _vm.pendingVideos;
 
-    if (videos.isEmpty) {
+    if (videos.isEmpty && pending.isEmpty) {
       return _StatusMessage(
         icon: Icons.videocam_off_outlined,
         message: 'No hay videos disponibles',
@@ -242,12 +308,83 @@ class _GalleryPageState extends State<GalleryPage> {
         mainAxisSpacing: 10,
         childAspectRatio: 16 / 10,
       ),
-      itemCount: videos.length,
-      itemBuilder: (_, i) => _VideoTile(
-        video: videos[i],
-        onTap: () => _openVideo(videos[i]),
-        colorScheme: colorScheme,
-        textTheme: textTheme,
+      itemCount: videos.length + pending.length,
+      itemBuilder: (_, i) {
+        if (i >= videos.length) {
+          return _PendingTile(media: pending[i - videos.length]);
+        }
+        return _VideoTile(
+          video: videos[i],
+          onTap: () => _openVideo(videos[i]),
+          colorScheme: colorScheme,
+          textTheme: textTheme,
+        );
+      },
+    );
+  }
+}
+
+/// Tile de un medio recién subido: muestra el archivo local con un overlay
+/// "Subiendo..." / "En revisión" hasta que la moderación lo publique.
+class _PendingTile extends StatelessWidget {
+  final PendingMedia media;
+
+  const _PendingTile({required this.media});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final isUploading = media.state == PendingMediaState.uploading;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (media.isVideo)
+            ColoredBox(color: colorScheme.surfaceContainerHigh)
+          else
+            Image.file(
+              File(media.localPath),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  Container(color: colorScheme.surfaceContainerHigh),
+            ),
+          Container(
+            color: Colors.black.withOpacity(0.45),
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isUploading)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.hourglass_top_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                const SizedBox(height: 6),
+                Text(
+                  isUploading ? 'Subiendo...' : 'En revisión',
+                  textAlign: TextAlign.center,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

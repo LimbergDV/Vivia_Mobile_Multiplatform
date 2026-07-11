@@ -13,6 +13,8 @@ import 'package:vivia_mobile/shared/media/presentation/pages/fullscreen_image_vi
 import 'package:vivia_mobile/shared/media/presentation/pages/gallery_page.dart';
 import 'package:vivia_mobile/features/user/presentation/pages/profile_page.dart';
 import 'package:vivia_mobile/features/lessee/reports/presentation/pages/report_reason_page.dart';
+import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_property_page.dart';
+import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_detail_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/lessee/reports/presentation/viewmodels/report_viewmodel.dart';
@@ -122,6 +124,28 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
         SnackBar(content: Text('Error al eliminar: $e')),
       );
     }
+  }
+
+  Future<void> _onEdit() async {
+    final detail = _vm.detail;
+    if (detail == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Espera a que cargue la información de la propiedad'),
+        ),
+      );
+      return;
+    }
+    // Prellena el formulario en modo editPublished (salta las páginas de
+    // fotos y guarda con PATCH /properties/{id}).
+    context.read<PropertyDraftViewModel>().startPublishedEdit(detail);
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AddPropertyPage()),
+    );
+    if (!mounted) return;
+    // Al volver, refrescar el detalle y las tarjetas del listado.
+    _vm.load(widget.property.id);
+    context.read<PropertyViewModel>().refresh();
   }
 
   void _onNavSelected(HomeNavItem item) {
@@ -268,6 +292,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       onFavoriteTap: () =>
                           _vm.toggleLike(widget.property.id),
                       onDeleteTap: _confirmDelete,
+                      onEditTap: _onEdit,
                     ),
                   ),
                 ),
@@ -294,6 +319,7 @@ class _ContentBody extends StatelessWidget {
   final GeocodeResult? mapPoint;
   final VoidCallback onFavoriteTap;
   final VoidCallback onDeleteTap;
+  final VoidCallback onEditTap;
 
   const _ContentBody({
     required this.property,
@@ -309,6 +335,7 @@ class _ContentBody extends StatelessWidget {
     required this.mapPoint,
     required this.onFavoriteTap,
     required this.onDeleteTap,
+    required this.onEditTap,
   });
 
   @override
@@ -360,6 +387,7 @@ class _ContentBody extends StatelessWidget {
                           color: colorScheme.onSurface, size: 24),
                       padding: EdgeInsets.zero,
                       onSelected: (value) {
+                        if (value == 'edit') onEditTap();
                         if (value == 'delete') onDeleteTap();
                       },
                       itemBuilder: (_) => const [

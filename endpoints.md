@@ -1,185 +1,212 @@
-# Documentación de Endpoints — Verificación de Identidad del Arrendador
+# Documentación de Endpoints
 
-Documentación de referencia para el cliente móvil sobre el flujo de verificación de identidad del arrendador (`/lessors/verifications`).
+# PATCH `/properties/{id}` — Actualización parcial de una propiedad
 
-## Convenciones generales
+Actualiza **únicamente los campos enviados** en el cuerpo de la request. Es un PATCH real: todo campo omitido (o enviado como `null`) conserva su valor actual en la base de datos. Puede enviarse desde un solo campo hasta el cuerpo completo.
 
-- **Autenticación:** todos los endpoints requieren JWT en el header `Authorization: Bearer <token>` y rol `LESSOR`. El arrendador objetivo siempre se resuelve desde el token (claim de identidad).
-- **Content-Type:** `application/json` en request y response.
-- **Formato de respuesta:** todos los endpoints responden con el envelope `BaseResponse<T>`:
+- **Autenticación:** JWT con rol `LESSOR`. El arrendador se resuelve del token y **solo puede editar sus propias propiedades** (si no es el dueño → `403`).
+- **Content-Type:** `application/json`.
+- **Respuesta exitosa:** `200` con envelope `BaseResponse<PropertyResponseDto>` (la propiedad completa ya actualizada, incluyendo medios y amenidades).
+
+## Regla de oro del PATCH parcial
+
+| Cómo se envía el campo | Efecto |
+|---|---|
+| Omitido del JSON | No se modifica |
+| `null` explícito | No se modifica (equivale a omitirlo) |
+| Con valor | Se actualiza (y se valida) |
+
+> Consecuencia: **no es posible "borrar" un valor mandando `null`.** Un `null` siempre significa "no tocar".
+> Campos desconocidos en el JSON (ej. `"latitude"` al nivel raíz) se ignoran silenciosamente, sin error.
+
+## Qué SÍ actualiza
+
+### Campos escalares (nivel raíz)
+
+| Campo | Tipo | Validación (solo si se envía) |
+|---|---|---|
+| `title` | string | 10–200 caracteres |
+| `description` | string | 20–2000 caracteres |
+| `areaM2` | decimal | > 0 |
+| `bedrooms` | entero | ≥ 0 |
+| `bathrooms` | decimal | ≥ 0.5 |
+| `parkingSpaces` | entero | ≥ 0 |
+| `constructionYear` | entero | — |
+| `isCondominium` | boolean | — |
+| `isAvailableToRent` | boolean | — |
+| `listedPrice` | decimal | > 0 |
+
+### `propertyTypeId` — tipo de propiedad
+
+UUID de un tipo existente (casa, departamento, etc.). Si el ID no existe → `404`.
 
 ```json
 {
-  "success": true,
-  "data": null,
-  "message": "Mensaje descriptivo",
-  "status": "OK"
+    "propertyTypeId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890"
 }
 ```
 
-| Campo     | Tipo    | Descripción                                      |
-|-----------|---------|--------------------------------------------------|
-| `success` | boolean | `true` si la operación fue exitosa               |
-| `data`    | T\|null | Payload de respuesta; `null` en operaciones void |
-| `message` | string  | Mensaje legible en español                       |
-| `status`  | string  | Nombre del status HTTP (ej. `"OK"`)              |
+### `address` — dirección (objeto embebido)
 
-- **Errores comunes a todos los endpoints:**
-  - `400 Bad Request` — falla de validación del body (`@Valid`); el mensaje indica el campo inválido.
-  - `401 Unauthorized` — token ausente, inválido o expirado.
-  - `403 Forbidden` — el usuario autenticado no tiene rol `LESSOR`.
-  - `404 Not Found` — el arrendador del token no existe (`LessorNotFoundException`).
+Objeto anidado, **también con semántica parcial**: dentro de `address` cada subcampo es opcional y solo se actualiza lo enviado. La dirección se modifica *in place* — el `addressId` de la propiedad **no cambia**, no se crea un registro nuevo.
 
-## Estados de verificación
+| Subcampo | Tipo | Validación | Notas |
+|---|---|---|---|
+| `neighborhoodId` | UUID | Debe existir | `404` si no existe la colonia |
+| `street` | string | 1–100 caracteres | |
+| `exteriorNumber` | string | 1–10 caracteres | |
+| `interiorNumber` | string | ≤ 10 caracteres | |
+| `latitude` | decimal | -90 a 90 | **Debe venir junto con `longitude`** |
+| `longitude` | decimal | -180 a 180 | **Debe venir junto con `latitude`** |
 
-El arrendador siempre está en uno de estos estados (`VerificationStatus`):
+> ⚠️ **Regla lat/long:** enviar solo una de las dos coordenadas responde `400` con el mensaje `Both latitude and longitude must be provided together`. Juntas actualizan el punto geográfico (PostGIS) usado por las búsquedas por proximidad (`/properties/near-me`).
 
-| Estado           | Significado                                                    |
-|------------------|----------------------------------------------------------------|
-| `UNVERIFIED`     | No ha iniciado el proceso o fue reiniciado                     |
-| `PENDING_REVIEW` | Solicitó URLs de carga; documentos en revisión por un admin    |
-| `VERIFIED`       | Identidad aprobada por el administrador                        |
-| `REJECTED`       | Rechazada; los motivos vienen en `rejection`                   |
-
-## Tipos de documento
-
-Los documentos requeridos (`DocumentType`) son exactamente tres:
-
-| Valor       | Documento               |
-|-------------|-------------------------|
-| `INE_FRONT` | INE — frente            |
-| `INE_BACK`  | INE — reverso           |
-| `SELFIE`    | Selfie del arrendador   |
-
----
-
-## 1. POST `/lessors/verifications/upload-urls`
-
-**No recibe las imágenes directamente.** Genera URLs prefirmadas (presigned PUT) de S3 para que el cliente suba los documentos de identidad por su cuenta, y cambia el estado de verificación a `PENDING_REVIEW`. Flujo:
-
-1. Llamar este endpoint con la lista de documentos (tipo + `contentType` de cada uno).
-2. Hacer `PUT` del binario de cada imagen a su `uploadUrl` (antes de que expire) con el header `Content-Type` igual al enviado.
-3. Cada documento queda disponible en su `publicUrl`; el backend registra la subida y el admin revisa.
-
-- **Controlador:** `LessorVerificationController.requestUploadUrls`
-- **Rol requerido:** `LESSOR`
-- **Request body** (`VerificationUploadRequestDto`):
+Cambiar solo la calle y el número:
 
 ```json
 {
-  "documents": [
-    { "documentType": "INE_FRONT", "contentType": "image/jpeg" },
-    { "documentType": "INE_BACK",  "contentType": "image/jpeg" },
-    { "documentType": "SELFIE",    "contentType": "image/png" }
-  ]
-}
-```
-
-| Campo                      | Tipo   | Requerido | Validación                                               |
-|----------------------------|--------|-----------|----------------------------------------------------------|
-| `documents`                | array  | Sí        | Al menos un elemento                                     |
-| `documents[].documentType` | string | Sí        | `INE_FRONT`, `INE_BACK` o `SELFIE`                       |
-| `documents[].contentType`  | string | Sí        | `image/jpeg`, `image/png`, `image/heic` o `image/heif`   |
-
-- **Respuesta 200** (`data` = `VerificationUploadResponseDto`):
-
-```json
-{
-  "success": true,
-  "data": {
-    "uploads": [
-      {
-        "documentType": "INE_FRONT",
-        "uploadUrl": "https://vivia-media-bucket.s3.us-east-1.amazonaws.com/verifications/<uuid>/INE_FRONT?X-Amz-Algorithm=AWS4-HMAC-SHA256&...",
-        "publicUrl": "https://vivia-media-bucket.s3.us-east-1.amazonaws.com/verifications/<uuid>/INE_FRONT"
-      }
-    ],
-    "expiresInSeconds": 300
-  },
-  "message": "URLs de carga generadas",
-  "status": "OK"
-}
-```
-
-| Campo                    | Tipo   | Descripción                                          |
-|--------------------------|--------|------------------------------------------------------|
-| `uploads[].documentType` | string | Tipo de documento al que corresponde la URL          |
-| `uploads[].uploadUrl`    | string | URL PUT prefirmada de S3; expira                     |
-| `uploads[].publicUrl`    | string | URL pública permanente donde quedará el documento    |
-| `expiresInSeconds`       | int    | Segundos de vigencia de las presigned URLs           |
-
-- **Errores específicos:** tipo de contenido no permitido (`InvalidLessorDocumentException`): `"Tipo de contenido no permitido: <tipo>. Solo se aceptan: [image/jpeg, image/png, image/heic, image/heif]"`.
-- **Nota:** el estado pasa a `PENDING_REVIEW` desde el momento en que se generan las URLs, aun si el cliente todavía no sube los archivos.
-
----
-
-## 2. GET `/lessors/verifications`
-
-Devuelve el estado de verificación actual del arrendador autenticado. Si la verificación fue rechazada, incluye los motivos del rechazo.
-
-- **Controlador:** `LessorVerificationController.getVerificationStatus`
-- **Rol requerido:** `LESSOR`
-- **Request body:** ninguno.
-- **Respuesta 200** (`data` = `VerificationStatusResponseDto`):
-
-```json
-{
-  "success": true,
-  "data": {
-    "verificationStatus": "REJECTED",
-    "rejection": {
-      "comment": "La imagen del INE está borrosa",
-      "reasons": ["INE ilegible", "Selfie no coincide"],
-      "createdAt": "2026-07-01T10:30:00-06:00"
+    "address": {
+        "street": "Av. Insurgentes Sur",
+        "exteriorNumber": "1457"
     }
-  },
-  "message": "Estado de verificación obtenido",
-  "status": "OK"
 }
 ```
 
-| Campo                | Tipo         | Descripción                                                          |
-|----------------------|--------------|----------------------------------------------------------------------|
-| `verificationStatus` | string       | `UNVERIFIED`, `PENDING_REVIEW`, `VERIFIED` o `REJECTED`              |
-| `rejection`          | object\|null | Motivos del rechazo; `null` si no hay un rechazo activo             |
-| `rejection.comment`  | string       | Comentario libre del administrador                                   |
-| `rejection.reasons`  | string[]     | Situaciones predefinidas que motivaron el rechazo                    |
-| `rejection.createdAt`| datetime     | Fecha en que se registró el rechazo (ISO 8601 con offset)            |
+Reubicar la propiedad (colonia + coordenadas):
 
----
+```json
+{
+    "address": {
+        "neighborhoodId": "c7e2a9f1-3d45-6789-bcde-f01234567890",
+        "latitude": 19.372850,
+        "longitude": -99.179615
+    }
+}
+```
 
-## 3. PATCH `/lessors/verifications`
+### `amenityIds` — amenidades (lista embebida)
 
-Reinicia la verificación: resetea el estado a `UNVERIFIED`, elimina los registros de documentos subidos y borra el rechazo activo (si existe). Útil para reintentar después de un `REJECTED`. El arrendador se resuelve desde el JWT — no recibe ID ni body.
+Semántica de **reemplazo total**, no incremental: la lista enviada sustituye por completo a la actual. No existe "agregar una amenidad" — para agregar, el cliente debe enviar la lista completa (las actuales + la nueva).
 
-- **Controlador:** `LessorVerificationController.resetVerificationStatus`
-- **Rol requerido:** `LESSOR`
-- **Request body:** ninguno.
-- **Respuesta 204:**
+| Valor enviado | Efecto |
+|---|---|
+| Omitido / `null` | Las amenidades no se tocan |
+| `[]` (lista vacía) | Se **eliminan todas** las amenidades |
+| `["id1", "id2"]` | La propiedad queda **exactamente** con esas amenidades |
+
+Si algún ID no existe → `404` (`One or more amenities were not found`) y no se aplica ningún cambio (la operación es transaccional).
+
+```json
+{
+    "amenityIds": [
+        "550e8400-e29b-41d4-a716-446655440010",
+        "550e8400-e29b-41d4-a716-446655440011"
+    ]
+}
+```
+
+### `pricePerM2` — campo derivado (no se envía)
+
+`pricePerM2` **no se acepta en el body**: el servidor lo recalcula automáticamente como `listedPrice / areaM2` (redondeo HALF_UP a 2 decimales) cada vez que se envía un nuevo `listedPrice` o `areaM2`, combinando el valor nuevo con el vigente del otro campo.
+
+```json
+{
+    "listedPrice": 15000.00
+}
+```
+
+Con `areaM2` actual de `80.50` → el servidor guarda `pricePerM2 = 186.34` sin que el cliente lo calcule.
+
+## Qué NO actualiza
+
+| Dato | Cómo se modifica (si aplica) |
+|---|---|
+| `id` | Nunca cambia; solo viaja en la URL |
+| `lessor` (arrendador) | Nunca cambia de dueño |
+| `media` (fotos/videos) | Flujo de medios: `POST/PATCH/DELETE /properties/media` (ver arriba) |
+| `pricePerM2` | Derivado; se recalcula solo (ver arriba) |
+| `addressId` | La dirección se edita in place, el ID se conserva |
+| `createdAt` / `updatedAt` | Automáticos (JPA); `updatedAt` se refresca en cada PATCH |
+| `deletedAt` | Borrado lógico; solo lo afecta `DELETE /properties/{id}` |
+
+## Ejemplo completo (todos los bloques a la vez)
+
+```
+PATCH /properties/a3f8c1d2-4b56-7890-abcd-ef1234567890
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json
+{
+    "title": "Departamento remodelado cerca del metro",
+    "listedPrice": 14500.00,
+    "isAvailableToRent": true,
+    "propertyTypeId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890",
+    "address": {
+        "street": "Av. Universidad",
+        "exteriorNumber": "3000",
+        "interiorNumber": "12A",
+        "neighborhoodId": "c7e2a9f1-3d45-6789-bcde-f01234567890",
+        "latitude": 19.332607,
+        "longitude": -99.186966
+    },
+    "amenityIds": [
+        "550e8400-e29b-41d4-a716-446655440010",
+        "550e8400-e29b-41d4-a716-446655440011"
+    ]
+}
+```
+
+Respuesta `200`:
 
 ```json
 {
     "success": true,
-    "data": null,
-    "message": "Verificación reiniciada",
-    "status": "NO_CONTENT"
+    "data": {
+        "id": "a3f8c1d2-4b56-7890-abcd-ef1234567890",
+        "lessorId": "9f8e7d6c-5b4a-3210-fedc-ba0987654321",
+        "propertyTypeId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890",
+        "addressId": "d4c3b2a1-0f9e-8d7c-6b5a-432109876543",
+        "isAvailableToRent": true,
+        "title": "Departamento remodelado cerca del metro",
+        "description": "Departamento de 2 recámaras con vista a la calle...",
+        "areaM2": 80.50,
+        "bedrooms": 2,
+        "bathrooms": 1.5,
+        "parkingSpaces": 1,
+        "constructionYear": 2012,
+        "isCondominium": false,
+        "listedPrice": 14500.00,
+        "pricePerM2": 180.12,
+        "createdAt": "2026-05-02T10:15:30",
+        "updatedAt": "2026-07-11T18:42:05",
+        "media": [
+            {
+                "id": "e5f6a7b8-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
+                "url": "https://vivia-bucket.s3.us-east-1.amazonaws.com/media/public/a3f8c1d2.../portada.jpg",
+                "type": "IMAGE",
+                "classification": "MAIN"
+            }
+        ],
+        "amenities": [
+            { "id": "550e8400-e29b-41d4-a716-446655440010", "name": "Estacionamiento" },
+            { "id": "550e8400-e29b-41d4-a716-446655440011", "name": "Alberca" }
+        ]
+    },
+    "message": "Propiedad actualizada exitosamente",
+    "status": "OK"
 }
 ```
 
----
+## Errores
 
-## Flujo completo desde el cliente móvil
+| Código | Causa | Ejemplo de detonante |
+|---|---|---|
+| `400 Bad Request` | Validación de campos (`@Valid`) | `title` de 5 caracteres, `latitude` de 100 |
+| `400 Bad Request` | Coordenada incompleta | `latitude` sin `longitude` (o viceversa) |
+| `401 Unauthorized` | Token ausente, inválido o expirado | — |
+| `403 Forbidden` | Sin rol `LESSOR`, o la propiedad no es del arrendador autenticado | Editar una propiedad ajena |
+| `404 Not Found` | Recurso referenciado inexistente | `id` de propiedad, `propertyTypeId`, `neighborhoodId` o algún `amenityIds` que no existe |
 
-1. `GET /lessors/verifications` → si el estado es `UNVERIFIED` o `REJECTED`, mostrar el flujo de captura de documentos.
-2. `POST /lessors/verifications/upload-urls` con los tres documentos (`INE_FRONT`, `INE_BACK`, `SELFIE`).
-3. Subir cada imagen con `PUT` a su `uploadUrl` antes de `expiresInSeconds`.
-4. Consultar `GET /lessors/verifications` para reflejar `PENDING_REVIEW` y, tras la revisión del admin, `VERIFIED` o `REJECTED`.
-5. Si fue `REJECTED` y el usuario quiere reintentar: `PATCH /lessors/verifications` y volver al paso 2.
-
-## Resumen rápido
-
-| Método | Ruta                                  | Rol    | Body (campos)                       | `data` de respuesta              |
-|--------|---------------------------------------|--------|-------------------------------------|-----------------------------------|
-| POST   | `/lessors/verifications/upload-urls`  | LESSOR | `documents[]` (tipo + contentType)  | `VerificationUploadResponseDto`   |
-| GET    | `/lessors/verifications`              | LESSOR | —                                   | `VerificationStatusResponseDto`   |
-| PATCH  | `/lessors/verifications`              | LESSOR | —                                   | `null` (204)                      |
+Todos los errores usan el formato `ErrorResponse` estándar del backend; los `404` indican en `details` la clase de excepción (`PropertyNotFoundException`, `PropertyTypeNotFoundException`, `NeighborhoodNotFoundException`, `AmenityNotFoundException`).

@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/draft_upload_model.dart';
-import 'package:vivia_mobile/features/lessor/publishing/domain/models/media_manifest_item.dart';
+import 'package:vivia_mobile/shared/property/domain/models/media_manifest_item.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/repositories/lessor_repository.dart';
 
 class PublishPropertyDraftUseCase {

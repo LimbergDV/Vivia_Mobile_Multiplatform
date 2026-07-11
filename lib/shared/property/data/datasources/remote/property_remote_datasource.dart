@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:vivia_mobile/shared/property/data/datasources/remote/constants/property_api_constants.dart';
+import 'package:vivia_mobile/shared/property/data/models/media_upload_session_model.dart';
 import 'package:vivia_mobile/shared/property/data/models/property_summary_model.dart';
+import 'package:vivia_mobile/shared/property/domain/exceptions/media_exceptions.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_detail.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_media.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_type_model.dart';
@@ -20,14 +22,28 @@ abstract class PropertyRemoteDatasource {
   Future<List<PropertySummaryModel>> getPropertiesNearMe();
   Future<bool> toggleLike(String propertyId);
   Future<void> deleteProperty(String id);
+  Future<void> updateProperty(String id, Map<String, dynamic> body);
+  Future<MediaUploadSessionModel> createMediaUploadSession(
+    Map<String, dynamic> body,
+  );
+  Future<void> changeMainImage(String mainImageId, String newMainImageId);
+  Future<void> deleteMedia(String mediaId);
+  Future<void> uploadFile(
+    String uploadUrl,
+    String contentType,
+    List<int> bytes,
+  );
 }
 
 // ── Implementación ────────────────────────────────────────────────────────────
 class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
   final http.Client _client;
+  // Cliente sin interceptor: el PUT a las URLs prefirmadas de S3 no debe
+  // llevar el JWT de la app.
+  final http.Client _plainClient;
   static const _timeout = Duration(seconds: 15);
 
-  PropertyRemoteDatasourceImpl(this._client);
+  PropertyRemoteDatasourceImpl(this._client, this._plainClient);
 
   List<T> _parseList<T>(
       http.Response res,
@@ -140,6 +156,97 @@ class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
     final json = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 200 || json['success'] != true) {
       throw Exception(json['message'] ?? 'Error ${res.statusCode}');
+    }
+  }
+
+  @override
+  Future<void> updateProperty(String id, Map<String, dynamic> body) async {
+    final res = await _client.patch(
+      Uri.parse(PropertyApiConstants.propertyDetail(id)),
+      headers: {
+        ...PropertyApiConstants.headers(),
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    ).timeout(_timeout);
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode != 200 || json['success'] != true) {
+      throw Exception(json['message'] ?? 'Error ${res.statusCode}');
+    }
+  }
+
+  @override
+  Future<MediaUploadSessionModel> createMediaUploadSession(
+    Map<String, dynamic> body,
+  ) async {
+    final res = await _client.post(
+      Uri.parse(PropertyApiConstants.propertiesMedia),
+      headers: {
+        ...PropertyApiConstants.headers(),
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    ).timeout(_timeout);
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    if ((res.statusCode == 200 || res.statusCode == 201) &&
+        json['success'] == true) {
+      return MediaUploadSessionModel.fromJson(json);
+    }
+    throw Exception(json['message'] ?? 'Error ${res.statusCode}');
+  }
+
+  @override
+  Future<void> changeMainImage(
+    String mainImageId,
+    String newMainImageId,
+  ) async {
+    final res = await _client.patch(
+      Uri.parse(PropertyApiConstants.propertiesMedia),
+      headers: {
+        ...PropertyApiConstants.headers(),
+        'Content-Type': 'application/json',
+      },
+      // El backend espera este body en snake_case.
+      body: jsonEncode({
+        'main_image_id': mainImageId,
+        'new_main_image_id': newMainImageId,
+      }),
+    ).timeout(_timeout);
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode != 200 || json['success'] != true) {
+      throw Exception(json['message'] ?? 'Error ${res.statusCode}');
+    }
+  }
+
+  @override
+  Future<void> deleteMedia(String mediaId) async {
+    final res = await _client.delete(
+      Uri.parse(PropertyApiConstants.propertyMedia(mediaId)),
+      headers: PropertyApiConstants.headers(),
+    ).timeout(_timeout);
+    if (res.statusCode == 204) return;
+    if (res.statusCode == 409) throw const MainImageDeletionException();
+    String? message;
+    try {
+      message = (jsonDecode(res.body) as Map<String, dynamic>)['message']
+          as String?;
+    } catch (_) {}
+    throw Exception(message ?? 'Error ${res.statusCode}');
+  }
+
+  @override
+  Future<void> uploadFile(
+    String uploadUrl,
+    String contentType,
+    List<int> bytes,
+  ) async {
+    final res = await _plainClient.put(
+      Uri.parse(uploadUrl),
+      headers: {'Content-Type': contentType},
+      body: bytes,
+    );
+    if (res.statusCode != 200 && res.statusCode != 204) {
+      throw Exception('Error al subir archivo: ${res.statusCode}');
     }
   }
 }

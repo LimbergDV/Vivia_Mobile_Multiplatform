@@ -1,3 +1,4 @@
+import 'package:vivia_mobile/shared/property/domain/models/property_detail.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_type_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/neighborhood_model.dart';
 
@@ -54,6 +55,38 @@ class NewPropertyForm {
     this.spacePhotos,
     this.videoPath,
   });
+
+  /// Prellenado para el modo de edición de una propiedad publicada.
+  /// Los medios no viajan por este flujo (se editan en la galería).
+  factory NewPropertyForm.fromDetail(PropertyDetail detail) {
+    final neighborhood = detail.address.neighborhood;
+    return NewPropertyForm(
+      isAvailableToRent: detail.availableToRent,
+      postalCode: neighborhood.postalCode,
+      neighborhood: NeighborhoodModel(
+        id: neighborhood.id,
+        name: neighborhood.name,
+        postalCode: neighborhood.postalCode,
+      ),
+      propertyType: detail.propertyType,
+      street: detail.address.street,
+      exteriorNumber: detail.address.exteriorNumber,
+      interiorNumber: detail.address.interiorNumber,
+      price: detail.listedPrice.toStringAsFixed(0),
+      area: detail.areaM2 % 1 == 0
+          ? detail.areaM2.toStringAsFixed(0)
+          : detail.areaM2.toString(),
+      rooms: detail.bedrooms,
+      // El detalle admite medios baños (double); el selector solo enteros.
+      bathrooms: detail.bathrooms.round(),
+      parkingSpots: detail.parkingSpaces,
+      title: detail.title,
+      description: detail.description,
+      constructionYear: detail.constructionYear,
+      isCondominium: detail.condominium,
+      amenityIds: detail.amenities.map((a) => a.id).toList(),
+    );
+  }
 
   NewPropertyForm copyWith({
     bool? isAvailableToRent,

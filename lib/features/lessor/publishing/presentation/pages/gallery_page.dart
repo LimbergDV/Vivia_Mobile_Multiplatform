@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/new_property_form.dart';
-import 'package:vivia_mobile/features/lessor/publishing/presentation/helpers/media_picker_helper.dart';
+import 'package:vivia_mobile/shared/media/presentation/helpers/media_picker_helper.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/category_photos_page.dart';
 
 enum _GalleryTab { fotos, videos }

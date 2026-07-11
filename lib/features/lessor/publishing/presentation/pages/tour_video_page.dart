@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:vivia_mobile/features/lessor/publishing/presentation/helpers/media_picker_helper.dart';
+import 'package:vivia_mobile/shared/media/presentation/helpers/media_picker_helper.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/review_property_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/dashed_upload_zone.dart';
@@ -35,7 +35,11 @@ class TourVideoPage extends StatelessWidget {
   void _onReview(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ReviewPropertyPage()),
+      MaterialPageRoute(
+        // Ruta nombrada: el modo editPreview regresa aquí con popUntil.
+        settings: const RouteSettings(name: ReviewPropertyPage.routeName),
+        builder: (_) => const ReviewPropertyPage(),
+      ),
     );
   }
 

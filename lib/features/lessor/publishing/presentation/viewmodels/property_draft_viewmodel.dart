@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:vivia_mobile/core/utils/media_file_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
@@ -9,12 +10,14 @@ import 'package:vivia_mobile/features/lessor/publishing/data/models/amenity_mode
 import 'package:vivia_mobile/features/lessor/publishing/data/models/draft_upload_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/neighborhood_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/draft_status_event.dart';
-import 'package:vivia_mobile/features/lessor/publishing/domain/models/media_manifest_item.dart';
+import 'package:vivia_mobile/shared/property/domain/models/media_manifest_item.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/new_property_form.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_amenities_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_neighborhoods_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/publish_property_draft_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/watch_draft_status_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/models/property_detail.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/update_property_usecase.dart';
 
 enum NeighborhoodsStatus { idle, loading, success, error }
 
@@ -28,6 +31,14 @@ enum PublishStatus { idle, loading, success, error }
 
 enum DraftStreamStatus { idle, validating, success, failed }
 
+/// Modo de uso del formulario de propiedad:
+/// - [create]: flujo completo de publicación (incluye fotos y "Publicar").
+/// - [editPreview]: edición del draft desde la vista previa; salta las
+///   páginas de fotos y regresa a la review.
+/// - [editPublished]: edición de una propiedad ya publicada; salta las
+///   páginas de fotos y guarda con PATCH /properties/{id}.
+enum PropertyFormMode { create, editPreview, editPublished }
+
 class PropertyDraftViewModel extends ChangeNotifier {
   final GetNeighborhoodsUseCase _getNeighborhoods;
   final GetAmenitiesUseCase _getAmenities;
@@ -35,6 +46,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
   final WatchDraftStatusUseCase _watchDraftStatus;
   final GeocodeAddressUseCase? _geocodeAddress;
   final ReverseGeocodeUseCase? _reverseGeocode;
+  final UpdatePropertyUseCase? _updateProperty;
 
   PropertyDraftViewModel({
     required GetNeighborhoodsUseCase getNeighborhoodsUseCase,
@@ -43,12 +55,14 @@ class PropertyDraftViewModel extends ChangeNotifier {
     required WatchDraftStatusUseCase watchDraftStatusUseCase,
     GeocodeAddressUseCase? geocodeAddressUseCase,
     ReverseGeocodeUseCase? reverseGeocodeUseCase,
+    UpdatePropertyUseCase? updatePropertyUseCase,
   }) : _getNeighborhoods = getNeighborhoodsUseCase,
        _getAmenities = getAmenitiesUseCase,
        _publishDraft = publishPropertyDraftUseCase,
        _watchDraftStatus = watchDraftStatusUseCase,
        _geocodeAddress = geocodeAddressUseCase,
-       _reverseGeocode = reverseGeocodeUseCase;
+       _reverseGeocode = reverseGeocodeUseCase,
+       _updateProperty = updatePropertyUseCase;
 
   // ── Estado del formulario ─────────────────────────────────────────────────
   NewPropertyForm _form = const NewPropertyForm();
@@ -59,6 +73,17 @@ class PropertyDraftViewModel extends ChangeNotifier {
   PublishStatus _publishStatus = PublishStatus.idle;
   String? _publishError;
   String? _publishedDraftId;
+
+  // ── Modo del formulario y guardado de ediciones ───────────────────────────
+  PropertyFormMode _mode = PropertyFormMode.create;
+  String? _editingPropertyId;
+  PublishStatus _saveStatus = PublishStatus.idle;
+  String? _saveError;
+
+  PropertyFormMode get mode => _mode;
+  String? get editingPropertyId => _editingPropertyId;
+  PublishStatus get saveStatus => _saveStatus;
+  String? get saveError => _saveError;
 
   // ── Vista previa de ubicación en el mapa (solo visual) ───────────────────
   Timer? _previewDebounce;
@@ -136,6 +161,10 @@ class PropertyDraftViewModel extends ChangeNotifier {
     _publishStatus = PublishStatus.idle;
     _publishError = null;
     _publishedDraftId = null;
+    _mode = PropertyFormMode.create;
+    _editingPropertyId = null;
+    _saveStatus = PublishStatus.idle;
+    _saveError = null;
     _previewDebounce?.cancel();
     _previewGeneration++;
     _previewStatus = LocationPreviewStatus.idle;
@@ -143,6 +172,76 @@ class PropertyDraftViewModel extends ChangeNotifier {
     _manualPoint = null;
     _manualAddressLabel = null;
     notifyListeners();
+  }
+
+  // ── Modos de edición ──────────────────────────────────────────────────────
+
+  /// Entra al modo de edición desde la vista previa: el draft ya contiene
+  /// los datos, solo se marca el modo para que las páginas salten las fotos.
+  void startPreviewEdit() {
+    _mode = PropertyFormMode.editPreview;
+    notifyListeners();
+  }
+
+  /// Entra al modo de edición de una propiedad publicada: prellena el
+  /// formulario desde [detail] y deja fuera los medios (tienen flujo propio).
+  Future<void> startPublishedEdit(PropertyDetail detail) async {
+    _mode = PropertyFormMode.editPublished;
+    _editingPropertyId = detail.id;
+    _saveStatus = PublishStatus.idle;
+    _saveError = null;
+    _form = NewPropertyForm.fromDetail(detail);
+
+    // Geocoding limpio: si el usuario no toca la dirección no se envían
+    // coordenadas y el backend conserva las actuales.
+    _previewDebounce?.cancel();
+    _previewGeneration++;
+    _previewStatus = LocationPreviewStatus.idle;
+    _previewPoint = null;
+    _manualPoint = null;
+    _manualAddressLabel = null;
+
+    // Sembrar la colonia actual para que el dropdown tenga valor mientras
+    // se cargan todas las opciones del CP.
+    final seeded = _form.neighborhood;
+    _neighborhoods = seeded != null ? [seeded] : [];
+    _neighborhoodsStatus = NeighborhoodsStatus.success;
+    notifyListeners();
+
+    final cp = _form.postalCode ?? '';
+    if (cp.length == 5) {
+      await fetchNeighborhoods(cp);
+      if (_neighborhoods.isEmpty && seeded != null) {
+        // La carga falló: conservar al menos la colonia actual.
+        _neighborhoods = [seeded];
+        _neighborhoodsStatus = NeighborhoodsStatus.success;
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Guarda los cambios de una propiedad publicada con PATCH /properties/{id}.
+  /// Devuelve true en éxito para que la página navegue de regreso.
+  Future<bool> saveEdits() async {
+    final update = _updateProperty;
+    final id = _editingPropertyId;
+    if (update == null || id == null) return false;
+    if (_saveStatus == PublishStatus.loading) return false;
+
+    _saveStatus = PublishStatus.loading;
+    _saveError = null;
+    notifyListeners();
+    try {
+      await update.execute(id, _buildPatchBody());
+      _saveStatus = PublishStatus.success;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _saveStatus = PublishStatus.error;
+      _saveError = e.toString();
+      notifyListeners();
+      return false;
+    }
   }
 
   // ── Stream de validación en background ───────────────────────────────────
@@ -422,11 +521,11 @@ class PropertyDraftViewModel extends ChangeNotifier {
       final fileKeyToPath = <String, String>{};
 
       // Foto principal → classification MAIN
-      final mainKey = _fileKey(mainPhotoPath);
+      final mainKey = MediaFileUtils.fileKey(mainPhotoPath);
       manifest.add(
         MediaManifestItem(
           fileKey: mainKey,
-          contentType: _contentType(mainPhotoPath),
+          contentType: MediaFileUtils.contentType(mainPhotoPath),
           sizeBytes: await XFile(mainPhotoPath).length(),
           classification: 'MAIN',
         ),
@@ -437,11 +536,11 @@ class PropertyDraftViewModel extends ChangeNotifier {
       for (final entry in spacePhotos.entries) {
         final classification = entry.key.toUpperCase();
         for (final path in entry.value) {
-          final key = _uniqueFileKey(path, fileKeyToPath);
+          final key = MediaFileUtils.uniqueFileKey(path, fileKeyToPath);
           manifest.add(
             MediaManifestItem(
               fileKey: key,
-              contentType: _contentType(path),
+              contentType: MediaFileUtils.contentType(path),
               sizeBytes: await XFile(path).length(),
               classification: classification,
             ),
@@ -452,7 +551,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
 
       // Video → classification TOUR
       if (videoPath != null) {
-        final videoKey = _uniqueFileKey(videoPath, fileKeyToPath);
+        final videoKey = MediaFileUtils.uniqueFileKey(videoPath, fileKeyToPath);
         manifest.add(
           MediaManifestItem(
             fileKey: videoKey,
@@ -498,9 +597,13 @@ class PropertyDraftViewModel extends ChangeNotifier {
       _publishStatus = PublishStatus.error;
       _publishError = e.toString();
     } finally {
-      _form = const NewPropertyForm();
-      _neighborhoods = [];
-      _neighborhoodsStatus = NeighborhoodsStatus.idle;
+      // No pisar el formulario si el usuario entró a un modo de edición
+      // mientras la subida seguía corriendo en background.
+      if (_mode == PropertyFormMode.create) {
+        _form = const NewPropertyForm();
+        _neighborhoods = [];
+        _neighborhoodsStatus = NeighborhoodsStatus.idle;
+      }
       _publishedDraftId = null;
       if (_publishStatus != PublishStatus.error)
         _publishStatus = PublishStatus.idle;
@@ -542,30 +645,39 @@ class PropertyDraftViewModel extends ChangeNotifier {
       _manualPoint ??
       (_previewStatus == LocationPreviewStatus.ready ? _previewPoint : null);
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  String _fileKey(String path) {
-    final filename = path.split('/').last.split('\\').last;
-    final dotIndex = filename.lastIndexOf('.');
-    return dotIndex != -1 ? filename.substring(0, dotIndex) : filename;
-  }
-
-  String _uniqueFileKey(String path, Map<String, String> existing) {
-    String key = _fileKey(path);
-    int suffix = 1;
-    while (existing.containsKey(key)) {
-      key = '${_fileKey(path)}_$suffix';
-      suffix++;
-    }
-    return key;
-  }
-
-  String _contentType(String path) {
-    final ext = path.split('.').last.toLowerCase();
-    return switch (ext) {
-      'mp4' => 'video/mp4',
-      'png' => 'image/png',
-      'webp' => 'image/webp',
-      _ => 'image/jpeg',
+  // Body del PATCH /properties/{id}: a diferencia del draft, la dirección va
+  // anidada en `address` y los campos omitidos no se modifican en el backend.
+  Map<String, dynamic> _buildPatchBody() {
+    return {
+      'title': _form.title ?? '',
+      'description': _form.description ?? '',
+      'areaM2': double.tryParse(_form.area ?? '0') ?? 0.0,
+      'bedrooms': _form.rooms ?? 0,
+      'bathrooms': (_form.bathrooms ?? 0).toDouble(),
+      'parkingSpaces': _form.parkingSpots ?? 0,
+      if (_form.constructionYear != null)
+        'constructionYear': _form.constructionYear,
+      'isCondominium': _form.isCondominium,
+      'isAvailableToRent': _form.isAvailableToRent,
+      'listedPrice': double.tryParse(_form.price ?? '0') ?? 0.0,
+      if (_form.propertyType != null)
+        'propertyTypeId': _form.propertyType!.id,
+      // Reemplazo total: siempre viaja la lista completa de amenidades.
+      'amenityIds': _form.amenityIds,
+      'address': {
+        if (_form.neighborhood != null)
+          'neighborhoodId': _form.neighborhood!.id,
+        'street': _form.street ?? '',
+        'exteriorNumber': _form.exteriorNumber ?? '',
+        if (_form.interiorNumber != null && _form.interiorNumber!.isNotEmpty)
+          'interiorNumber': _form.interiorNumber,
+        // Solo si el usuario cambió la dirección y el geocoding (o el pin
+        // manual) resolvió; omitidas, el backend conserva las actuales.
+        if (_publishPoint != null) ...{
+          'latitude': _publishPoint!.lat,
+          'longitude': _publishPoint!.lon,
+        },
+      },
     };
   }
 }

@@ -48,7 +48,11 @@ import 'package:vivia_mobile/shared/property/domain/usecases/get_property_by_id_
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_media_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_suggestions_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/get_property_types_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/add_property_media_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/change_main_image_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/delete_property_media_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/delete_property_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/update_property_usecase.dart';
 import 'package:vivia_mobile/features/lessee/reports/domain/usecases/get_report_reasons_usecase.dart';
 import 'package:vivia_mobile/features/lessee/reports/domain/usecases/submit_report_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/toggle_like_usecase.dart';
@@ -236,7 +240,7 @@ void main() async {
   final userViewModel = UserViewModel(getMeUseCase: getMeUseCase);
 
   final propertyRemoteDatasource =
-  PropertyRemoteDatasourceImpl(authHttpClient);
+  PropertyRemoteDatasourceImpl(authHttpClient, http.Client());
   final propertyRepository =
   PropertyRepositoryImpl(remote: propertyRemoteDatasource);
   final propertyViewModel = PropertyViewModel(
@@ -256,6 +260,11 @@ void main() async {
   final getPropertyMediaUseCase = GetPropertyMediaUseCase(propertyRepository);
   final toggleLikeUseCase = ToggleLikeUseCase(propertyRepository);
   final deletePropertyUseCase = DeletePropertyUseCase(propertyRepository);
+  final updatePropertyUseCase = UpdatePropertyUseCase(propertyRepository);
+  final addPropertyMediaUseCase = AddPropertyMediaUseCase(propertyRepository);
+  final changeMainImageUseCase = ChangeMainImageUseCase(propertyRepository);
+  final deletePropertyMediaUseCase =
+  DeletePropertyMediaUseCase(propertyRepository);
 
   // Servicio de mapas propio (sin auth): cliente plano para no enviar el JWT.
   final mapsRemoteDatasource = MapsRemoteDatasourceImpl(http.Client());
@@ -274,6 +283,7 @@ void main() async {
     watchDraftStatusUseCase: WatchDraftStatusUseCase(lessorRepository),
     geocodeAddressUseCase: geocodeAddressUseCase,
     reverseGeocodeUseCase: reverseGeocodeUseCase,
+    updatePropertyUseCase: updatePropertyUseCase,
   );
 
   final lessorVerificationRemoteDatasource =
@@ -345,6 +355,11 @@ void main() async {
         Provider<GetPropertyMediaUseCase>.value(value: getPropertyMediaUseCase),
         Provider<ToggleLikeUseCase>.value(value: toggleLikeUseCase),
         Provider<DeletePropertyUseCase>.value(value: deletePropertyUseCase),
+        Provider<AddPropertyMediaUseCase>.value(
+            value: addPropertyMediaUseCase),
+        Provider<ChangeMainImageUseCase>.value(value: changeMainImageUseCase),
+        Provider<DeletePropertyMediaUseCase>.value(
+            value: deletePropertyMediaUseCase),
         Provider<GetProfileUseCase>.value(value: getProfileUseCase),
         Provider<UpdateNameUseCase>.value(value: updateNameUseCase),
         Provider<UpdateEmailUseCase>.value(value: updateEmailUseCase),

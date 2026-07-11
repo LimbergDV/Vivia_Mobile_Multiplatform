@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/property_photos_page.dart';
+import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/review_property_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/form_section_header.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/number_selector.dart';
@@ -71,10 +72,75 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
         _showSnack('Selecciona los espacios de estacionamiento');
         return;
       }
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const PropertyPhotosPage()),
+      switch (vm.mode) {
+        case PropertyFormMode.create:
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PropertyPhotosPage()),
+          );
+        case PropertyFormMode.editPreview:
+          // Fin del modo edición de vista previa: las páginas de fotos se
+          // saltan y se regresa a la review, que lee el draft actualizado.
+          Navigator.of(context).popUntil(
+            ModalRoute.withName(ReviewPropertyPage.routeName),
+          );
+        case PropertyFormMode.editPublished:
+          _confirmAndSave(vm);
+      }
+    }
+  }
+
+  String _nextButtonLabel(PropertyFormMode mode) => switch (mode) {
+        PropertyFormMode.create => 'Siguiente: Fotografías De La Propiedad',
+        PropertyFormMode.editPreview => 'Guardar Y Volver A La Vista Previa',
+        PropertyFormMode.editPublished => 'Guardar Cambios',
+      };
+
+  Future<void> _confirmAndSave(PropertyDraftViewModel vm) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Guardar cambios'),
+        content: const Text(
+          'Se actualizará la información visible de tu publicación. '
+          'Las fotografías y el video no se modifican desde aquí; '
+          'puedes editarlos desde la galería de la publicación.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final saved = await vm.saveEdits();
+    if (!mounted) return;
+
+    if (saved) {
+      final messenger = ScaffoldMessenger.of(context);
+      // Cierra Details y AddProperty para volver al detalle de la propiedad.
+      Navigator.of(context)
+        ..pop()
+        ..pop();
+      vm.reset();
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('Propiedad actualizada'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
       );
+    } else {
+      _showSnack('No se pudieron guardar los cambios. Intenta de nuevo.');
     }
   }
 
@@ -236,22 +302,34 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: () => _onNext(vm),
+                      onPressed: vm.saveStatus == PublishStatus.loading
+                          ? null
+                          : () => _onNext(vm),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0095FF),
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0x800095FF),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: Text(
-                        'Siguiente: Fotografías De La Propiedad',
-                        style: textTheme.labelLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      child: vm.saveStatus == PublishStatus.loading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              _nextButtonLabel(vm.mode),
+                              style: textTheme.labelLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
                 ],

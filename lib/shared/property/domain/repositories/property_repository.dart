@@ -1,3 +1,4 @@
+import 'package:vivia_mobile/shared/property/data/models/media_upload_session_model.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_detail.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_media.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_model.dart';
@@ -13,4 +14,15 @@ abstract class PropertyRepository {
   Future<List<PropertyModel>> getPropertiesNearMe();
   Future<bool> toggleLike(String propertyId);
   Future<void> deleteProperty(String id);
+  Future<void> updateProperty(String id, Map<String, dynamic> body);
+  Future<MediaUploadSessionModel> createMediaUploadSession(
+    Map<String, dynamic> body,
+  );
+  Future<void> changeMainImage(String mainImageId, String newMainImageId);
+  Future<void> deleteMedia(String mediaId);
+  Future<void> uploadFile(
+    String uploadUrl,
+    String contentType,
+    List<int> bytes,
+  );
 }
