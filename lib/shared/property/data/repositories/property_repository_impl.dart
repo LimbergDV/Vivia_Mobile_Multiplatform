@@ -70,6 +70,10 @@ class PropertyRepositoryImpl implements PropertyRepository {
   Future<void> deleteProperty(String id) => _remote.deleteProperty(id);
 
   @override
+  Future<void> updateProperty(String id, Map<String, dynamic> body) =>
+      _remote.updateProperty(id, body);
+
+  @override
   Future<MediaUploadSessionModel> createMediaUploadSession(
     Map<String, dynamic> body,
   ) =>

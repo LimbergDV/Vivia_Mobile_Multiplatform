@@ -22,6 +22,7 @@ abstract class PropertyRemoteDatasource {
   Future<List<PropertySummaryModel>> getPropertiesNearMe();
   Future<bool> toggleLike(String propertyId);
   Future<void> deleteProperty(String id);
+  Future<void> updateProperty(String id, Map<String, dynamic> body);
   Future<MediaUploadSessionModel> createMediaUploadSession(
     Map<String, dynamic> body,
   );
@@ -151,6 +152,22 @@ class PropertyRemoteDatasourceImpl implements PropertyRemoteDatasource {
     final res = await _client.delete(
       Uri.parse(PropertyApiConstants.propertyDelete(id)),
       headers: PropertyApiConstants.headers(),
+    ).timeout(_timeout);
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode != 200 || json['success'] != true) {
+      throw Exception(json['message'] ?? 'Error ${res.statusCode}');
+    }
+  }
+
+  @override
+  Future<void> updateProperty(String id, Map<String, dynamic> body) async {
+    final res = await _client.patch(
+      Uri.parse(PropertyApiConstants.propertyDetail(id)),
+      headers: {
+        ...PropertyApiConstants.headers(),
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
     ).timeout(_timeout);
     final json = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 200 || json['success'] != true) {

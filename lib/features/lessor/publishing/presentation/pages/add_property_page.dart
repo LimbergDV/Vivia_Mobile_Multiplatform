@@ -60,11 +60,49 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   }
 
   Future<void> _onBack() async {
-    final shouldExit = await showExitFormDialog(context);
-    if (shouldExit && mounted) {
-      context.read<PropertyDraftViewModel>().reset();
-      Navigator.of(context).popUntil((route) => route.isFirst);
+    final vm = context.read<PropertyDraftViewModel>();
+    switch (vm.mode) {
+      case PropertyFormMode.editPreview:
+        // El draft se conserva: solo regresa a la vista previa.
+        Navigator.of(context).pop();
+      case PropertyFormMode.editPublished:
+        final discard = await _showDiscardDialog();
+        if (discard && mounted) {
+          vm.reset();
+          Navigator.of(context).pop();
+        }
+      case PropertyFormMode.create:
+        final shouldExit = await showExitFormDialog(context);
+        if (shouldExit && mounted) {
+          vm.reset();
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
     }
+  }
+
+  Future<bool> _showDiscardDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Descartar cambios?'),
+        content: const Text(
+          'Los cambios que hiciste a la información de la propiedad '
+          'no se guardarán.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Seguir editando'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Descartar'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   void _onNext(PropertyDraftViewModel vm) {
@@ -125,7 +163,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                 onPressed: _onBack,
               ),
               title: Text(
-                'Agregar Una Propiedad',
+                vm.mode == PropertyFormMode.create
+                    ? 'Agregar Una Propiedad'
+                    : 'Editar Información',
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,

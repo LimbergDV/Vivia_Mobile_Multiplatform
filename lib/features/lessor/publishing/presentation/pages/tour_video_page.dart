@@ -35,7 +35,11 @@ class TourVideoPage extends StatelessWidget {
   void _onReview(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ReviewPropertyPage()),
+      MaterialPageRoute(
+        // Ruta nombrada: el modo editPreview regresa aquí con popUntil.
+        settings: const RouteSettings(name: ReviewPropertyPage.routeName),
+        builder: (_) => const ReviewPropertyPage(),
+      ),
     );
   }
 

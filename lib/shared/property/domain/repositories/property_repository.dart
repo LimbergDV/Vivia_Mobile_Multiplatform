@@ -14,6 +14,7 @@ abstract class PropertyRepository {
   Future<List<PropertyModel>> getPropertiesNearMe();
   Future<bool> toggleLike(String propertyId);
   Future<void> deleteProperty(String id);
+  Future<void> updateProperty(String id, Map<String, dynamic> body);
   Future<MediaUploadSessionModel> createMediaUploadSession(
     Map<String, dynamic> body,
   );

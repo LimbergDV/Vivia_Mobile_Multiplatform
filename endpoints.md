@@ -1,217 +1,212 @@
-# Documentación de Endpoints — Gestión de Medios de Propiedades Publicadas
+# Documentación de Endpoints
 
-Documentación de referencia para el cliente móvil sobre la gestión de medios (imágenes y videos) de propiedades **ya publicadas** (`/properties/media`). Cubre tres operaciones: agregar medios nuevos, cambiar la imagen principal y eliminar un medio.
+# PATCH `/properties/{id}` — Actualización parcial de una propiedad
 
-> Estos endpoints operan sobre propiedades existentes. La subida inicial de medios durante la creación de una propiedad ocurre en el flujo de borradores (drafts) y no se documenta aquí.
+Actualiza **únicamente los campos enviados** en el cuerpo de la request. Es un PATCH real: todo campo omitido (o enviado como `null`) conserva su valor actual en la base de datos. Puede enviarse desde un solo campo hasta el cuerpo completo.
 
-## Convenciones generales
+- **Autenticación:** JWT con rol `LESSOR`. El arrendador se resuelve del token y **solo puede editar sus propias propiedades** (si no es el dueño → `403`).
+- **Content-Type:** `application/json`.
+- **Respuesta exitosa:** `200` con envelope `BaseResponse<PropertyResponseDto>` (la propiedad completa ya actualizada, incluyendo medios y amenidades).
 
-- **Autenticación:** todos los endpoints requieren JWT en el header `Authorization: Bearer <token>` y rol `LESSOR`. El arrendador se resuelve siempre desde el token; solo puede operar sobre medios de **sus propias** propiedades.
-- **Content-Type:** `application/json` en request y response.
-- **Formato de respuesta:** salvo el DELETE (que responde `204` sin body), los endpoints responden con el envelope `BaseResponse<T>`:
+## Regla de oro del PATCH parcial
+
+| Cómo se envía el campo | Efecto |
+|---|---|
+| Omitido del JSON | No se modifica |
+| `null` explícito | No se modifica (equivale a omitirlo) |
+| Con valor | Se actualiza (y se valida) |
+
+> Consecuencia: **no es posible "borrar" un valor mandando `null`.** Un `null` siempre significa "no tocar".
+> Campos desconocidos en el JSON (ej. `"latitude"` al nivel raíz) se ignoran silenciosamente, sin error.
+
+## Qué SÍ actualiza
+
+### Campos escalares (nivel raíz)
+
+| Campo | Tipo | Validación (solo si se envía) |
+|---|---|---|
+| `title` | string | 10–200 caracteres |
+| `description` | string | 20–2000 caracteres |
+| `areaM2` | decimal | > 0 |
+| `bedrooms` | entero | ≥ 0 |
+| `bathrooms` | decimal | ≥ 0.5 |
+| `parkingSpaces` | entero | ≥ 0 |
+| `constructionYear` | entero | — |
+| `isCondominium` | boolean | — |
+| `isAvailableToRent` | boolean | — |
+| `listedPrice` | decimal | > 0 |
+
+### `propertyTypeId` — tipo de propiedad
+
+UUID de un tipo existente (casa, departamento, etc.). Si el ID no existe → `404`.
 
 ```json
 {
-    "success": true,
-    "data": null,
-    "message": "Mensaje descriptivo",
-    "status": "OK"
+    "propertyTypeId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890"
 }
 ```
 
-| Campo     | Tipo    | Descripción                                      |
-|-----------|---------|--------------------------------------------------|
-| `success` | boolean | `true` si la operación fue exitosa               |
-| `data`    | T\|null | Payload de respuesta; `null` en operaciones void |
-| `message` | string  | Mensaje legible en español                       |
-| `status`  | string  | Nombre del status HTTP (ej. `"OK"`, `"CREATED"`) |
+### `address` — dirección (objeto embebido)
 
-- **Errores comunes a todos los endpoints:**
-  - `400 Bad Request` — falla de validación del body (`@Valid`) u operación inválida (`InvalidMediaOperationException`).
-  - `401 Unauthorized` — token ausente, inválido o expirado.
-  - `403 Forbidden` — el usuario no tiene rol `LESSOR`, o el medio/propiedad no le pertenece (`MediaOwnershipException`, `PropertyOwnershipException`).
-  - `404 Not Found` — el medio o la propiedad no existen (`MediaNotFoundException`, `PropertyNotFoundException`).
+Objeto anidado, **también con semántica parcial**: dentro de `address` cada subcampo es opcional y solo se actualiza lo enviado. La dirección se modifica *in place* — el `addressId` de la propiedad **no cambia**, no se crea un registro nuevo.
 
-## Conceptos clave
+| Subcampo | Tipo | Validación | Notas |
+|---|---|---|---|
+| `neighborhoodId` | UUID | Debe existir | `404` si no existe la colonia |
+| `street` | string | 1–100 caracteres | |
+| `exteriorNumber` | string | 1–10 caracteres | |
+| `interiorNumber` | string | ≤ 10 caracteres | |
+| `latitude` | decimal | -90 a 90 | **Debe venir junto con `longitude`** |
+| `longitude` | decimal | -180 a 180 | **Debe venir junto con `latitude`** |
 
-- **Medio (`PropertyMedia`):** archivo asociado a una propiedad. Tiene `type` (`IMAGE` o `VIDEO`) y `classification` (texto libre: `MAIN`, `INTERIOR`, `EXTERIOR`, `BATHROOM`, `BEDROOM`, `OTHER`, etc.).
-- **Imagen principal:** la imagen con `classification = MAIN`. Toda propiedad publicada tiene exactamente una; es la portada en listados. Por eso **no se puede eliminar directamente** ni se puede agregar una nueva con esa clasificación — solo se reasigna con el PATCH.
-- **Sesión de subida (`MediaUploadSession`):** al agregar medios no se envían los binarios al backend. El POST crea una sesión temporal en Redis (TTL de 2 horas por defecto) y devuelve URLs prefirmadas de S3; el cliente sube los archivos directo a S3 y el backend los procesa de forma asíncrona (moderación de contenido incluida).
+> ⚠️ **Regla lat/long:** enviar solo una de las dos coordenadas responde `400` con el mensaje `Both latitude and longitude must be provided together`. Juntas actualizan el punto geográfico (PostGIS) usado por las búsquedas por proximidad (`/properties/near-me`).
 
----
-
-## 1. POST `/properties/media`
-
-Agrega medios nuevos a una propiedad publicada. **No recibe los archivos** — recibe un *manifiesto* (lista de archivos con su metadata) y devuelve una URL PUT prefirmada de S3 por cada uno. Flujo:
-
-1. Llamar este endpoint con el `propertyId` y el manifiesto de archivos.
-2. Hacer `PUT` del binario de cada archivo a su `uploadUrl` (antes de que expire) con el header `Content-Type` igual al declarado en el manifiesto.
-3. S3 notifica al backend por cada archivo subido (webhook interno vía Lambda). Cuando llegan todos los archivos de la sesión, el contenido pasa a **moderación automática asíncrona**.
-4. Si el contenido es **aprobado**, los medios se asocian a la propiedad y quedan visibles; el arrendador recibe una notificación push ("Tus nuevos medios están disponibles"). Si es **rechazado**, los archivos se eliminan de S3 y llega una notificación con el motivo ("Los medios no pudieron publicarse").
-
-- **Controlador:** `PropertyMediaController.addMedia`
-- **Rol requerido:** `LESSOR` (dueño de la propiedad)
-- **Request body** (`AddPropertyMediaDto`):
+Cambiar solo la calle y el número:
 
 ```json
 {
-    "propertyId": "550e8400-e29b-41d4-a716-446655440000",
-    "mediaManifest": [
-        { "fileKey": "sala-1",  "contentType": "image/jpeg", "sizeBytes": 204800, "classification": "INTERIOR" },
-        { "fileKey": "fachada", "contentType": "image/png",  "sizeBytes": 512000, "classification": "EXTERIOR" },
-        { "fileKey": "tour",    "contentType": "video/mp4",  "sizeBytes": 8388608, "classification": "OTHER" }
+    "address": {
+        "street": "Av. Insurgentes Sur",
+        "exteriorNumber": "1457"
+    }
+}
+```
+
+Reubicar la propiedad (colonia + coordenadas):
+
+```json
+{
+    "address": {
+        "neighborhoodId": "c7e2a9f1-3d45-6789-bcde-f01234567890",
+        "latitude": 19.372850,
+        "longitude": -99.179615
+    }
+}
+```
+
+### `amenityIds` — amenidades (lista embebida)
+
+Semántica de **reemplazo total**, no incremental: la lista enviada sustituye por completo a la actual. No existe "agregar una amenidad" — para agregar, el cliente debe enviar la lista completa (las actuales + la nueva).
+
+| Valor enviado | Efecto |
+|---|---|
+| Omitido / `null` | Las amenidades no se tocan |
+| `[]` (lista vacía) | Se **eliminan todas** las amenidades |
+| `["id1", "id2"]` | La propiedad queda **exactamente** con esas amenidades |
+
+Si algún ID no existe → `404` (`One or more amenities were not found`) y no se aplica ningún cambio (la operación es transaccional).
+
+```json
+{
+    "amenityIds": [
+        "550e8400-e29b-41d4-a716-446655440010",
+        "550e8400-e29b-41d4-a716-446655440011"
     ]
 }
 ```
 
-| Campo                          | Tipo   | Requerido | Validación                                                        |
-|--------------------------------|--------|-----------|-------------------------------------------------------------------|
-| `propertyId`                   | UUID   | Sí        | Propiedad existente, no eliminada, del arrendador autenticado      |
-| `mediaManifest`                | array  | Sí        | Al menos un elemento; sin `fileKey` duplicados                     |
-| `mediaManifest[].fileKey`      | string | Sí        | Solo letras, números, guiones y guiones bajos (`[a-zA-Z0-9_-]+`); único dentro de la sesión |
-| `mediaManifest[].contentType`  | string | Sí        | MIME de imagen o video (`image/*` o `video/*`)                    |
-| `mediaManifest[].sizeBytes`    | long   | Sí        | Mayor a cero                                                       |
-| `mediaManifest[].classification` | string | Sí      | Clasificación del medio (`INTERIOR`, `EXTERIOR`, etc.). **No puede ser `MAIN`** |
+### `pricePerM2` — campo derivado (no se envía)
 
-- **Respuesta 201** (`data` = `MediaUploadSessionResponseDto`):
+`pricePerM2` **no se acepta en el body**: el servidor lo recalcula automáticamente como `listedPrice / areaM2` (redondeo HALF_UP a 2 decimales) cada vez que se envía un nuevo `listedPrice` o `areaM2`, combinando el valor nuevo con el vigente del otro campo.
+
+```json
+{
+    "listedPrice": 15000.00
+}
+```
+
+Con `areaM2` actual de `80.50` → el servidor guarda `pricePerM2 = 186.34` sin que el cliente lo calcule.
+
+## Qué NO actualiza
+
+| Dato | Cómo se modifica (si aplica) |
+|---|---|
+| `id` | Nunca cambia; solo viaja en la URL |
+| `lessor` (arrendador) | Nunca cambia de dueño |
+| `media` (fotos/videos) | Flujo de medios: `POST/PATCH/DELETE /properties/media` (ver arriba) |
+| `pricePerM2` | Derivado; se recalcula solo (ver arriba) |
+| `addressId` | La dirección se edita in place, el ID se conserva |
+| `createdAt` / `updatedAt` | Automáticos (JPA); `updatedAt` se refresca en cada PATCH |
+| `deletedAt` | Borrado lógico; solo lo afecta `DELETE /properties/{id}` |
+
+## Ejemplo completo (todos los bloques a la vez)
+
+```
+PATCH /properties/a3f8c1d2-4b56-7890-abcd-ef1234567890
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json
+{
+    "title": "Departamento remodelado cerca del metro",
+    "listedPrice": 14500.00,
+    "isAvailableToRent": true,
+    "propertyTypeId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890",
+    "address": {
+        "street": "Av. Universidad",
+        "exteriorNumber": "3000",
+        "interiorNumber": "12A",
+        "neighborhoodId": "c7e2a9f1-3d45-6789-bcde-f01234567890",
+        "latitude": 19.332607,
+        "longitude": -99.186966
+    },
+    "amenityIds": [
+        "550e8400-e29b-41d4-a716-446655440010",
+        "550e8400-e29b-41d4-a716-446655440011"
+    ]
+}
+```
+
+Respuesta `200`:
 
 ```json
 {
     "success": true,
     "data": {
-        "sessionId": "7f8a9b0c-1d2e-4f3a-8b4c-5d6e7f8a9b0c",
-        "propertyId": "550e8400-e29b-41d4-a716-446655440000",
-        "status": "MEDIA_UPLOAD_PENDING",
-        "expiresAt": "2026-07-09T20:00:00Z",
-        "uploads": [
+        "id": "a3f8c1d2-4b56-7890-abcd-ef1234567890",
+        "lessorId": "9f8e7d6c-5b4a-3210-fedc-ba0987654321",
+        "propertyTypeId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890",
+        "addressId": "d4c3b2a1-0f9e-8d7c-6b5a-432109876543",
+        "isAvailableToRent": true,
+        "title": "Departamento remodelado cerca del metro",
+        "description": "Departamento de 2 recámaras con vista a la calle...",
+        "areaM2": 80.50,
+        "bedrooms": 2,
+        "bathrooms": 1.5,
+        "parkingSpaces": 1,
+        "constructionYear": 2012,
+        "isCondominium": false,
+        "listedPrice": 14500.00,
+        "pricePerM2": 180.12,
+        "createdAt": "2026-05-02T10:15:30",
+        "updatedAt": "2026-07-11T18:42:05",
+        "media": [
             {
-                "fileKey": "sala-1",
-                "uploadUrl": "https://vivia-media-bucket.s3.amazonaws.com/media/property-staging/7f8a9b0c-.../sala-1?X-Amz-Algorithm=AWS4-HMAC-SHA256&...",
-                "storageKey": "media/property-staging/7f8a9b0c-1d2e-4f3a-8b4c-5d6e7f8a9b0c/sala-1",
-                "expiresInSeconds": 900
+                "id": "e5f6a7b8-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
+                "url": "https://vivia-bucket.s3.us-east-1.amazonaws.com/media/public/a3f8c1d2.../portada.jpg",
+                "type": "IMAGE",
+                "classification": "MAIN"
             }
+        ],
+        "amenities": [
+            { "id": "550e8400-e29b-41d4-a716-446655440010", "name": "Estacionamiento" },
+            { "id": "550e8400-e29b-41d4-a716-446655440011", "name": "Alberca" }
         ]
     },
-    "message": "Sesión de subida creada. Usa las URLs de 'uploads' para subir los archivos directamente a S3.",
-    "status": "CREATED"
-}
-```
-
-| Campo                        | Tipo     | Descripción                                                       |
-|------------------------------|----------|--------------------------------------------------------------------|
-| `sessionId`                  | UUID     | ID de la sesión de subida (vive en Redis hasta `expiresAt`)        |
-| `propertyId`                 | UUID     | Propiedad a la que se asociarán los medios                        |
-| `status`                     | string   | Estado inicial de la sesión: `MEDIA_UPLOAD_PENDING`               |
-| `expiresAt`                  | datetime | Expiración de la sesión (ISO 8601 UTC); TTL de 2 horas por defecto |
-| `uploads[].fileKey`          | string   | Identificador del archivo, igual al enviado en el manifiesto      |
-| `uploads[].uploadUrl`        | string   | URL PUT prefirmada de S3; expira                                  |
-| `uploads[].storageKey`       | string   | Ruta del archivo en el bucket (staging)                           |
-| `uploads[].expiresInSeconds` | int      | Segundos de vigencia de la URL prefirmada                          |
-
-- **Errores específicos:**
-  - `400` — algún elemento del manifiesto trae `classification = "MAIN"`: `"Media manifest cannot contain MAIN classification"`.
-  - `400` — `fileKey` repetido: `"Duplicate fileKey in manifest: <fileKey>"`.
-  - `403` — la propiedad no pertenece al arrendador del token.
-  - `404` — `propertyId` no existe o la propiedad está eliminada.
-- **Notas:**
-  - El endpoint responde de inmediato; la publicación de los medios es **eventual** (segundos o minutos después de subir, tras la moderación). El cliente debe reflejarlo como "en revisión" y confiar en la notificación push para actualizar la vista.
-  - Si la sesión expira antes de que se suban todos los archivos, los medios no se publican y hay que crear una sesión nueva.
-
----
-
-## 2. PATCH `/properties/media`
-
-Cambia la imagen principal de una propiedad en una sola operación atómica: la imagen actual con `classification = MAIN` pasa a `OTHER`, y la imagen indicada pasa a `MAIN`. Ambas deben pertenecer a la misma propiedad del arrendador autenticado.
-
-- **Controlador:** `PropertyMediaController.changeMainImage`
-- **Rol requerido:** `LESSOR` (dueño de ambas imágenes)
-- **Request body** (`ChangeMainImageDto`) — ojo: los campos van en `snake_case`:
-
-```json
-{
-    "main_image_id": "b1e2c3d4-5f6a-4b7c-8d9e-0a1b2c3d4e5f",
-    "new_main_image_id": "c2f3d4e5-6a7b-4c8d-9e0f-1a2b3c4d5e6f"
-}
-```
-
-| Campo               | Tipo | Requerido | Validación                                                       |
-|---------------------|------|-----------|-------------------------------------------------------------------|
-| `main_image_id`     | UUID | Sí        | Medio existente con `classification = MAIN`                       |
-| `new_main_image_id` | UUID | Sí        | Medio existente de tipo `IMAGE`; distinto de `main_image_id`; misma propiedad |
-
-- **Respuesta 200:**
-
-```json
-{
-    "success": true,
-    "data": null,
-    "message": "Imagen principal actualizada correctamente",
+    "message": "Propiedad actualizada exitosamente",
     "status": "OK"
 }
 ```
 
-- **Errores específicos:**
-  - `400` — ambos IDs son iguales: `"main_image_id and new_main_image_id must be different"`.
-  - `400` — las imágenes son de propiedades distintas: `"Both images must belong to the same property"`.
-  - `400` — `main_image_id` no es la imagen MAIN actual: `"main_image_id does not have classification MAIN"`.
-  - `400` — el nuevo medio es un video: `"New main image must be an IMAGE"`.
-  - `403` — alguno de los medios no pertenece al arrendador del token.
-  - `404` — alguno de los IDs no existe.
+## Errores
 
----
+| Código | Causa | Ejemplo de detonante |
+|---|---|---|
+| `400 Bad Request` | Validación de campos (`@Valid`) | `title` de 5 caracteres, `latitude` de 100 |
+| `400 Bad Request` | Coordenada incompleta | `latitude` sin `longitude` (o viceversa) |
+| `401 Unauthorized` | Token ausente, inválido o expirado | — |
+| `403 Forbidden` | Sin rol `LESSOR`, o la propiedad no es del arrendador autenticado | Editar una propiedad ajena |
+| `404 Not Found` | Recurso referenciado inexistente | `id` de propiedad, `propertyTypeId`, `neighborhoodId` o algún `amenityIds` que no existe |
 
-## 3. DELETE `/properties/media/{id}`
-
-Elimina un medio de la propiedad. El borrado es definitivo y transaccional: primero elimina el archivo de S3 y después el registro de la base de datos. **La imagen principal (`MAIN`) no se puede eliminar** — para quitarla hay que primero promover otra imagen con el PATCH y luego eliminarla (ya como `OTHER`).
-
-- **Controlador:** `PropertyMediaController.deleteMedia`
-- **Rol requerido:** `LESSOR` (dueño del medio)
-- **Path param:** `id` (UUID) — ID del medio a eliminar.
-- **Request body:** ninguno.
-- **Respuesta 204:** sin body (a diferencia de los otros endpoints, no usa el envelope `BaseResponse`).
-- **Errores específicos:**
-  - `403` — el medio no pertenece al arrendador del token: `"Media does not belong to the authenticated lessor"`.
-  - `404` — el medio no existe: `"Media not found with id: <id>"`.
-  - `409 Conflict` — el medio es la imagen `MAIN` (`MainImageDeletionException`): `"You cannot delete the main image of the property."`.
-
-**Ejemplo:**
-
-```
-DELETE /properties/media/c2f3d4e5-6a7b-4c8d-9e0f-1a2b3c4d5e6f
-Authorization: Bearer <token>
-
-→ 204 No Content
-```
-
----
-
-## Flujo completo desde el cliente móvil
-
-Contexto típico: pantalla de "editar propiedad" del arrendador, sección de galería.
-
-**Agregar fotos/videos:**
-
-1. El usuario selecciona archivos nuevos en la galería.
-2. `POST /properties/media` con el manifiesto (una clasificación por archivo, nunca `MAIN`).
-3. Subir cada binario con `PUT` a su `uploadUrl` antes de `expiresInSeconds`, con el `Content-Type` declarado.
-4. Mostrar los medios como "en revisión". La confirmación llega por notificación push: aprobados (visibles en la propiedad) o rechazados por moderación (con motivo).
-
-**Cambiar la portada:**
-
-1. El usuario elige otra imagen de la galería como principal.
-2. `PATCH /properties/media` con el ID de la imagen `MAIN` actual y el de la nueva.
-3. Refrescar la galería: la portada anterior queda como `OTHER`.
-
-**Eliminar un medio:**
-
-1. El usuario borra una foto o video de la galería.
-2. `DELETE /properties/media/{id}`.
-3. Si el servidor responde `409`, la imagen es la portada: pedir al usuario que primero elija otra portada (PATCH) y reintentar.
-
-## Resumen rápido
-
-| Método | Ruta                     | Rol    | Body (campos)                          | Respuesta exitosa                          |
-|--------|--------------------------|--------|-----------------------------------------|---------------------------------------------|
-| POST   | `/properties/media`      | LESSOR | `propertyId`, `mediaManifest[]`         | `201` — `MediaUploadSessionResponseDto`     |
-| PATCH  | `/properties/media`      | LESSOR | `main_image_id`, `new_main_image_id`    | `200` — `data: null`                        |
-| DELETE | `/properties/media/{id}` | LESSOR | — (ID en la ruta)                       | `204` — sin body                            |
+Todos los errores usan el formato `ErrorResponse` estándar del backend; los `404` indican en `details` la clase de excepción (`PropertyNotFoundException`, `PropertyTypeNotFoundException`, `NeighborhoodNotFoundException`, `AmenityNotFoundException`).

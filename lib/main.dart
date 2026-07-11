@@ -52,6 +52,7 @@ import 'package:vivia_mobile/shared/property/domain/usecases/add_property_media_
 import 'package:vivia_mobile/shared/property/domain/usecases/change_main_image_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/delete_property_media_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/delete_property_usecase.dart';
+import 'package:vivia_mobile/shared/property/domain/usecases/update_property_usecase.dart';
 import 'package:vivia_mobile/features/lessee/reports/domain/usecases/get_report_reasons_usecase.dart';
 import 'package:vivia_mobile/features/lessee/reports/domain/usecases/submit_report_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/toggle_like_usecase.dart';
@@ -259,6 +260,7 @@ void main() async {
   final getPropertyMediaUseCase = GetPropertyMediaUseCase(propertyRepository);
   final toggleLikeUseCase = ToggleLikeUseCase(propertyRepository);
   final deletePropertyUseCase = DeletePropertyUseCase(propertyRepository);
+  final updatePropertyUseCase = UpdatePropertyUseCase(propertyRepository);
   final addPropertyMediaUseCase = AddPropertyMediaUseCase(propertyRepository);
   final changeMainImageUseCase = ChangeMainImageUseCase(propertyRepository);
   final deletePropertyMediaUseCase =
@@ -281,6 +283,7 @@ void main() async {
     watchDraftStatusUseCase: WatchDraftStatusUseCase(lessorRepository),
     geocodeAddressUseCase: geocodeAddressUseCase,
     reverseGeocodeUseCase: reverseGeocodeUseCase,
+    updatePropertyUseCase: updatePropertyUseCase,
   );
 
   final lessorVerificationRemoteDatasource =
