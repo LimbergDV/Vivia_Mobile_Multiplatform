@@ -65,6 +65,7 @@ import 'package:vivia_mobile/features/lessor/verification/domain/usecases/get_ve
 import 'package:vivia_mobile/features/lessor/verification/domain/usecases/request_verification_upload_urls_usecase.dart';
 import 'package:vivia_mobile/features/lessor/verification/domain/usecases/reset_verification_usecase.dart';
 import 'package:vivia_mobile/features/lessor/verification/domain/usecases/upload_verification_document_usecase.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/generate_ai_content_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_amenities_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_neighborhoods_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/publish_property_draft_usecase.dart';
@@ -284,6 +285,7 @@ void main() async {
     geocodeAddressUseCase: geocodeAddressUseCase,
     reverseGeocodeUseCase: reverseGeocodeUseCase,
     updatePropertyUseCase: updatePropertyUseCase,
+    generateAiContentUseCase: GenerateAiContentUseCase(lessorRepository),
   );
 
   final lessorVerificationRemoteDatasource =

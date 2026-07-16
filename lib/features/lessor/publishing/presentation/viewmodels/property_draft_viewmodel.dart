@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:vivia_mobile/core/utils/media_file_utils.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
 import 'package:vivia_mobile/features/maps/domain/usecases/geocode_address_usecase.dart';
@@ -9,9 +10,11 @@ import 'package:vivia_mobile/shared/property/domain/models/property_type_model.d
 import 'package:vivia_mobile/features/lessor/publishing/data/models/amenity_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/draft_upload_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/neighborhood_model.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/models/ai_content_event.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/draft_status_event.dart';
 import 'package:vivia_mobile/shared/property/domain/models/media_manifest_item.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/new_property_form.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/generate_ai_content_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_amenities_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_neighborhoods_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/publish_property_draft_usecase.dart';
@@ -20,6 +23,8 @@ import 'package:vivia_mobile/shared/property/domain/models/property_detail.dart'
 import 'package:vivia_mobile/shared/property/domain/usecases/update_property_usecase.dart';
 
 enum NeighborhoodsStatus { idle, loading, success, error }
+
+enum AiGenerationStatus { idle, loading, error }
 
 /// [needsPin]: el geocoding solo resolvió a nivel colonia/CP (o 404) y el
 /// usuario debe colocar el pin manualmente en el mapa de la revisión.
@@ -47,6 +52,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
   final GeocodeAddressUseCase? _geocodeAddress;
   final ReverseGeocodeUseCase? _reverseGeocode;
   final UpdatePropertyUseCase? _updateProperty;
+  final GenerateAiContentUseCase? _generateAiContent;
 
   PropertyDraftViewModel({
     required GetNeighborhoodsUseCase getNeighborhoodsUseCase,
@@ -56,13 +62,15 @@ class PropertyDraftViewModel extends ChangeNotifier {
     GeocodeAddressUseCase? geocodeAddressUseCase,
     ReverseGeocodeUseCase? reverseGeocodeUseCase,
     UpdatePropertyUseCase? updatePropertyUseCase,
+    GenerateAiContentUseCase? generateAiContentUseCase,
   }) : _getNeighborhoods = getNeighborhoodsUseCase,
        _getAmenities = getAmenitiesUseCase,
        _publishDraft = publishPropertyDraftUseCase,
        _watchDraftStatus = watchDraftStatusUseCase,
        _geocodeAddress = geocodeAddressUseCase,
        _reverseGeocode = reverseGeocodeUseCase,
-       _updateProperty = updatePropertyUseCase;
+       _updateProperty = updatePropertyUseCase,
+       _generateAiContent = generateAiContentUseCase;
 
   // ── Estado del formulario ─────────────────────────────────────────────────
   NewPropertyForm _form = const NewPropertyForm();
@@ -112,6 +120,53 @@ class PropertyDraftViewModel extends ChangeNotifier {
   );
   GeocodeResult get pinMapCenter =>
       _manualPoint ?? _previewPoint ?? _tuxtlaCenter;
+
+  // ── Estado de generación IA ───────────────────────────────────────────────
+  AiGenerationStatus _aiStatus = AiGenerationStatus.idle;
+  String? _aiError;
+  String _aiStreamTitle = '';
+  String _aiStreamDescription = '';
+  StreamSubscription<AiContentEvent>? _aiSubscription;
+
+  // Último título y descripción generados: safety net si los campos quedaron vacíos.
+  String? _aiLastTitle;
+  String? _aiLastDescription;
+
+  // Rate limiting: máximo 3 llamadas por ventana de 5 minutos.
+  final List<DateTime> _aiCallTimestamps = [];
+
+  // Throttle: un solo rebuild por frame durante el stream de deltas.
+  bool _notifyPending = false;
+  void _throttledNotify() {
+    if (_notifyPending) return;
+    _notifyPending = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _notifyPending = false;
+      if (hasListeners) notifyListeners();
+    });
+  }
+
+  AiGenerationStatus get aiStatus => _aiStatus;
+  String? get aiError => _aiError;
+  String get aiStreamTitle => _aiStreamTitle;
+  String get aiStreamDescription => _aiStreamDescription;
+  String? get aiLastTitle => _aiLastTitle;
+  String? get aiLastDescription => _aiLastDescription;
+
+  bool get isAiRateLimited {
+    _aiCallTimestamps.removeWhere(
+      (t) => DateTime.now().difference(t) > const Duration(minutes: 5),
+    );
+    return _aiCallTimestamps.length >= 3;
+  }
+
+  bool get canGenerateAiContent =>
+      _form.propertyType != null &&
+      _form.neighborhood != null &&
+      (_form.area?.isNotEmpty ?? false) &&
+      (_form.price?.isNotEmpty ?? false) &&
+      _form.rooms != null &&
+      _form.bathrooms != null;
 
   // ── Estado del stream de validación ──────────────────────────────────────
   StreamSubscription<DraftStatusEvent>? _streamSubscription;
@@ -171,6 +226,14 @@ class PropertyDraftViewModel extends ChangeNotifier {
     _previewPoint = null;
     _manualPoint = null;
     _manualAddressLabel = null;
+    _aiSubscription?.cancel();
+    _aiSubscription = null;
+    _aiStatus = AiGenerationStatus.idle;
+    _aiError = null;
+    _aiStreamTitle = '';
+    _aiStreamDescription = '';
+    _aiLastTitle = null;
+    _aiLastDescription = null;
     notifyListeners();
   }
 
@@ -277,9 +340,133 @@ class PropertyDraftViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Generación IA ─────────────────────────────────────────────────────────
+
+  Future<void> generateAiContent() async {
+    if (_aiStatus == AiGenerationStatus.loading) return;
+    final gen = _generateAiContent;
+    if (gen == null) return;
+
+    if (isAiRateLimited) {
+      _aiStatus = AiGenerationStatus.error;
+      _aiError = 'Límite alcanzado: máximo 3 generaciones por 5 minutos.';
+      notifyListeners();
+      return;
+    }
+    _aiCallTimestamps.add(DateTime.now());
+
+    _aiSubscription?.cancel();
+    _aiStatus = AiGenerationStatus.loading;
+    _aiError = null;
+    _aiStreamTitle = '';
+    _aiStreamDescription = '';
+    notifyListeners();
+
+    try {
+      final draft = _buildAiDraft();
+      _aiSubscription = gen
+          .execute(draft)
+          .timeout(
+            const Duration(seconds: 120),
+            onTimeout: (sink) => sink.addError(
+              Exception('La generación tardó demasiado. Intenta de nuevo.'),
+            ),
+          )
+          .listen(
+        (event) {
+          switch (event) {
+            // Eventos frecuentes: throttle a un rebuild por frame.
+            case AiContentQueued():
+              _throttledNotify();
+            case AiContentDelta(:final text):
+              _aiStreamDescription += text;
+              _throttledNotify();
+            // Eventos únicos: notify inmediato para respuesta rápida.
+            case AiContentTitle(:final text):
+              _aiStreamTitle = text;
+              notifyListeners();
+            case AiContentDone(:final title, :final description):
+              _aiStatus = AiGenerationStatus.idle;
+              _aiSubscription = null;
+              _aiLastTitle = title;
+              _aiLastDescription = description;
+              // Atomic update: both fields set before the single notify,
+              // so _onVmChanged sees the complete state in one pass.
+              _form = _form.copyWith(title: title, description: description);
+              notifyListeners();
+            case AiContentError(:final detail):
+              _aiStatus = AiGenerationStatus.error;
+              _aiError = detail;
+              _aiSubscription = null;
+              notifyListeners();
+          }
+        },
+        onError: (Object e) {
+          _aiStatus = AiGenerationStatus.error;
+          _aiError = e.toString().replaceFirst('Exception: ', '');
+          _aiSubscription = null;
+          notifyListeners();
+        },
+        onDone: () {
+          if (_aiStatus == AiGenerationStatus.loading) {
+            _aiStatus = AiGenerationStatus.error;
+            _aiError = 'La generación terminó inesperadamente.';
+            notifyListeners();
+          }
+        },
+      );
+    } catch (e) {
+      _aiStatus = AiGenerationStatus.error;
+      _aiError = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+    }
+  }
+
+  void cancelAiGeneration() {
+    _aiSubscription?.cancel();
+    _aiSubscription = null;
+    if (_aiStatus == AiGenerationStatus.loading) {
+      _aiStatus = AiGenerationStatus.idle;
+      _aiStreamTitle = '';
+      _aiStreamDescription = '';
+      notifyListeners();
+    }
+  }
+
+  Map<String, dynamic> _buildAiDraft() {
+    final amenityNames = _form.amenityIds
+        .map((id) => _amenities
+            .firstWhere(
+              (a) => a.id == id,
+              orElse: () => AmenityModel(id: id, name: id),
+            )
+            .name)
+        .toList();
+
+    return {
+      'id': 'local-${DateTime.now().millisecondsSinceEpoch}',
+      'propertyType': {
+        'id': _form.propertyType!.id,
+        'name': _form.propertyType!.name,
+      },
+      'address': {'neighborhoodName': _form.neighborhood!.name},
+      'availableToRent': _form.isAvailableToRent,
+      'areaM2': double.tryParse(_form.area ?? '0') ?? 0.0,
+      'bedrooms': _form.rooms ?? 0,
+      'bathrooms': (_form.bathrooms ?? 0).toDouble(),
+      'parkingSpaces': _form.parkingSpots ?? 0,
+      if (_form.constructionYear != null)
+        'constructionYear': _form.constructionYear!,
+      'condominium': _form.isCondominium,
+      'listedPrice': double.tryParse(_form.price ?? '0') ?? 0.0,
+      'amenities': amenityNames,
+    };
+  }
+
   @override
   void dispose() {
     _streamSubscription?.cancel();
+    _aiSubscription?.cancel();
     _previewDebounce?.cancel();
     super.dispose();
   }
@@ -571,6 +758,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
 
       _publishStatus = PublishStatus.success;
       _publishedDraftId = draftUpload.draftId;
+      _aiCallTimestamps.clear(); // nueva publicación, contador IA se reinicia
       notifyListeners(); // la UI navega al home aquí
 
       // Fase B: sube media y arranca SSE en background (no bloqueante).

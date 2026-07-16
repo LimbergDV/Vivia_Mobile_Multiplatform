@@ -18,5 +18,8 @@ class LessorApiConstants {
   static String draftStatusStream(String draftId) =>
       '$baseUrl/properties/draft/$draftId/status/stream';
 
+  static String get llmContentGenerations =>
+      '$baseUrl/llm/contents/generations';
+
   static Map<String, String> headers() => AuthApiConstants.headers();
 }

@@ -2,6 +2,7 @@ import 'package:vivia_mobile/features/lessor/publishing/data/datasources/remote/
 import 'package:vivia_mobile/features/lessor/publishing/data/models/amenity_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/draft_upload_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/neighborhood_model.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/models/ai_content_event.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/draft_status_event.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/repositories/lessor_repository.dart';
 
@@ -32,4 +33,8 @@ class LessorRepositoryImpl implements LessorRepository {
   @override
   Stream<DraftStatusEvent> watchDraftStatus(String draftId) =>
       _remote.watchDraftStatus(draftId);
+
+  @override
+  Stream<AiContentEvent> generateAiContent(Map<String, dynamic> draft) =>
+      _remote.generateAiContent(draft);
 }

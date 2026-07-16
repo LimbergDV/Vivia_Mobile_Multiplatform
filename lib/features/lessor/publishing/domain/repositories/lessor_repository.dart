@@ -1,6 +1,7 @@
 import 'package:vivia_mobile/features/lessor/publishing/data/models/amenity_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/draft_upload_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/neighborhood_model.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/models/ai_content_event.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/draft_status_event.dart';
 
 abstract class LessorRepository {
@@ -13,4 +14,5 @@ abstract class LessorRepository {
     List<int> bytes,
   );
   Stream<DraftStatusEvent> watchDraftStatus(String draftId);
+  Stream<AiContentEvent> generateAiContent(Map<String, dynamic> draft);
 }
