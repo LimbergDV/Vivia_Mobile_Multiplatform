@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/property_photos_page.dart';
@@ -7,6 +9,9 @@ import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/for
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/number_selector.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/property_text_field.dart';
 
+const _kAiFrom = Color(0xFF62E8EC); // cyan claro — inicio del degradado Premium
+const _kAiTo   = Color(0xFF26C6DA); // cyan oscuro — fin del degradado Premium
+
 class PropertyDetailsPage extends StatefulWidget {
   const PropertyDetailsPage({super.key});
 
@@ -14,7 +19,8 @@ class PropertyDetailsPage extends StatefulWidget {
   State<PropertyDetailsPage> createState() => _PropertyDetailsPageState();
 }
 
-class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
+class _PropertyDetailsPageState extends State<PropertyDetailsPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _titleController;
@@ -41,21 +47,96 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
     (i) => DateTime.now().year - i,
   );
 
+  AiGenerationStatus? _lastAiStatus;
+  late final AnimationController _shimmerController;
+
   @override
   void initState() {
     super.initState();
-    final form = context.read<PropertyDraftViewModel>().form;
-    _titleController = TextEditingController(text: form.title ?? '');
-    _descriptionController = TextEditingController(
-      text: form.description ?? '',
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
     );
+    final vm = context.read<PropertyDraftViewModel>();
+    _titleController = TextEditingController(text: vm.form.title ?? '');
+    _descriptionController = TextEditingController(
+      text: vm.form.description ?? '',
+    );
+    vm.addListener(_onVmChanged);
+  }
+
+  void _onVmChanged() {
+    final vm = context.read<PropertyDraftViewModel>();
+    final current = vm.aiStatus;
+
+    if (current == AiGenerationStatus.loading) {
+      if (!_shimmerController.isAnimating) _shimmerController.repeat();
+      // Mostrar datos de stream directamente en los campos
+      if (vm.aiStreamTitle.isNotEmpty) {
+        _titleController.text = vm.aiStreamTitle;
+      }
+      if (vm.aiStreamDescription.isNotEmpty) {
+        _descriptionController.text = vm.aiStreamDescription;
+      }
+    } else {
+      if (_shimmerController.isAnimating) _shimmerController.stop();
+      if (_lastAiStatus == AiGenerationStatus.loading &&
+          current == AiGenerationStatus.idle) {
+        // Rollback: if form fields came back empty, restore from the last
+        // saved generation to avoid a second API call.
+        final title = vm.form.title?.isNotEmpty == true
+            ? vm.form.title!
+            : (vm.aiLastTitle ?? '');
+        final desc = vm.form.description?.isNotEmpty == true
+            ? vm.form.description!
+            : (vm.aiLastDescription ?? '');
+        _titleController.text = title;
+        _descriptionController.text = desc;
+        if (vm.form.title?.isEmpty ?? true) vm.setTitle(title);
+        if (vm.form.description?.isEmpty ?? true) vm.setDescription(desc);
+      }
+    }
+    _lastAiStatus = current;
   }
 
   @override
   void dispose() {
+    context.read<PropertyDraftViewModel>().removeListener(_onVmChanged);
+    _shimmerController.dispose();
     _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  // Envuelve [child] con un borde degradado animado cuando [active] es true.
+  // Usa el [_shimmerController] que ya corre en el state para no crear
+  // animaciones adicionales.
+  Widget _maybeAiGlow({required bool active, required Widget child}) {
+    if (!active) return child;
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      // El hijo no depende de la animación, así Flutter no lo reconstruye.
+      child: child,
+      builder: (_, inner) {
+        // t va de -0.3 a 1.3 para que el brillo entre y salga limpiamente.
+        final t = -0.3 + 1.6 * _shimmerController.value;
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(13.5),
+            gradient: LinearGradient(
+              colors: const [_kAiTo, _kAiFrom, _kAiTo],
+              stops: [
+                (t - 0.3).clamp(0.0, 1.0),
+                t.clamp(0.0, 1.0),
+                (t + 0.3).clamp(0.0, 1.0),
+              ],
+            ),
+          ),
+          padding: const EdgeInsets.all(1.5),
+          child: inner,
+        );
+      },
+    );
   }
 
   void _onNext(PropertyDraftViewModel vm) {
@@ -243,32 +324,6 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
                   const SizedBox(height: 28),
 
                   FormSectionHeader(
-                    label: 'Título Breve',
-                    iconData: Icons.sell_outlined,
-                  ),
-                  const SizedBox(height: 12),
-                  PropertyTextField(
-                    controller: _titleController,
-                    hint: 'Añade un título breve...',
-                    onChanged: vm.setTitle,
-                    validator: (v) => v == null || v.trim().isEmpty
-                        ? 'Campo requerido'
-                        : null,
-                  ),
-                  const SizedBox(height: 28),
-
-                  FormSectionHeader(
-                    label: 'Descripción De La Propiedad',
-                    iconData: Icons.sell_outlined,
-                  ),
-                  const SizedBox(height: 12),
-                  _DescriptionField(
-                    controller: _descriptionController,
-                    onChanged: vm.setDescription,
-                  ),
-                  const SizedBox(height: 28),
-
-                  FormSectionHeader(
                     label: 'Año De Construcción (Opcional)',
                     iconData: Icons.calendar_today_outlined,
                   ),
@@ -296,6 +351,43 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
                   ),
                   const SizedBox(height: 12),
                   _AmenitiesSection(vm: vm),
+                  const SizedBox(height: 32),
+
+                  _AiGenerateSection(vm: vm),
+                  const SizedBox(height: 28),
+
+                  FormSectionHeader(
+                    label: 'Título Breve',
+                    iconData: Icons.sell_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                  _maybeAiGlow(
+                    active: vm.aiStatus == AiGenerationStatus.loading,
+                    child: PropertyTextField(
+                      controller: _titleController,
+                      hint: 'Añade un título breve...',
+                      readOnly: vm.aiStatus == AiGenerationStatus.loading,
+                      onChanged: vm.setTitle,
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Campo requerido'
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  FormSectionHeader(
+                    label: 'Descripción De La Propiedad',
+                    iconData: Icons.sell_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                  _maybeAiGlow(
+                    active: vm.aiStatus == AiGenerationStatus.loading,
+                    child: _DescriptionField(
+                      controller: _descriptionController,
+                      readOnly: vm.aiStatus == AiGenerationStatus.loading,
+                      onChanged: vm.setDescription,
+                    ),
+                  ),
                   const SizedBox(height: 32),
 
                   SizedBox(
@@ -342,11 +434,291 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage> {
   }
 }
 
+class _AiGenerateSection extends StatefulWidget {
+  final PropertyDraftViewModel vm;
+  const _AiGenerateSection({required this.vm});
+
+  @override
+  State<_AiGenerateSection> createState() => _AiGenerateSectionState();
+}
+
+class _AiGenerateSectionState extends State<_AiGenerateSection> {
+  static const _phrases = [
+    'Pensando...',
+    'Componiendo...',
+    'Ya lo tengo...',
+    'Solo un poco más...',
+  ];
+  int _phraseIndex = 0;
+  Timer? _timer;
+
+  @override
+  void didUpdateWidget(_AiGenerateSection old) {
+    super.didUpdateWidget(old);
+    if (widget.vm.aiStatus == AiGenerationStatus.loading && _timer == null) {
+      _startTimer();
+    } else if (widget.vm.aiStatus != AiGenerationStatus.loading) {
+      _stopTimer();
+    }
+  }
+
+  void _startTimer() {
+    _phraseIndex = 0;
+    _timer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (mounted) {
+        setState(() {
+          _phraseIndex = (_phraseIndex + 1) % _phrases.length;
+        });
+      }
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+    _phraseIndex = 0;
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final vm = widget.vm;
+
+    return switch (vm.aiStatus) {
+      AiGenerationStatus.loading => _buildLoadingCard(
+          colorScheme,
+          textTheme,
+          vm,
+        ),
+      AiGenerationStatus.error => _buildErrorCard(
+          context,
+          colorScheme,
+          textTheme,
+          vm,
+        ),
+      AiGenerationStatus.idle => _buildIdleButton(
+          context,
+          colorScheme,
+          textTheme,
+          vm,
+        ),
+    };
+  }
+
+  Widget _buildIdleButton(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    PropertyDraftViewModel vm,
+  ) {
+    final canGenerate = vm.canGenerateAiContent;
+    final isLimited = vm.isAiRateLimited;
+    final enabled = canGenerate && !isLimited;
+    const gradient = LinearGradient(
+      colors: [_kAiFrom, _kAiTo],
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GestureDetector(
+          onTap: enabled ? () => vm.generateAiContent() : null,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: enabled ? 1.0 : 0.45,
+            child: Container(
+              width: double.infinity,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: enabled ? gradient : null,
+                color: enabled ? null : colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 20,
+                    color: enabled ? Colors.white : colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Generar con IA',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: enabled ? Colors.white : colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (isLimited)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'Límite de 3 generaciones por 5 min alcanzado. Intenta de nuevo en un momento.',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildLoadingCard(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    PropertyDraftViewModel vm,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: _kAiTo.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _kAiTo.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: _kAiTo,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Text(
+                _phrases[_phraseIndex],
+                key: ValueKey(_phraseIndex),
+                style: textTheme.labelMedium?.copyWith(
+                  color: _kAiTo,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: vm.cancelAiGeneration,
+            child: Icon(
+              Icons.close_rounded,
+              size: 18,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorCard(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    PropertyDraftViewModel vm,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.error.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 18,
+                color: colorScheme.error,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  vm.aiError ?? 'Error al generar',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onErrorContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => vm.cancelAiGeneration(),
+                style: TextButton.styleFrom(
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Cancelar'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: vm.canGenerateAiContent
+                    ? () => vm.generateAiContent()
+                    : null,
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: const Text('Reintentar'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _kAiTo,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  textStyle: textTheme.labelMedium,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DescriptionField extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String>? onChanged;
+  final bool readOnly;
 
-  const _DescriptionField({required this.controller, this.onChanged});
+  const _DescriptionField({
+    required this.controller,
+    this.onChanged,
+    this.readOnly = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -355,7 +727,8 @@ class _DescriptionField extends StatelessWidget {
 
     return TextFormField(
       controller: controller,
-      maxLines: 5,
+      readOnly: readOnly,
+      maxLines: null,
       minLines: 4,
       onChanged: onChanged,
       validator: (v) =>

@@ -1,212 +1,199 @@
-# Documentación de Endpoints
+# Endpoints — Guía de Consumo (Cliente Móvil)
 
-# PATCH `/properties/{id}` — Actualización parcial de una propiedad
+## `POST /api/llm/contents/generations`
 
-Actualiza **únicamente los campos enviados** en el cuerpo de la request. Es un PATCH real: todo campo omitido (o enviado como `null`) conserva su valor actual en la base de datos. Puede enviarse desde un solo campo hasta el cuerpo completo.
+Genera título y descripción de un anuncio con **inferencia real** (grafo v4 → resumen v6 → llama-server/Qwen3). Responde por **streaming SSE** (`text/event-stream`), no por un JSON único.
 
-- **Autenticación:** JWT con rol `LESSOR`. El arrendador se resuelve del token y **solo puede editar sus propias propiedades** (si no es el dueño → `403`).
-- **Content-Type:** `application/json`.
-- **Respuesta exitosa:** `200` con envelope `BaseResponse<PropertyResponseDto>` (la propiedad completa ya actualizada, incluyendo medios y amenidades).
-
-## Regla de oro del PATCH parcial
-
-| Cómo se envía el campo | Efecto |
-|---|---|
-| Omitido del JSON | No se modifica |
-| `null` explícito | No se modifica (equivale a omitirlo) |
-| Con valor | Se actualiza (y se valida) |
-
-> Consecuencia: **no es posible "borrar" un valor mandando `null`.** Un `null` siempre significa "no tocar".
-> Campos desconocidos en el JSON (ej. `"latitude"` al nivel raíz) se ignoran silenciosamente, sin error.
-
-## Qué SÍ actualiza
-
-### Campos escalares (nivel raíz)
-
-| Campo | Tipo | Validación (solo si se envía) |
-|---|---|---|
-| `title` | string | 10–200 caracteres |
-| `description` | string | 20–2000 caracteres |
-| `areaM2` | decimal | > 0 |
-| `bedrooms` | entero | ≥ 0 |
-| `bathrooms` | decimal | ≥ 0.5 |
-| `parkingSpaces` | entero | ≥ 0 |
-| `constructionYear` | entero | — |
-| `isCondominium` | boolean | — |
-| `isAvailableToRent` | boolean | — |
-| `listedPrice` | decimal | > 0 |
-
-### `propertyTypeId` — tipo de propiedad
-
-UUID de un tipo existente (casa, departamento, etc.). Si el ID no existe → `404`.
-
-```json
-{
-    "propertyTypeId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890"
-}
-```
-
-### `address` — dirección (objeto embebido)
-
-Objeto anidado, **también con semántica parcial**: dentro de `address` cada subcampo es opcional y solo se actualiza lo enviado. La dirección se modifica *in place* — el `addressId` de la propiedad **no cambia**, no se crea un registro nuevo.
-
-| Subcampo | Tipo | Validación | Notas |
-|---|---|---|---|
-| `neighborhoodId` | UUID | Debe existir | `404` si no existe la colonia |
-| `street` | string | 1–100 caracteres | |
-| `exteriorNumber` | string | 1–10 caracteres | |
-| `interiorNumber` | string | ≤ 10 caracteres | |
-| `latitude` | decimal | -90 a 90 | **Debe venir junto con `longitude`** |
-| `longitude` | decimal | -180 a 180 | **Debe venir junto con `latitude`** |
-
-> ⚠️ **Regla lat/long:** enviar solo una de las dos coordenadas responde `400` con el mensaje `Both latitude and longitude must be provided together`. Juntas actualizan el punto geográfico (PostGIS) usado por las búsquedas por proximidad (`/properties/near-me`).
-
-Cambiar solo la calle y el número:
-
-```json
-{
-    "address": {
-        "street": "Av. Insurgentes Sur",
-        "exteriorNumber": "1457"
-    }
-}
-```
-
-Reubicar la propiedad (colonia + coordenadas):
-
-```json
-{
-    "address": {
-        "neighborhoodId": "c7e2a9f1-3d45-6789-bcde-f01234567890",
-        "latitude": 19.372850,
-        "longitude": -99.179615
-    }
-}
-```
-
-### `amenityIds` — amenidades (lista embebida)
-
-Semántica de **reemplazo total**, no incremental: la lista enviada sustituye por completo a la actual. No existe "agregar una amenidad" — para agregar, el cliente debe enviar la lista completa (las actuales + la nueva).
-
-| Valor enviado | Efecto |
-|---|---|
-| Omitido / `null` | Las amenidades no se tocan |
-| `[]` (lista vacía) | Se **eliminan todas** las amenidades |
-| `["id1", "id2"]` | La propiedad queda **exactamente** con esas amenidades |
-
-Si algún ID no existe → `404` (`One or more amenities were not found`) y no se aplica ningún cambio (la operación es transaccional).
-
-```json
-{
-    "amenityIds": [
-        "550e8400-e29b-41d4-a716-446655440010",
-        "550e8400-e29b-41d4-a716-446655440011"
-    ]
-}
-```
-
-### `pricePerM2` — campo derivado (no se envía)
-
-`pricePerM2` **no se acepta en el body**: el servidor lo recalcula automáticamente como `listedPrice / areaM2` (redondeo HALF_UP a 2 decimales) cada vez que se envía un nuevo `listedPrice` o `areaM2`, combinando el valor nuevo con el vigente del otro campo.
-
-```json
-{
-    "listedPrice": 15000.00
-}
-```
-
-Con `areaM2` actual de `80.50` → el servidor guarda `pricePerM2 = 186.34` sin que el cliente lo calcule.
-
-## Qué NO actualiza
-
-| Dato | Cómo se modifica (si aplica) |
-|---|---|
-| `id` | Nunca cambia; solo viaja en la URL |
-| `lessor` (arrendador) | Nunca cambia de dueño |
-| `media` (fotos/videos) | Flujo de medios: `POST/PATCH/DELETE /properties/media` (ver arriba) |
-| `pricePerM2` | Derivado; se recalcula solo (ver arriba) |
-| `addressId` | La dirección se edita in place, el ID se conserva |
-| `createdAt` / `updatedAt` | Automáticos (JPA); `updatedAt` se refresca en cada PATCH |
-| `deletedAt` | Borrado lógico; solo lo afecta `DELETE /properties/{id}` |
-
-## Ejemplo completo (todos los bloques a la vez)
+### URL
 
 ```
-PATCH /properties/a3f8c1d2-4b56-7890-abcd-ef1234567890
-Authorization: Bearer <token>
+POST https://<host>/api/llm/contents/generations
+```
+
+Nginx enruta cualquier prefijo `/api/llm/*` al servicio `llm_local_service` (puerto interno `8003`). El cliente móvil nunca habla directo con el contenedor, siempre pasa por el proxy.
+
+### Autenticación
+
+Header obligatorio:
+
+```
+Authorization: Bearer <JWT>
+```
+
+- El JWT lo emite el backend transaccional (no este servicio); el móvil solo lo reenvía.
+- Algoritmo esperado: `HS512`.
+- Si falta el header, es inválido o expiró, el servicio responde **401** antes de abrir el stream (no llega como evento SSE):
+    - `Authorization Bearer token missing`
+    - `Token expired`
+    - `Invalid token`
+    - En los tres casos incluye el header `WWW-Authenticate: Bearer`.
+
+### Headers de la petición
+
+```
 Content-Type: application/json
+Authorization: Bearer <JWT>
+Accept: text/event-stream
 ```
+
+### Body (JSON)
 
 ```json
 {
-    "title": "Departamento remodelado cerca del metro",
-    "listedPrice": 14500.00,
-    "isAvailableToRent": true,
-    "propertyTypeId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890",
-    "address": {
-        "street": "Av. Universidad",
-        "exteriorNumber": "3000",
-        "interiorNumber": "12A",
-        "neighborhoodId": "c7e2a9f1-3d45-6789-bcde-f01234567890",
-        "latitude": 19.332607,
-        "longitude": -99.186966
-    },
-    "amenityIds": [
-        "550e8400-e29b-41d4-a716-446655440010",
-        "550e8400-e29b-41d4-a716-446655440011"
-    ]
+  "draft": {
+    "id": "draft-001",
+    "propertyType": { "id": "pt-house", "name": "Casa" },
+    "address": { "neighborhoodName": "Prudencio Moscoso" },
+    "availableToRent": true,
+    "areaM2": 200.0,
+    "bedrooms": 4,
+    "bathrooms": 3,
+    "parkingSpaces": 2,
+    "constructionYear": 2025,
+    "condominium": false,
+    "listedPrice": 18500.0,
+    "amenities": ["terraza", "jardín", "gimnasio"]
+  }
 }
 ```
+
+Todos los campos de `draft` son **obligatorios** salvo `amenities` (default `[]`). Los nombres van en **camelCase** (el backend los mapea internamente a snake_case vía alias de Pydantic). Si falta un campo requerido, el servicio responde **422** antes de abrir el stream.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | string | ID del draft de origen |
+| `propertyType.id` / `propertyType.name` | string | — |
+| `address.neighborhoodName` | string | — |
+| `availableToRent` | bool | — |
+| `areaM2` | number | — |
+| `bedrooms` | int | — |
+| `bathrooms` | number | acepta decimales (ej. `2.5`) |
+| `parkingSpaces` | int | — |
+| `constructionYear` | int | — |
+| `condominium` | bool | — |
+| `listedPrice` | number | — |
+| `amenities` | string[] | opcional, default `[]` |
+
+### Respuesta: stream SSE
+
+`Content-Type: text/event-stream`. Cada mensaje tiene el formato estándar SSE:
+
+```
+event: <nombre>
+data: <json>
+
+```
+
+Headers de la respuesta que el cliente debe respetar (no cachear, no cerrar por buffering):
+
+```
+Cache-Control: no-cache
+X-Accel-Buffering: no
+```
+
+#### Contrato de eventos
+
+| Evento | Cuándo ocurre | Payload | Cuántas veces |
+|---|---|---|---|
+| `queued` | mientras espera turno en la cola de generación | `{"position": 2}` | 0..n (se re-emite al avanzar de posición) |
+| `title` | al completarse el título generado por el LLM | `{"text": "..."}` | exactamente 1 |
+| `delta` | por cada fragmento de la descripción conforme se genera | `{"text": "..."}` | 0..n |
+| `done` | al terminar exitosamente | `{"generationId": "<uuid>", "title": "...", "description": "..."}` | 1 (termina el stream) |
+| `error` | ante cualquier fallo durante el pipeline | `{"detail": "..."}` | 1 (termina el stream, no llega `done`) |
+
+El evento `done` es **lo único que el móvil necesita para persistir el resultado** (`generationId`, `title`, `description`). Todo lo demás (decisión del grafo, tiempos, tokens/s, RAM, versiones de modelo) se persiste server-side en `llm_generations` y se consulta con los endpoints de historial (abajo), no viaja en el stream.
+
+#### Ejemplo de stream completo
+
+```
+event: title
+data: {"text": "Casa en Prudencio Moscoso para renta"}
+
+event: delta
+data: {"text": "Un espacio "}
+
+event: delta
+data: {"text": "pensado para la familia,"}
+
+event: done
+data: {"generationId": "8f14e45f-cecc-4a06-bfef-3b8d29c28fd7", "title": "Casa en Prudencio Moscoso para renta", "description": "Un espacio pensado para la familia…"}
+
+```
+
+### Códigos de error
+
+| Código | Cuándo | ¿Cómo llega? |
+|---|---|---|
+| `401` | JWT ausente, inválido o expirado | Respuesta HTTP plana (antes de abrir el stream) |
+| `422` | El `draft` no cumple el schema (falta un campo requerido) | Respuesta HTTP plana (antes de abrir el stream) |
+| `503` | Cola de generación llena, o llama-server no disponible al iniciar el stream | Respuesta HTTP plana si ocurre antes de abrir el stream; si ocurre ya empezado el stream, llega como evento `error` |
+
+Importante para el cliente: un fallo **antes** de que arranque el stream es un error HTTP normal (401/422/503). Un fallo **durante** el stream (ya con `Content-Type: text/event-stream` en la respuesta) llega como evento `error` con `status 200` — el cliente debe parsear el body igual y detectar el evento `error` en vez de esperar un código HTTP distinto.
+
+### Recomendaciones de implementación para el cliente móvil
+
+- Usar un cliente HTTP con soporte nativo de streaming (no esperar a que la conexión cierre para leer el body).
+- Parsear línea por línea el formato SSE (`event:` / `data:` separados por línea en blanco).
+- Mostrar el `title` en cuanto llegue el evento `title`, y concatenar los `delta.text` en orden de llegada para renderizar la descripción incrementalmente.
+- Al recibir `done`, cerrar la conexión y usar `generationId` para referenciar la generación después (ver endpoints de historial).
+- Al recibir `error`, cerrar la conexión y mostrar `detail` al usuario; no hay reintento automático del lado del servidor.
+- No hay reconexión/resume de stream: si la conexión se corta a medias, hay que reintentar la petición completa (se generará una nueva `generationId`).
+
+---
+
+## Endpoints relacionados (historial)
+
+Útiles para que el móvil consulte generaciones ya hechas sin volver a llamar al LLM.
+
+### `GET /api/llm/contents/generations`
+
+Historial paginado. Requiere el mismo `Authorization: Bearer <JWT>`.
+
+Query params:
+
+| Param | Tipo | Default | Notas |
+|---|---|---|---|
+| `draftId` | string | — | opcional, filtra por draft de origen |
+| `limit` | int | 50 | 1–200 |
+| `offset` | int | 0 | — |
 
 Respuesta `200`:
 
 ```json
 {
-    "success": true,
-    "data": {
-        "id": "a3f8c1d2-4b56-7890-abcd-ef1234567890",
-        "lessorId": "9f8e7d6c-5b4a-3210-fedc-ba0987654321",
-        "propertyTypeId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890",
-        "addressId": "d4c3b2a1-0f9e-8d7c-6b5a-432109876543",
-        "isAvailableToRent": true,
-        "title": "Departamento remodelado cerca del metro",
-        "description": "Departamento de 2 recámaras con vista a la calle...",
-        "areaM2": 80.50,
-        "bedrooms": 2,
-        "bathrooms": 1.5,
-        "parkingSpaces": 1,
-        "constructionYear": 2012,
-        "isCondominium": false,
-        "listedPrice": 14500.00,
-        "pricePerM2": 180.12,
-        "createdAt": "2026-05-02T10:15:30",
-        "updatedAt": "2026-07-11T18:42:05",
-        "media": [
-            {
-                "id": "e5f6a7b8-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
-                "url": "https://vivia-bucket.s3.us-east-1.amazonaws.com/media/public/a3f8c1d2.../portada.jpg",
-                "type": "IMAGE",
-                "classification": "MAIN"
-            }
-        ],
-        "amenities": [
-            { "id": "550e8400-e29b-41d4-a716-446655440010", "name": "Estacionamiento" },
-            { "id": "550e8400-e29b-41d4-a716-446655440011", "name": "Alberca" }
-        ]
-    },
-    "message": "Propiedad actualizada exitosamente",
-    "status": "OK"
+  "total": 1,
+  "limit": 50,
+  "offset": 0,
+  "items": [
+    {
+      "id": "8f14e45f-cecc-4a06-bfef-3b8d29c28fd7",
+      "draftId": "draft-001",
+      "title": "Casa en Prudencio Moscoso para renta",
+      "description": "Un espacio pensado para la familia…",
+      "decision": { "...": "..." },
+      "warnings": [],
+      "graphMs": 12.4,
+      "llmS": 1.8,
+      "durationS": 1.85,
+      "promptTokens": 210,
+      "outputTokens": 96,
+      "tokensPerSecond": 53.3,
+      "ramMb": 412.1,
+      "modelFile": "qwen3-1.7b-q4_k_m.gguf",
+      "promptVersion": "v6",
+      "graphVersion": "v4",
+      "source": "http",
+      "createdAt": "2026-07-16T18:30:00Z"
+    }
+  ]
 }
 ```
 
-## Errores
+### `GET /api/llm/contents/generations/{generationId}`
 
-| Código | Causa | Ejemplo de detonante |
-|---|---|---|
-| `400 Bad Request` | Validación de campos (`@Valid`) | `title` de 5 caracteres, `latitude` de 100 |
-| `400 Bad Request` | Coordenada incompleta | `latitude` sin `longitude` (o viceversa) |
-| `401 Unauthorized` | Token ausente, inválido o expirado | — |
-| `403 Forbidden` | Sin rol `LESSOR`, o la propiedad no es del arrendador autenticado | Editar una propiedad ajena |
-| `404 Not Found` | Recurso referenciado inexistente | `id` de propiedad, `propertyTypeId`, `neighborhoodId` o algún `amenityIds` que no existe |
+Detalle de una generación puntual (mismo shape que un item de `items` arriba).
 
-Todos los errores usan el formato `ErrorResponse` estándar del backend; los `404` indican en `details` la clase de excepción (`PropertyNotFoundException`, `PropertyTypeNotFoundException`, `NeighborhoodNotFoundException`, `AmenityNotFoundException`).
+| Código | Cuándo |
+|---|---|
+| `401` | JWT ausente, inválido o expirado |
+| `404` | No existe una generación con ese ID |

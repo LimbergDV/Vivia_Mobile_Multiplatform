@@ -8,6 +8,7 @@ class PropertyTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final String? Function(String?)? validator;
   final ValueChanged<String>? onChanged;
+  final bool readOnly;
 
   const PropertyTextField({
     super.key,
@@ -17,6 +18,7 @@ class PropertyTextField extends StatelessWidget {
     this.inputFormatters,
     this.validator,
     this.onChanged,
+    this.readOnly = false,
   });
 
   @override
@@ -26,6 +28,7 @@ class PropertyTextField extends StatelessWidget {
 
     return TextFormField(
       controller: controller,
+      readOnly: readOnly,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       validator: validator,

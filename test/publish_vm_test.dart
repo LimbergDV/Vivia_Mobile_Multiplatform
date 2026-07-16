@@ -5,6 +5,7 @@ import 'package:vivia_mobile/shared/property/domain/models/property_type_model.d
 import 'package:vivia_mobile/features/lessor/publishing/data/models/amenity_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/draft_upload_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/neighborhood_model.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/models/ai_content_event.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/draft_status_event.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/repositories/lessor_repository.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_amenities_usecase.dart';
@@ -53,6 +54,10 @@ class FakeLessorRepository implements LessorRepository {
     log.add('sse:start');
     return const Stream<DraftStatusEvent>.empty();
   }
+
+  @override
+  Stream<AiContentEvent> generateAiContent(Map<String, dynamic> draft) =>
+      const Stream<AiContentEvent>.empty();
 }
 
 void main() {

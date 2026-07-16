@@ -5,6 +5,7 @@ import 'package:vivia_mobile/features/lessor/data/datasources/remote/constants/l
 import 'package:vivia_mobile/features/lessor/publishing/data/models/amenity_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/draft_upload_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/data/models/neighborhood_model.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/models/ai_content_event.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/draft_status_event.dart';
 
 abstract class LessorRemoteDatasource {
@@ -17,6 +18,7 @@ abstract class LessorRemoteDatasource {
     List<int> bytes,
   );
   Stream<DraftStatusEvent> watchDraftStatus(String draftId);
+  Stream<AiContentEvent> generateAiContent(Map<String, dynamic> draft);
 }
 
 class LessorRemoteDatasourceImpl implements LessorRemoteDatasource {
@@ -106,6 +108,77 @@ class LessorRemoteDatasourceImpl implements LessorRemoteDatasource {
         if (!done) await Future.delayed(const Duration(seconds: 2));
       } catch (_) {
         if (!done) await Future.delayed(const Duration(seconds: 2));
+      }
+    }
+  }
+
+  @override
+  Stream<AiContentEvent> generateAiContent(Map<String, dynamic> draft) async* {
+    final request = http.Request(
+      'POST',
+      Uri.parse(LessorApiConstants.llmContentGenerations),
+    );
+    request.headers['Content-Type'] = 'application/json';
+    request.headers['Accept'] = 'text/event-stream';
+    request.body = jsonEncode({'draft': draft});
+
+    final http.StreamedResponse streamed;
+    try {
+      streamed = await _authClient.send(request);
+    } catch (e) {
+      throw Exception('Error de red: $e');
+    }
+
+    if (streamed.statusCode == 401) {
+      await streamed.stream.drain<void>();
+      throw Exception('No autorizado. Vuelve a iniciar sesión.');
+    }
+    if (streamed.statusCode == 422) {
+      final body = await streamed.stream.transform(const Utf8Decoder()).join();
+      throw Exception('Datos insuficientes (422): $body');
+    }
+    if (streamed.statusCode == 503) {
+      await streamed.stream.drain<void>();
+      throw Exception('Servicio no disponible. Intenta en unos momentos.');
+    }
+    if (streamed.statusCode != 200) {
+      final body = await streamed.stream.transform(const Utf8Decoder()).join();
+      throw Exception('Error del servidor (${streamed.statusCode}): $body');
+    }
+
+    String? eventType;
+    final buf = StringBuffer();
+
+    await for (final line in streamed.stream
+        .transform(const Utf8Decoder())
+        .transform(const LineSplitter())) {
+      if (line.startsWith('event:')) {
+        eventType = line.substring(6).trim();
+      } else if (line.startsWith('data:')) {
+        buf.write(line.substring(5).trim());
+      } else if (line.isEmpty && eventType != null && buf.isNotEmpty) {
+        try {
+          final payload = jsonDecode(buf.toString()) as Map<String, dynamic>;
+          final ev = switch (eventType) {
+            'queued' => AiContentQueued(
+                (payload['position'] as num?)?.toInt() ?? 0,
+              ),
+            'title' => AiContentTitle(payload['text'] as String? ?? ''),
+            'delta' => AiContentDelta(payload['text'] as String? ?? ''),
+            'done' => AiContentDone(
+                generationId: payload['generationId'] as String? ?? '',
+                title: payload['title'] as String? ?? '',
+                description: payload['description'] as String? ?? '',
+              ),
+            'error' => AiContentError(
+                payload['detail'] as String? ?? 'Error desconocido',
+              ),
+            _ => null,
+          };
+          if (ev != null) yield ev;
+        } catch (_) {}
+        eventType = null;
+        buf.clear();
       }
     }
   }
