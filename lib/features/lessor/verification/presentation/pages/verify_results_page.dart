@@ -24,6 +24,11 @@ class VerifyResultsPage extends StatelessWidget {
     Navigator.of(context).pop();
   }
 
+  /// Cierra el flujo de verificación y regresa al Home (ruta raíz).
+  void _returnHome(BuildContext context) {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
   /// Reinicia la verificación (PATCH) y lleva al usuario a la intro para
   /// recomenzar el proceso.
   Future<void> _retryProcess(BuildContext context) async {
@@ -114,7 +119,9 @@ class VerifyResultsPage extends StatelessWidget {
                       comment: rejectionComment,
                       onRetry: () => _retryProcess(context),
                     ),
-                    VerifyResultStatus.pending => const _PendingContent(),
+                    VerifyResultStatus.pending => _PendingContent(
+                      onReturnHome: () => _returnHome(context),
+                    ),
                   },
                   const SizedBox(height: 32),
                   Text(
@@ -203,7 +210,9 @@ class VerifyResultsPage extends StatelessWidget {
                 VerifyResultStatus.invalid => _InvalidLandscapeRight(
                   onRetry: () => _retryProcess(context),
                 ),
-                VerifyResultStatus.pending => const _PendingLandscapeRight(),
+                VerifyResultStatus.pending => _PendingLandscapeRight(
+                  onReturnHome: () => _returnHome(context),
+                ),
               },
             ),
           ),
@@ -242,7 +251,9 @@ class _VerifiedContent extends StatelessWidget {
 }
 
 class _PendingContent extends StatelessWidget {
-  const _PendingContent();
+  final VoidCallback onReturnHome;
+
+  const _PendingContent({required this.onReturnHome});
 
   @override
   Widget build(BuildContext context) {
@@ -277,6 +288,8 @@ class _PendingContent extends StatelessWidget {
               fit: BoxFit.contain,
             ),
           ),
+          const SizedBox(height: 28),
+          _ReturnHomeButton(onPressed: onReturnHome),
         ],
       ),
     );
@@ -315,15 +328,54 @@ class _PendingLandscapeLeft extends StatelessWidget {
 }
 
 class _PendingLandscapeRight extends StatelessWidget {
-  const _PendingLandscapeRight();
+  final VoidCallback onReturnHome;
+
+  const _PendingLandscapeRight({required this.onReturnHome});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox(
-        width: 150,
-        height: 150,
-        child: Lottie.asset('assets/images/clock.json', fit: BoxFit.contain),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(
+          child: SizedBox(
+            width: 150,
+            height: 150,
+            child: Lottie.asset('assets/images/clock.json', fit: BoxFit.contain),
+          ),
+        ),
+        const SizedBox(height: 28),
+        _ReturnHomeButton(onPressed: onReturnHome),
+      ],
+    );
+  }
+}
+
+class _ReturnHomeButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _ReturnHomeButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: const Color(0xFF0095FF),
+        minimumSize: const Size.fromHeight(52),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+      child: Text(
+        'Volver al inicio',
+        style: textTheme.titleMedium?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
