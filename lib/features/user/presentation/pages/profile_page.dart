@@ -108,7 +108,7 @@ class _PortraitLayout extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const _ProfileHeader(avatarSize: 130),
+          const _ProfileHeader(avatarSize: 142, nameFontSize: 20),
           const SizedBox(height: 36),
           _SettingsList(role: role, userName: userName, avatarUrl: avatarUrl,),
           const SizedBox(height: 28),
@@ -139,10 +139,18 @@ class _LandscapeLayout extends StatelessWidget {
       children: [
         Expanded(
           flex: 4,
-          child: SingleChildScrollView(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: const _ProfileHeader(avatarSize: 110),
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              padding:
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: ConstrainedBox(
+                constraints:
+                BoxConstraints(minHeight: constraints.maxHeight - 32),
+                child: const Center(
+                  child: _ProfileHeader(avatarSize: 132),
+                ),
+              ),
+            ),
           ),
         ),
         VerticalDivider(width: 1, color: colorScheme.outlineVariant),
@@ -162,8 +170,9 @@ class _LandscapeLayout extends StatelessWidget {
 // ── Header: nombre + badge + avatar + completado + premium ─────────────────
 class _ProfileHeader extends StatelessWidget {
   final double avatarSize;
+  final double? nameFontSize;
 
-  const _ProfileHeader({required this.avatarSize});
+  const _ProfileHeader({required this.avatarSize, this.nameFontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -185,6 +194,7 @@ class _ProfileHeader extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
+                  fontSize: nameFontSize,
                   color: colorScheme.onSurface,
                 ),
               ),

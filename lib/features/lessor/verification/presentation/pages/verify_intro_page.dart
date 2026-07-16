@@ -59,6 +59,15 @@ class VerifyIntroPage extends StatelessWidget {
 
     return Stack(
       children: [
+        const Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            child: RepaintBoundary(child: AuthBackgroundBlobs()),
+          ),
+        ),
+
         Positioned.fill(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
@@ -124,15 +133,6 @@ class VerifyIntroPage extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
-
-        const Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: IgnorePointer(
-            child: RepaintBoundary(child: AuthBackgroundBlobs()),
           ),
         ),
       ],
