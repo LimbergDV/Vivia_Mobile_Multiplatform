@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Contrato ──────────────────────────────────────────────────────────────
@@ -20,6 +21,9 @@ abstract class AuthLocalDatasource {
 
   bool getLocationPermissionShown();
   Future<void> setLocationPermissionShown();
+
+  Future<void> saveUserId(String userId);
+  String? getUserId();
 }
 
 // ── Implementación con SharedPreferences ──────────────────────────────────
@@ -31,6 +35,7 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
   static const _roleKey = 'user_role';
   static const _userNameKey = 'user_name';
   static const _avatarKey = 'user_avatar_url';
+  static const _userIdKey = 'user_id';
   static const _locationPermissionShownKey = 'has_seen_location_permission';
 
   AuthLocalDatasourceImpl(this._prefs);
@@ -73,12 +78,17 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
   bool get isLoggedIn => getAccessToken() != null;
 
   @override
+  Future<void> saveUserId(String userId) =>
+      _prefs.setString(_userIdKey, userId);
+
+  @override
   Future<void> clearSession() async {
     await _prefs.remove(_accessKey);
     await _prefs.remove(_refreshKey);
     await _prefs.remove(_roleKey);
     await _prefs.remove(_userNameKey);
     await _prefs.remove(_avatarKey);
+    await _prefs.remove(_userIdKey);
   }
 
   @override
@@ -88,4 +98,25 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
   @override
   Future<void> setLocationPermissionShown() =>
       _prefs.setBool(_locationPermissionShownKey, true);
+
+  @override
+  String? getUserId() {
+    // Prefer the UUID stored after getMe() — more reliable than JWT sub
+    final stored = _prefs.getString(_userIdKey);
+    if (stored != null) return stored;
+    // Fallback: decode JWT sub (may be email in some Spring setups)
+    final token = getAccessToken();
+    if (token == null) return null;
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      final payload = utf8.decode(
+        base64Url.decode(base64Url.normalize(parts[1])),
+      );
+      final claims = jsonDecode(payload) as Map<String, dynamic>;
+      return (claims['userId'] ?? claims['id'] ?? claims['sub']) as String?;
+    } catch (_) {
+      return null;
+    }
+  }
 }

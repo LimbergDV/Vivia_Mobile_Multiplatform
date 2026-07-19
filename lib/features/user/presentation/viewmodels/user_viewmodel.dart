@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:vivia_mobile/features/auth/data/datasources/local/auth_local_datasource.dart';
 import 'package:vivia_mobile/features/user/domain/usecases/get_me_usecase.dart';
 
 enum UserProfileStatus { idle, loading, success, error }
 
 class UserViewModel extends ChangeNotifier {
   final GetMeUseCase _getMeUseCase;
+  final AuthLocalDatasource _local;
 
-  UserViewModel({required GetMeUseCase getMeUseCase})
-      : _getMeUseCase = getMeUseCase;
+  UserViewModel({
+    required GetMeUseCase getMeUseCase,
+    required AuthLocalDatasource local,
+  })  : _getMeUseCase = getMeUseCase,
+        _local = local;
 
   UserProfileStatus _status = UserProfileStatus.idle;
   String _displayName = '';
@@ -31,6 +36,7 @@ class UserViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final profile = await _getMeUseCase.execute();
+      if (profile.id != null) await _local.saveUserId(profile.id!);
       _displayName = profile.name;
       _avatarUrl = profile.photoUrl;
       _status = UserProfileStatus.success;

@@ -23,6 +23,8 @@ class ChatMockDatasourceImpl implements ChatMockDatasource {
     return ChatConversation(
       id: 'conversation_$index',
       name: 'Arturo Gomez Alcazar',
+      participantOneId: 'mock_user_1',
+      participantTwoId: 'mock_user_2',
       avatarUrl: 'https://i.pravatar.cc/150?img=${(index % 70) + 1}',
       lastMessage: _lorem,
       lastMessageAt: DateTime(2026, 6, 9, 11, 52),
@@ -38,6 +40,7 @@ class ChatMockDatasourceImpl implements ChatMockDatasource {
     return [
       ChatMessage(
         id: '${conversationId}_1',
+        senderId: 'mock_user_1',
         text: _lorem,
         sentAt: DateTime(2026, 6, 9, 22, 39),
         isMine: true,
@@ -45,12 +48,14 @@ class ChatMockDatasourceImpl implements ChatMockDatasource {
       ),
       ChatMessage(
         id: '${conversationId}_2',
+        senderId: 'mock_user_2',
         text: _lorem,
         sentAt: DateTime(2026, 6, 9, 22, 58),
         isMine: false,
       ),
       ChatMessage(
         id: '${conversationId}_3',
+        senderId: 'mock_user_2',
         text: _lorem,
         sentAt: DateTime(2026, 6, 9, 22, 59),
         isMine: false,

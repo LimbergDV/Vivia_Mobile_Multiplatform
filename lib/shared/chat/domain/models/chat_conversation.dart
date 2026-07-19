@@ -10,15 +10,25 @@ class ChatConversation {
   final bool lastMessageIsMine;
   final MessageStatus lastMessageStatus;
 
+  // Campos reales del backend
+  final String participantOneId;
+  final String participantTwoId;
+  final String? propertyId;
+  final String? propertyTitle;
+
   const ChatConversation({
     required this.id,
     required this.name,
     required this.lastMessage,
     required this.lastMessageAt,
+    required this.participantOneId,
+    required this.participantTwoId,
     this.avatarUrl,
     this.unreadCount = 0,
     this.lastMessageIsMine = false,
     this.lastMessageStatus = MessageStatus.read,
+    this.propertyId,
+    this.propertyTitle,
   });
 
   bool get hasUnread => unreadCount > 0;

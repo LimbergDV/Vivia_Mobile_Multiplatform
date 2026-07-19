@@ -25,8 +25,11 @@ import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/core/database/app_database.dart';
 import 'package:vivia_mobile/core/utils/jwt_utils.dart';
-import 'package:vivia_mobile/shared/chat/data/datasources/local/chat_mock_datasource.dart';
+import 'package:vivia_mobile/shared/chat/data/datasources/remote/chat_remote_datasource.dart';
+import 'package:vivia_mobile/shared/chat/data/datasources/remote/chat_websocket_datasource.dart';
 import 'package:vivia_mobile/shared/chat/data/repositories/chat_repository_impl.dart';
+import 'package:vivia_mobile/shared/chat/domain/repositories/chat_repository.dart';
+import 'package:vivia_mobile/shared/chat/domain/usecases/create_conversation_usecase.dart';
 import 'package:vivia_mobile/shared/chat/domain/usecases/get_conversations_usecase.dart';
 import 'package:vivia_mobile/shared/chat/domain/usecases/get_messages_usecase.dart';
 import 'package:vivia_mobile/shared/notifications/data/datasources/local/notification_local_datasource.dart';
@@ -238,7 +241,7 @@ void main() async {
   );
   authViewModelRef = authViewModel;
 
-  final userViewModel = UserViewModel(getMeUseCase: getMeUseCase);
+  final userViewModel = UserViewModel(getMeUseCase: getMeUseCase, local: localDatasource);
 
   final propertyRemoteDatasource =
   PropertyRemoteDatasourceImpl(authHttpClient, http.Client());
@@ -325,9 +328,19 @@ void main() async {
   final getUnreadCountUseCase =
   GetUnreadCountUseCase(notificationRepository);
 
-  final chatRepository = ChatRepositoryImpl(local: ChatMockDatasourceImpl());
+  final chatWsDatasource = ChatWebSocketDatasourceImpl(
+    localDatasource,
+    () => authViewModelRef?.handleSessionExpired(),
+  );
+  final chatRemoteDatasource = ChatRemoteDatasourceImpl(authHttpClient);
+  final chatRepository = ChatRepositoryImpl(
+    remote: chatRemoteDatasource,
+    ws: chatWsDatasource,
+    local: localDatasource,
+  );
   final getConversationsUseCase = GetConversationsUseCase(chatRepository);
   final getMessagesUseCase = GetMessagesUseCase(chatRepository);
+  final createConversationUseCase = CreateConversationUseCase(chatRepository);
 
   _listenForegroundMessages(
     (message) => saveNotificationUseCase.execute(
@@ -381,9 +394,13 @@ void main() async {
         Provider<MarkNotificationsReadUseCase>.value(
             value: markNotificationsReadUseCase),
         Provider<GetUnreadCountUseCase>.value(value: getUnreadCountUseCase),
+        Provider<AuthLocalDatasource>.value(value: localDatasource),
+        Provider<ChatRepository>.value(value: chatRepository),
         Provider<GetConversationsUseCase>.value(
             value: getConversationsUseCase),
         Provider<GetMessagesUseCase>.value(value: getMessagesUseCase),
+        Provider<CreateConversationUseCase>.value(
+            value: createConversationUseCase),
       ],
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)

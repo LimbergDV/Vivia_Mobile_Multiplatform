@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:vivia_mobile/features/auth/data/datasources/local/auth_local_datasource.dart';
 import 'package:vivia_mobile/shared/chat/domain/models/chat_conversation.dart';
+import 'package:vivia_mobile/shared/chat/domain/repositories/chat_repository.dart';
 import 'package:vivia_mobile/shared/chat/domain/usecases/get_messages_usecase.dart';
 import 'package:vivia_mobile/shared/chat/presentation/viewmodels/chat_viewmodel.dart';
 import 'package:vivia_mobile/shared/chat/presentation/widgets/chat_input_bar.dart';
@@ -17,6 +19,8 @@ class ChatPage extends StatelessWidget {
       create: (ctx) => ChatViewModel(
         conversationId: conversation.id,
         getMessagesUseCase: ctx.read<GetMessagesUseCase>(),
+        repository: ctx.read<ChatRepository>(),
+        local: ctx.read<AuthLocalDatasource>(),
       )..load(),
       child: _ChatView(title: conversation.name),
     );
