@@ -62,6 +62,14 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
     _descriptionController = TextEditingController(
       text: vm.form.description ?? '',
     );
+    // Año de construcción por defecto: 2000 cuando aún no se ha seleccionado.
+    if (vm.form.constructionYear == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && vm.form.constructionYear == null) {
+          vm.setConstructionYear(2000);
+        }
+      });
+    }
     vm.addListener(_onVmChanged);
   }
 
