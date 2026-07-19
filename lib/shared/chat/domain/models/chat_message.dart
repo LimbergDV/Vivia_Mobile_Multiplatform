@@ -35,10 +35,10 @@ class ChatMessage {
   bool get isEdited => editedAt != null;
 
   bool canDelete(DateTime now) =>
-      isMine && now.difference(sentAt).inMinutes < 5;
+      isMine && !isDeleted && now.difference(sentAt).inMinutes < 5;
 
   bool canEdit(DateTime now) =>
-      isMine && type == 'text' && !isDeleted && now.difference(sentAt).inMinutes <= 10;
+      isMine && type == 'text' && !isDeleted && now.difference(sentAt).inMinutes <= 15;
 
   ChatMessage copyWith({
     String? text,

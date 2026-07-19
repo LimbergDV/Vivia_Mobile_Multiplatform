@@ -3,8 +3,17 @@ import 'package:flutter/material.dart';
 class ChatInputBar extends StatefulWidget {
   final ValueChanged<String> onSend;
   final VoidCallback? onAttach;
+  /// Texto del mensaje que se está editando. Null → modo "enviar nuevo".
+  final String? editingText;
+  final VoidCallback? onCancelEdit;
 
-  const ChatInputBar({super.key, required this.onSend, this.onAttach});
+  const ChatInputBar({
+    super.key,
+    required this.onSend,
+    this.onAttach,
+    this.editingText,
+    this.onCancelEdit,
+  });
 
   @override
   State<ChatInputBar> createState() => _ChatInputBarState();
@@ -12,12 +21,33 @@ class ChatInputBar extends StatefulWidget {
 
 class _ChatInputBarState extends State<ChatInputBar> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
 
   static const _accent = Color(0xFF5B8DF0);
+
+  bool get _isEditing => widget.editingText != null;
+
+  @override
+  void didUpdateWidget(ChatInputBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasEditing = oldWidget.editingText != null;
+    final nowEditing = widget.editingText != null;
+
+    if (nowEditing && widget.editingText != oldWidget.editingText) {
+      // Entró en modo edición (o cambió el mensaje que se edita)
+      _controller.text = widget.editingText!;
+      _controller.selection = TextSelection.collapsed(offset: _controller.text.length);
+      _focusNode.requestFocus();
+    } else if (!nowEditing && wasEditing) {
+      // Canceló la edición
+      _controller.clear();
+    }
+  }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -32,18 +62,33 @@ class _ChatInputBarState extends State<ChatInputBar> {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       color: colorScheme.surface,
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
       child: SafeArea(
         top: false,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(child: _Field(controller: _controller, onAttach: widget.onAttach)),
-            const SizedBox(width: 8),
-            _SendButton(
-              controller: _controller,
-              color: _accent,
-              onSend: _handleSend,
+            if (_isEditing) _EditBanner(onCancel: widget.onCancelEdit),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: _Field(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      onAttach: _isEditing ? null : widget.onAttach,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _SendButton(
+                    controller: _controller,
+                    color: _accent,
+                    isEditing: _isEditing,
+                    onSend: _handleSend,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -52,11 +97,57 @@ class _ChatInputBarState extends State<ChatInputBar> {
   }
 }
 
+class _EditBanner extends StatelessWidget {
+  final VoidCallback? onCancel;
+
+  const _EditBanner({this.onCancel});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    const accent = Color(0xFF5B8DF0);
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: colorScheme.outlineVariant, width: 0.5)),
+        color: colorScheme.surface,
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+      child: Row(
+        children: [
+          const Icon(Icons.edit_outlined, size: 16, color: accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Editando mensaje',
+              style: TextStyle(
+                color: accent,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: onCancel,
+            icon: Icon(Icons.close_rounded, size: 20, color: colorScheme.onSurfaceVariant),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Field extends StatelessWidget {
   final TextEditingController controller;
+  final FocusNode focusNode;
   final VoidCallback? onAttach;
 
-  const _Field({required this.controller, required this.onAttach});
+  const _Field({
+    required this.controller,
+    required this.focusNode,
+    required this.onAttach,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -72,10 +163,15 @@ class _Field extends StatelessWidget {
         children: [
           IconButton(
             onPressed: onAttach,
-            icon: Icon(Icons.add_rounded,
-                color: colorScheme.onSurfaceVariant, size: 26),
+            icon: Icon(
+              Icons.add_rounded,
+              color: onAttach != null
+                  ? colorScheme.onSurfaceVariant
+                  : colorScheme.onSurfaceVariant.withOpacity(0.3),
+              size: 26,
+            ),
           ),
-          Expanded(child: _TextField(controller: controller)),
+          Expanded(child: _TextField(controller: controller, focusNode: focusNode)),
           const SizedBox(width: 8),
         ],
       ),
@@ -85,14 +181,16 @@ class _Field extends StatelessWidget {
 
 class _TextField extends StatelessWidget {
   final TextEditingController controller;
+  final FocusNode focusNode;
 
-  const _TextField({required this.controller});
+  const _TextField({required this.controller, required this.focusNode});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       minLines: 1,
       maxLines: 5,
       cursorColor: colorScheme.primary,
@@ -112,11 +210,13 @@ class _TextField extends StatelessWidget {
 class _SendButton extends StatelessWidget {
   final TextEditingController controller;
   final Color color;
+  final bool isEditing;
   final VoidCallback onSend;
 
   const _SendButton({
     required this.controller,
     required this.color,
+    required this.isEditing,
     required this.onSend,
   });
 
@@ -136,7 +236,11 @@ class _SendButton extends StatelessWidget {
               color: hasText ? color : color.withOpacity(0.4),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
+            child: Icon(
+              isEditing ? Icons.check_rounded : Icons.send_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
         );
       },

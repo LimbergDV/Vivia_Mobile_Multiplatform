@@ -25,6 +25,7 @@ import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/core/database/app_database.dart';
 import 'package:vivia_mobile/core/utils/jwt_utils.dart';
+import 'package:vivia_mobile/shared/chat/data/datasources/local/chat_local_datasource.dart';
 import 'package:vivia_mobile/shared/chat/data/datasources/remote/chat_remote_datasource.dart';
 import 'package:vivia_mobile/shared/chat/data/datasources/remote/chat_websocket_datasource.dart';
 import 'package:vivia_mobile/shared/chat/data/repositories/chat_repository_impl.dart';
@@ -328,6 +329,8 @@ void main() async {
   final getUnreadCountUseCase =
   GetUnreadCountUseCase(notificationRepository);
 
+  final chatLocalDatasource = ChatLocalDatasourceImpl(prefs);
+
   final chatWsDatasource = ChatWebSocketDatasourceImpl(
     localDatasource,
     () => authViewModelRef?.handleSessionExpired(),
@@ -401,6 +404,7 @@ void main() async {
         Provider<GetMessagesUseCase>.value(value: getMessagesUseCase),
         Provider<CreateConversationUseCase>.value(
             value: createConversationUseCase),
+        Provider<ChatLocalDatasource>.value(value: chatLocalDatasource),
       ],
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)

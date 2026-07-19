@@ -10,8 +10,13 @@ import 'package:vivia_mobile/shared/chat/presentation/widgets/chat_messages_view
 
 class ChatPage extends StatelessWidget {
   final ChatConversation conversation;
+  final Map<String, dynamic>? propertyContext;
 
-  const ChatPage({super.key, required this.conversation});
+  const ChatPage({
+    super.key,
+    required this.conversation,
+    this.propertyContext,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,15 +27,19 @@ class ChatPage extends StatelessWidget {
         repository: ctx.read<ChatRepository>(),
         local: ctx.read<AuthLocalDatasource>(),
       )..load(),
-      child: _ChatView(title: conversation.name),
+      child: _ChatView(
+        title: conversation.name,
+        propertyContext: propertyContext,
+      ),
     );
   }
 }
 
 class _ChatView extends StatelessWidget {
   final String title;
+  final Map<String, dynamic>? propertyContext;
 
-  const _ChatView({required this.title});
+  const _ChatView({required this.title, this.propertyContext});
 
   void _showComingSoon(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -48,10 +57,14 @@ class _ChatView extends StatelessWidget {
       appBar: _ChatAppBar(title: title),
       body: Column(
         children: [
-          const Expanded(child: ChatMessagesView()),
-          ChatInputBar(
-            onSend: context.read<ChatViewModel>().sendMessage,
-            onAttach: () => _showComingSoon(context),
+          Expanded(child: ChatMessagesView(propertyContext: propertyContext)),
+          Consumer<ChatViewModel>(
+            builder: (ctx, vm, _) => ChatInputBar(
+              onSend: vm.editingMessageId != null ? vm.editMessage : vm.sendMessage,
+              onAttach: () => _showComingSoon(ctx),
+              editingText: vm.editingInitialText,
+              onCancelEdit: vm.editingMessageId != null ? vm.cancelEditing : null,
+            ),
           ),
         ],
       ),

@@ -26,6 +26,7 @@ class _ChatsView extends StatelessWidget {
   const _ChatsView();
 
   void _openConversation(BuildContext context, ChatConversation conversation) {
+    context.read<ChatsViewModel>().markConversationRead(conversation.id);
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => ChatPage(conversation: conversation)),

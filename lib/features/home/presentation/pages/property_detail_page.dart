@@ -24,6 +24,7 @@ import 'package:vivia_mobile/features/maps/domain/usecases/geocode_address_useca
 import 'package:vivia_mobile/features/maps/presentation/pages/map_fullscreen_page.dart';
 import 'package:vivia_mobile/features/maps/presentation/widgets/property_location_map.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
+import 'package:vivia_mobile/shared/chat/data/datasources/local/chat_local_datasource.dart';
 import 'package:vivia_mobile/shared/chat/domain/models/chat_conversation.dart';
 import 'package:vivia_mobile/shared/chat/domain/usecases/create_conversation_usecase.dart';
 import 'package:vivia_mobile/shared/chat/presentation/pages/chat_page.dart';
@@ -149,6 +150,26 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
             otherUserPhotoUrl: lessor.photoUrl,
           );
       if (!mounted) return;
+
+      // Muestra la card solo si nunca se ha enviado para esta (conversación, propiedad).
+      final chatLocal = context.read<ChatLocalDatasource>();
+      Map<String, dynamic>? propertyContext;
+      if (!chatLocal.hasPropertyBeenIntroduced(result.id, detail.id)) {
+        chatLocal.markPropertyIntroduced(result.id, detail.id);
+        propertyContext = {
+          'propertyId': detail.id,
+          'title': detail.title,
+          'type': detail.propertyType.name,
+          'price': detail.listedPrice,
+          'isRent': detail.availableToRent,
+          'neighborhood': detail.address.neighborhood.name,
+          'location': detail.address.formatted,
+          'area': detail.areaM2,
+          'bedrooms': detail.bedrooms,
+          'bathrooms': detail.bathrooms,
+        };
+      }
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -165,6 +186,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
               lastMessageAt: result.lastMessageAt,
               unreadCount: 0,
             ),
+            propertyContext: propertyContext,
           ),
         ),
       );

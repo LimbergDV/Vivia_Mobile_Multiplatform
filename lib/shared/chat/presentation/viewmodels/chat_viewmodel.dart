@@ -27,6 +27,9 @@ class ChatViewModel extends ChangeNotifier {
   bool _hasMore = true;
   bool _isTyping = false;
   String? _error;
+  String? _wsError;
+  String? _editingMessageId;
+  String? _editingInitialText;
   StreamSubscription<Map<String, dynamic>>? _wsSub;
   Timer? _typingTimer;
 
@@ -35,6 +38,9 @@ class ChatViewModel extends ChangeNotifier {
   bool get hasMore => _hasMore;
   bool get isTyping => _isTyping;
   String? get error => _error;
+  String? get wsError => _wsError;
+  String? get editingMessageId => _editingMessageId;
+  String? get editingInitialText => _editingInitialText;
 
   String get _currentUserId => _local.getUserId() ?? '';
 
@@ -95,6 +101,37 @@ class ChatViewModel extends ChangeNotifier {
     _repository.sendTyping(conversationId);
   }
 
+  void deleteMessage(String messageId) {
+    _repository.deleteMessage(messageId);
+  }
+
+  void startEditing(ChatMessage message) {
+    _editingMessageId = message.id;
+    _editingInitialText = message.text;
+    notifyListeners();
+  }
+
+  void cancelEditing() {
+    _editingMessageId = null;
+    _editingInitialText = null;
+    notifyListeners();
+  }
+
+  void editMessage(String newContent) {
+    final id = _editingMessageId;
+    if (id == null) return;
+    final value = newContent.trim();
+    if (value.isEmpty) return;
+    _repository.editMessage(id, value);
+    _editingMessageId = null;
+    _editingInitialText = null;
+    notifyListeners();
+  }
+
+  void clearWsError() {
+    _wsError = null;
+  }
+
   void _subscribeToWs() {
     _wsSub?.cancel();
     _wsSub = _repository.wsEvents.listen((envelope) {
@@ -119,6 +156,12 @@ class ChatViewModel extends ChangeNotifier {
           if (convId == conversationId) _handleMessageDeleted(payload);
         case 'messageEdited':
           if (convId == conversationId) _handleMessageEdited(payload);
+        case 'error':
+          final reason = payload['reason'] as String?;
+          if (reason != null) {
+            _wsError = reason;
+            notifyListeners();
+          }
       }
     });
   }
@@ -168,8 +211,13 @@ class ChatViewModel extends ChangeNotifier {
     if (hardDeleted) {
       _messages = _messages.where((m) => m.id != messageId).toList();
     } else {
+      // Soft-delete: servidor manda el objeto actualizado con deletedAt y content null
+      final messageJson = payload['message'] as Map<String, dynamic>?;
       _messages = _messages.map((m) {
         if (m.id != messageId) return m;
+        if (messageJson != null) {
+          return MessageModel.fromJson(messageJson).toDomain(_currentUserId);
+        }
         return m.copyWith(deletedAt: DateTime.now(), text: '');
       }).toList();
     }
@@ -177,14 +225,8 @@ class ChatViewModel extends ChangeNotifier {
   }
 
   void _handleMessageEdited(Map<String, dynamic> payload) {
-    final messageId = payload['id'] as String?;
-    final newContent = payload['content'] as String?;
-    if (messageId == null || newContent == null) return;
-
-    _messages = _messages.map((m) {
-      if (m.id != messageId) return m;
-      return m.copyWith(text: newContent, editedAt: DateTime.now());
-    }).toList();
+    final updated = MessageModel.fromJson(payload).toDomain(_currentUserId);
+    _messages = _messages.map((m) => m.id == updated.id ? updated : m).toList();
     notifyListeners();
   }
 

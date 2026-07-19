@@ -84,6 +84,29 @@ class ChatsViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void markConversationRead(String conversationId) {
+    final idx = _conversations.indexWhere((c) => c.id == conversationId);
+    if (idx == -1 || _conversations[idx].unreadCount == 0) return;
+    final updated = List<ChatConversation>.from(_conversations);
+    final old = updated[idx];
+    updated[idx] = ChatConversation(
+      id: old.id,
+      name: old.name,
+      participantOneId: old.participantOneId,
+      participantTwoId: old.participantTwoId,
+      propertyId: old.propertyId,
+      propertyTitle: old.propertyTitle,
+      avatarUrl: old.avatarUrl,
+      lastMessage: old.lastMessage,
+      lastMessageAt: old.lastMessageAt,
+      unreadCount: 0,
+      lastMessageIsMine: old.lastMessageIsMine,
+      lastMessageStatus: old.lastMessageStatus,
+    );
+    _conversations = updated;
+    notifyListeners();
+  }
+
   void deleteConversation(String conversationId) {
     _conversations = _conversations.where((c) => c.id != conversationId).toList();
     notifyListeners();

@@ -4,12 +4,14 @@ class ChatBubble extends StatelessWidget {
   final String text;
   final bool isMine;
   final double maxWidth;
+  final bool isDeleted;
 
   const ChatBubble({
     super.key,
     required this.text,
     required this.isMine,
     required this.maxWidth,
+    this.isDeleted = false,
   });
 
   static const _mineColor = Color(0xFF5B8DF0);
@@ -34,14 +36,25 @@ class ChatBubble extends StatelessWidget {
             ),
           ],
         ),
-        child: Text(
-          text,
-          style: textTheme.bodyMedium?.copyWith(
-            color: isMine ? Colors.white : colorScheme.onSurface,
-            fontWeight: FontWeight.w500,
-            height: 1.35,
-          ),
-        ),
+        child: isDeleted
+            ? Text(
+                'Mensaje eliminado',
+                style: textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: isMine
+                      ? Colors.white.withOpacity(0.65)
+                      : colorScheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
+              )
+            : Text(
+                text,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: isMine ? Colors.white : colorScheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                  height: 1.35,
+                ),
+              ),
       ),
     );
   }
