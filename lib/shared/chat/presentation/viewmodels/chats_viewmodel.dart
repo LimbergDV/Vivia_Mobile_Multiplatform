@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:vivia_mobile/shared/chat/domain/models/chat_conversation.dart';
 import 'package:vivia_mobile/shared/chat/domain/repositories/chat_repository.dart';
 import 'package:vivia_mobile/shared/chat/domain/usecases/get_conversations_usecase.dart';
+import 'package:vivia_mobile/shared/chat/presentation/viewmodels/chat_viewmodel.dart';
 
 class ChatsViewModel extends ChangeNotifier {
   final GetConversationsUseCase _getConversationsUseCase;
@@ -31,6 +32,9 @@ class ChatsViewModel extends ChangeNotifier {
     try {
       await _repository.connectWebSocket();
       _conversations = await _getConversationsUseCase.execute();
+      for (final c in _conversations) {
+        _repository.joinConversation(c.id);
+      }
       _subscribeToWs();
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
@@ -59,6 +63,7 @@ class ChatsViewModel extends ChangeNotifier {
     if (idx == -1) return;
 
     final old = _conversations[idx];
+    final isActive = ChatViewModel.activeConversationId == conversationId;
     final updated = ChatConversation(
       id: old.id,
       name: old.name,
@@ -71,7 +76,7 @@ class ChatsViewModel extends ChangeNotifier {
       lastMessageAt: payload['createdAt'] != null
           ? DateTime.parse(payload['createdAt'] as String).toLocal()
           : old.lastMessageAt,
-      unreadCount: old.unreadCount + 1,
+      unreadCount: isActive ? 0 : old.unreadCount + 1,
       lastMessageIsMine: false,
       lastMessageStatus: old.lastMessageStatus,
     );

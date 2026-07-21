@@ -10,12 +10,12 @@ import 'package:vivia_mobile/shared/chat/presentation/widgets/chat_messages_view
 
 class ChatPage extends StatelessWidget {
   final ChatConversation conversation;
-  final Map<String, dynamic>? propertyContext;
+  final String? autoMessage;
 
   const ChatPage({
     super.key,
     required this.conversation,
-    this.propertyContext,
+    this.autoMessage,
   });
 
   @override
@@ -26,20 +26,17 @@ class ChatPage extends StatelessWidget {
         getMessagesUseCase: ctx.read<GetMessagesUseCase>(),
         repository: ctx.read<ChatRepository>(),
         local: ctx.read<AuthLocalDatasource>(),
+        autoMessage: autoMessage,
       )..load(),
-      child: _ChatView(
-        title: conversation.name,
-        propertyContext: propertyContext,
-      ),
+      child: _ChatView(title: conversation.name),
     );
   }
 }
 
 class _ChatView extends StatelessWidget {
   final String title;
-  final Map<String, dynamic>? propertyContext;
 
-  const _ChatView({required this.title, this.propertyContext});
+  const _ChatView({required this.title});
 
   void _showComingSoon(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -57,7 +54,7 @@ class _ChatView extends StatelessWidget {
       appBar: _ChatAppBar(title: title),
       body: Column(
         children: [
-          Expanded(child: ChatMessagesView(propertyContext: propertyContext)),
+          const Expanded(child: ChatMessagesView()),
           Consumer<ChatViewModel>(
             builder: (ctx, vm, _) => ChatInputBar(
               onSend: vm.editingMessageId != null ? vm.editMessage : vm.sendMessage,

@@ -80,8 +80,10 @@ class ChatRepositoryImpl implements ChatRepository {
   void disconnectWebSocket() => _ws.disconnect();
 
   @override
-  void joinConversation(String conversationId) =>
-      _ws.send('joinConversation', {'conversationId': conversationId});
+  void joinConversation(String conversationId) {
+    _ws.registerJoinedConversation(conversationId);
+    _ws.send('joinConversation', {'conversationId': conversationId});
+  }
 
   @override
   void markRead(String conversationId) =>

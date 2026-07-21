@@ -93,6 +93,7 @@ import 'package:vivia_mobile/features/maps/domain/usecases/reverse_geocode_useca
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 import 'package:vivia_mobile/firebase_options.dart';
 
+import 'package:vivia_mobile/shared/chat/presentation/viewmodels/chat_viewmodel.dart';
 import 'app.dart';
 
 const _channelId = 'vivia_notifications';
@@ -149,10 +150,50 @@ void _listenForegroundMessages(void Function(RemoteMessage) onCapture) {
     final notification = message.notification;
     if (notification == null) return;
 
+    // Chat push notifications are handled by the WS listener to guarantee
+    // delivery even when the backend skips push for active WS connections.
+    final msgConvId = message.data['conversationId'] as String?;
+    if (msgConvId != null) return;
+
     _localNotifications.show(
       notification.hashCode,
       notification.title,
       notification.body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      ),
+    );
+  });
+}
+
+void _listenWsChatNotifications(
+  ChatRepository repository,
+  AuthLocalDatasource local,
+) {
+  repository.wsEvents.listen((envelope) {
+    final event = envelope['event'] as String?;
+    final payload = envelope['payload'] as Map<String, dynamic>?;
+    if (event != 'newMessage' || payload == null) return;
+
+    final convId = payload['conversationId'] as String?;
+    if (convId == null) return;
+    if (convId == ChatViewModel.activeConversationId) return;
+
+    final senderId = payload['senderId'] as String?;
+    final currentUserId = local.getUserId();
+    if (senderId == currentUserId) return;
+
+    final content = payload['content'] as String? ?? '';
+
+    _localNotifications.show(
+      convId.hashCode,
+      'Nuevo mensaje',
+      content,
       NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
@@ -187,6 +228,7 @@ void main() async {
 
   AuthViewModel? authViewModelRef;
   PropertyViewModel? propertyViewModelRef;
+  ChatRepositoryImpl? chatRepositoryRef;
 
   final authHttpClient = AuthHttpClient(
     http.Client(),
@@ -238,7 +280,10 @@ void main() async {
     putUbicationUseCase: putUbicationUseCase,
     authRepository: authRepository,
     registerFcmTokenUseCase: registerFcmTokenUseCase,
-    onSessionCleared: () => propertyViewModelRef?.reset(),
+    onSessionCleared: () {
+      propertyViewModelRef?.reset();
+      chatRepositoryRef?.disconnectWebSocket();
+    },
   );
   authViewModelRef = authViewModel;
 
@@ -341,6 +386,7 @@ void main() async {
     ws: chatWsDatasource,
     local: localDatasource,
   );
+  chatRepositoryRef = chatRepository;
   final getConversationsUseCase = GetConversationsUseCase(chatRepository);
   final getMessagesUseCase = GetMessagesUseCase(chatRepository);
   final createConversationUseCase = CreateConversationUseCase(chatRepository);
@@ -350,6 +396,8 @@ void main() async {
       NotificationMessageMapper.toModel(message),
     ),
   );
+
+  _listenWsChatNotifications(chatRepository, localDatasource);
 
   final isLoggedIn = authRepository.isLoggedIn;
   final savedUserName = authRepository.savedUserName;

@@ -151,23 +151,11 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
           );
       if (!mounted) return;
 
-      // Muestra la card solo si nunca se ha enviado para esta (conversación, propiedad).
       final chatLocal = context.read<ChatLocalDatasource>();
-      Map<String, dynamic>? propertyContext;
+      String? autoMessage;
       if (!chatLocal.hasPropertyBeenIntroduced(result.id, detail.id)) {
         chatLocal.markPropertyIntroduced(result.id, detail.id);
-        propertyContext = {
-          'propertyId': detail.id,
-          'title': detail.title,
-          'type': detail.propertyType.name,
-          'price': detail.listedPrice,
-          'isRent': detail.availableToRent,
-          'neighborhood': detail.address.neighborhood.name,
-          'location': detail.address.formatted,
-          'area': detail.areaM2,
-          'bedrooms': detail.bedrooms,
-          'bathrooms': detail.bathrooms,
-        };
+        autoMessage = 'Me interesa: ${detail.title}';
       }
 
       Navigator.push(
@@ -186,7 +174,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
               lastMessageAt: result.lastMessageAt,
               unreadCount: 0,
             ),
-            propertyContext: propertyContext,
+            autoMessage: autoMessage,
           ),
         ),
       );

@@ -20,6 +20,10 @@ class AuthRepositoryImpl implements AuthRepository {
     return claims['role'] as String? ?? 'ROLE_LESSEE';
   }
 
+  String? _extractUserIdFromClaims(Map<String, dynamic> claims) {
+    return (claims['userId'] ?? claims['id'] ?? claims['sub']) as String?;
+  }
+
   String _extractFirstNameFromClaims(Map<String, dynamic> claims) {
     final candidates = [
       'name', 'given_name', 'firstName', 'first_name',
@@ -51,6 +55,8 @@ class AuthRepositoryImpl implements AuthRepository {
       role: role,
       userName: name,
     );
+    final uid = _extractUserIdFromClaims(claims);
+    if (uid != null) await _local.saveUserId(uid);
     return (name: name, role: role);
   }
 
@@ -75,6 +81,9 @@ class AuthRepositoryImpl implements AuthRepository {
       role: 'ROLE_LESSEE',
       userName: name,
     );
+    final claims = JwtUtils.decodePayload(result.accessToken);
+    final uid = _extractUserIdFromClaims(claims);
+    if (uid != null) await _local.saveUserId(uid);
   }
 
   @override
@@ -100,6 +109,9 @@ class AuthRepositoryImpl implements AuthRepository {
       role: 'ROLE_LESSOR',
       userName: name,
     );
+    final claims = JwtUtils.decodePayload(result.accessToken);
+    final uid = _extractUserIdFromClaims(claims);
+    if (uid != null) await _local.saveUserId(uid);
   }
 
   // ── Google ────────────────────────────────────────────────────────────
@@ -122,6 +134,8 @@ class AuthRepositoryImpl implements AuthRepository {
       userName: displayName.split(' ').first,
       avatarUrl: avatarUrl,
     );
+    final uid = _extractUserIdFromClaims(claims);
+    if (uid != null) await _local.saveUserId(uid);
   }
 
   @override
@@ -141,6 +155,9 @@ class AuthRepositoryImpl implements AuthRepository {
       userName: displayName.split(' ').first,
       avatarUrl: avatarUrl,
     );
+    final claims = JwtUtils.decodePayload(result.accessToken);
+    final uid = _extractUserIdFromClaims(claims);
+    if (uid != null) await _local.saveUserId(uid);
   }
 
   // ── Sesión ────────────────────────────────────────────────────────────

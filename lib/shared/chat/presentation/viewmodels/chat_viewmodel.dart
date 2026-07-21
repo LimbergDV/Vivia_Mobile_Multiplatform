@@ -8,19 +8,25 @@ import 'package:vivia_mobile/shared/chat/data/models/message_model.dart';
 import 'package:vivia_mobile/features/auth/data/datasources/local/auth_local_datasource.dart';
 
 class ChatViewModel extends ChangeNotifier {
+  static String? activeConversationId;
+
   final String conversationId;
   final GetMessagesUseCase _getMessagesUseCase;
   final ChatRepository _repository;
   final AuthLocalDatasource _local;
+
+  final String? _autoMessage;
 
   ChatViewModel({
     required this.conversationId,
     required GetMessagesUseCase getMessagesUseCase,
     required ChatRepository repository,
     required AuthLocalDatasource local,
+    String? autoMessage,
   })  : _getMessagesUseCase = getMessagesUseCase,
         _repository = repository,
-        _local = local;
+        _local = local,
+        _autoMessage = autoMessage;
 
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
@@ -47,6 +53,7 @@ class ChatViewModel extends ChangeNotifier {
   Future<void> load() async {
     _isLoading = true;
     _error = null;
+    activeConversationId = conversationId;
     notifyListeners();
     try {
       await _repository.connectWebSocket();
@@ -55,6 +62,9 @@ class ChatViewModel extends ChangeNotifier {
       _hasMore = msgs.length == 50;
       _repository.joinConversation(conversationId);
       _subscribeToWs();
+      if (_autoMessage != null) {
+        sendMessage(_autoMessage);
+      }
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
     } finally {
@@ -180,6 +190,10 @@ class ChatViewModel extends ChangeNotifier {
       }
     }
     _messages = [..._messages, incoming];
+    // Si recibo un mensaje del otro mientras estoy en el chat, marco como leído
+    if (!incoming.isMine) {
+      _repository.markRead(conversationId);
+    }
     notifyListeners();
   }
 
@@ -232,6 +246,7 @@ class ChatViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    activeConversationId = null;
     _wsSub?.cancel();
     _typingTimer?.cancel();
     super.dispose();

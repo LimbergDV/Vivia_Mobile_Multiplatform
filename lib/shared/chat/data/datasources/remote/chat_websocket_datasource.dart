@@ -11,6 +11,8 @@ abstract class ChatWebSocketDatasource {
   void send(String event, Map<String, dynamic> payload);
   Future<void> connect();
   void disconnect();
+  void registerJoinedConversation(String conversationId);
+  void unregisterJoinedConversation(String conversationId);
 }
 
 class ChatWebSocketDatasourceImpl implements ChatWebSocketDatasource {
@@ -21,6 +23,7 @@ class ChatWebSocketDatasourceImpl implements ChatWebSocketDatasource {
 
   io.WebSocket? _ws;
   final _controller = StreamController<Map<String, dynamic>>.broadcast();
+  final Set<String> _joinedConversations = {};
   bool _intentionalClose = false;
   int _retryDelay = 3;
 
@@ -67,8 +70,15 @@ class ChatWebSocketDatasourceImpl implements ChatWebSocketDatasource {
       );
 
       _retryDelay = 3;
+      _rejoinAll();
     } catch (_) {
       if (!_intentionalClose) _scheduleReconnect();
+    }
+  }
+
+  void _rejoinAll() {
+    for (final id in _joinedConversations) {
+      send('joinConversation', {'conversationId': id});
     }
   }
 
@@ -83,8 +93,19 @@ class ChatWebSocketDatasourceImpl implements ChatWebSocketDatasource {
   @override
   void disconnect() {
     _intentionalClose = true;
+    _joinedConversations.clear();
     _ws?.close();
     _ws = null;
+  }
+
+  @override
+  void registerJoinedConversation(String conversationId) {
+    _joinedConversations.add(conversationId);
+  }
+
+  @override
+  void unregisterJoinedConversation(String conversationId) {
+    _joinedConversations.remove(conversationId);
   }
 
   @override
