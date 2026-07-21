@@ -133,12 +133,30 @@ class LessorRemoteDatasourceImpl implements LessorRemoteDatasource {
       await streamed.stream.drain<void>();
       throw Exception('No autorizado. Vuelve a iniciar sesión.');
     }
+    if (streamed.statusCode == 403) {
+      final body = await streamed.stream.transform(const Utf8Decoder()).join();
+      final parsed = jsonDecode(body) as Map<String, dynamic>?;
+      final detail = parsed?['detail'];
+      final code = detail is Map ? detail['code'] as String? : null;
+      if (code == 'premium_required') {
+        yield const AiContentPremiumRequired();
+        return;
+      }
+      throw Exception('Acceso denegado.');
+    }
     if (streamed.statusCode == 422) {
       final body = await streamed.stream.transform(const Utf8Decoder()).join();
       throw Exception('Datos insuficientes (422): $body');
     }
     if (streamed.statusCode == 503) {
-      await streamed.stream.drain<void>();
+      final body = await streamed.stream.transform(const Utf8Decoder()).join();
+      final parsed = jsonDecode(body) as Map<String, dynamic>?;
+      final detail = parsed?['detail'];
+      final code = detail is Map ? detail['code'] as String? : null;
+      if (code == 'subscription_check_failed') {
+        yield const AiContentSubscriptionCheckFailed();
+        return;
+      }
       throw Exception('Servicio no disponible. Intenta en unos momentos.');
     }
     if (streamed.statusCode != 200) {

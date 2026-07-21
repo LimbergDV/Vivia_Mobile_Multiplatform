@@ -24,7 +24,7 @@ import 'package:vivia_mobile/shared/property/domain/usecases/update_property_use
 
 enum NeighborhoodsStatus { idle, loading, success, error }
 
-enum AiGenerationStatus { idle, loading, error }
+enum AiGenerationStatus { idle, loading, error, premiumRequired, subscriptionCheckFailed }
 
 /// [needsPin]: el geocoding solo resolvió a nivel colonia/CP (o 404) y el
 /// usuario debe colocar el pin manualmente en el mapa de la revisión.
@@ -397,6 +397,16 @@ class PropertyDraftViewModel extends ChangeNotifier {
             case AiContentError(:final detail):
               _aiStatus = AiGenerationStatus.error;
               _aiError = detail;
+              _aiSubscription = null;
+              notifyListeners();
+            case AiContentPremiumRequired():
+              _aiStatus = AiGenerationStatus.premiumRequired;
+              _aiSubscription = null;
+              notifyListeners();
+            case AiContentSubscriptionCheckFailed():
+              _aiStatus = AiGenerationStatus.subscriptionCheckFailed;
+              _aiError =
+                  'No se pudo verificar tu suscripción. Intenta de nuevo.';
               _aiSubscription = null;
               notifyListeners();
           }
