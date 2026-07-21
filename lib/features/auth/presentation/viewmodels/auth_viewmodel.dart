@@ -34,6 +34,7 @@ class AuthViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
   final RegisterFcmTokenUseCase _registerFcmTokenUseCase;
   final VoidCallback? _onSessionCleared;
+  final VoidCallback? _onSessionStarted;
 
   AuthViewModel({
     required LoginUseCase loginUseCase,
@@ -48,6 +49,7 @@ class AuthViewModel extends ChangeNotifier {
     required AuthRepository authRepository,
     required RegisterFcmTokenUseCase registerFcmTokenUseCase,
     VoidCallback? onSessionCleared,
+    VoidCallback? onSessionStarted,
   })  : _loginUseCase = loginUseCase,
         _loginGoogleUseCase = loginGoogleUseCase,
         _registerLesseeUseCase = registerLesseeUseCase,
@@ -59,7 +61,8 @@ class AuthViewModel extends ChangeNotifier {
         _setLocationPermissionShownUseCase = setLocationPermissionShownUseCase,
         _putUbicationUseCase = putUbicationUseCase,
         _authRepository = authRepository,
-        _onSessionCleared = onSessionCleared;
+        _onSessionCleared = onSessionCleared,
+        _onSessionStarted = onSessionStarted;
 
   AuthStatus _status = AuthStatus.idle;
   String? _errorMessage;
@@ -146,6 +149,7 @@ class AuthViewModel extends ChangeNotifier {
       _avatarUrl = null;
       _status = AuthStatus.success;
       _registerFcmTokenUseCase.execute().ignore();
+      _onSessionStarted?.call();
     } catch (e) {
       _status = AuthStatus.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -184,6 +188,7 @@ class AuthViewModel extends ChangeNotifier {
       _avatarUrl = null;
       _status = AuthStatus.success;
       _registerFcmTokenUseCase.execute().ignore();
+      _onSessionStarted?.call();
       _clearRegisterFields();
     } catch (e) {
       _status = AuthStatus.error;
@@ -251,6 +256,7 @@ class AuthViewModel extends ChangeNotifier {
       _avatarUrl = photoUrl;
       _status = AuthStatus.success;
       _registerFcmTokenUseCase.execute().ignore();
+      _onSessionStarted?.call();
     } catch (e) {
       _status = AuthStatus.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');

@@ -206,6 +206,17 @@ void _listenWsChatNotifications(
   });
 }
 
+void _connectAndJoinChat(ChatRepositoryImpl? repo) {
+  if (repo == null) return;
+  repo.connectWebSocket().then((_) {
+    repo.getConversations().then((conversations) {
+      for (final c in conversations) {
+        repo.joinConversation(c.id);
+      }
+    }).catchError((_) {});
+  }).catchError((_) {});
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -284,6 +295,7 @@ void main() async {
       propertyViewModelRef?.reset();
       chatRepositoryRef?.disconnectWebSocket();
     },
+    onSessionStarted: () => _connectAndJoinChat(chatRepositoryRef),
   );
   authViewModelRef = authViewModel;
 
@@ -400,6 +412,7 @@ void main() async {
   _listenWsChatNotifications(chatRepository, localDatasource);
 
   final isLoggedIn = authRepository.isLoggedIn;
+  if (isLoggedIn) _connectAndJoinChat(chatRepositoryRef);
   final savedUserName = authRepository.savedUserName;
   final savedRole = authRepository.savedRole;
   final savedAvatarUrl = authRepository.savedAvatarUrl;
