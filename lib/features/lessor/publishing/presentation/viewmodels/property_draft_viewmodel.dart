@@ -24,7 +24,7 @@ import 'package:vivia_mobile/shared/property/domain/usecases/update_property_use
 
 enum NeighborhoodsStatus { idle, loading, success, error }
 
-enum AiGenerationStatus { idle, loading, error }
+enum AiGenerationStatus { idle, loading, error, premiumRequired, subscriptionCheckFailed }
 
 /// [needsPin]: el geocoding solo resolvió a nivel colonia/CP (o 404) y el
 /// usuario debe colocar el pin manualmente en el mapa de la revisión.
@@ -399,6 +399,16 @@ class PropertyDraftViewModel extends ChangeNotifier {
               _aiError = detail;
               _aiSubscription = null;
               notifyListeners();
+            case AiContentPremiumRequired():
+              _aiStatus = AiGenerationStatus.premiumRequired;
+              _aiSubscription = null;
+              notifyListeners();
+            case AiContentSubscriptionCheckFailed():
+              _aiStatus = AiGenerationStatus.subscriptionCheckFailed;
+              _aiError =
+                  'No se pudo verificar tu suscripción. Intenta de nuevo.';
+              _aiSubscription = null;
+              notifyListeners();
           }
         },
         onError: (Object e) {
@@ -510,6 +520,49 @@ class PropertyDraftViewModel extends ChangeNotifier {
   /// extra sube la precisión. Debounce agresivo: el servicio no está pensado
   /// para search-as-you-type (integration.md §4.7). El punto resuelto (o el
   /// pin manual) viaja como latitude/longitude en el draft (_buildFormBody).
+  // Tipos de vialidad reconocidos: si el input ya empieza con alguno, se
+  // manda tal cual; si no, se antepone "Calle " para dar contexto al
+  // geocodificador (que espera una vialidad, no solo el nombre).
+  static const _streetTypes = [
+    'calle',
+    'avenida',
+    'av',
+    'cerrada',
+    'privada',
+    'priv',
+    'boulevard',
+    'blvd',
+    'calzada',
+    'calz',
+    'callejon',
+    'callejón',
+    'andador',
+    'circuito',
+    'camino',
+    'carretera',
+    'prolongacion',
+    'prolongación',
+    'diagonal',
+    'eje',
+    'retorno',
+    'pasaje',
+    'peatonal',
+    'via',
+    'vía',
+  ];
+
+  String _streetQuery(String street) {
+    final normalized = street
+        .trim()
+        .toLowerCase()
+        .replaceAll('.', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final firstWord = normalized.split(' ').first;
+    if (_streetTypes.contains(firstWord)) return street.trim();
+    return 'Calle ${street.trim()}';
+  }
+
   void _scheduleLocationPreview() {
     final geocode = _geocodeAddress;
     if (geocode == null) return;
@@ -536,7 +589,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
       try {
         final result = await geocode.execute(
           cp: cp,
-          street: street,
+          street: _streetQuery(street),
           exteriorNumber: _form.exteriorNumber,
           neighborhood: neighborhood.name,
         );
