@@ -381,7 +381,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
                       hint: 'Añade un título breve...',
                       readOnly: vm.aiStatus == AiGenerationStatus.loading,
                       inputFormatters: [
-                        LengthLimitingTextInputFormatter(200),
+                        LengthLimitingTextInputFormatter(150),
                       ],
                       onChanged: vm.setTitle,
                       validator: (v) {
@@ -970,7 +970,7 @@ class _DescriptionField extends StatelessWidget {
       readOnly: readOnly,
       maxLines: null,
       minLines: 4,
-      maxLength: 200,
+      maxLength: 2000,
       onChanged: onChanged,
       validator: (v) {
         if (v == null || v.trim().isEmpty) return 'Campo requerido';

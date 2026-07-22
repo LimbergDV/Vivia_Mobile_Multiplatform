@@ -79,6 +79,7 @@ class AuthLocalDatasourceImpl implements AuthLocalDatasource {
     await _prefs.remove(_roleKey);
     await _prefs.remove(_userNameKey);
     await _prefs.remove(_avatarKey);
+    await _prefs.remove(_locationPermissionShownKey);
   }
 
   @override

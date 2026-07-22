@@ -192,6 +192,19 @@ class PropertyDraftViewModel extends ChangeNotifier {
   DraftPublicationSuccess? get successData => _successData;
   DraftPublicationFailed? get failureData => _failureData;
 
+  String get streamStatusMessage {
+    final s = _streamStatusLabel.toUpperCase();
+    if (s.contains('UPLOAD') || s.contains('MEDIA') || s.contains('IMAGE')) {
+      return 'Procesando las imágenes…';
+    }
+    if (s.contains('MODERA') || s.contains('REVIEW')) {
+      return 'Revisando el contenido…';
+    }
+    if (s.contains('VALID')) return 'Validando la información…';
+    if (s.contains('PUBLISH')) return 'Publicando tu propiedad…';
+    return 'Procesando tu publicación…';
+  }
+
   // ── Inicialización ────────────────────────────────────────────────────────
   Future<void> init() async {
     if (_amenitiesStatus != AmenitiesStatus.idle) return;

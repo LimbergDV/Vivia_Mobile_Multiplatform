@@ -24,6 +24,9 @@ class PersonalInfoViewModel extends ChangeNotifier {
   String _email;
   String? _phone;
   String? _avatarUrl;
+  final bool _isLessor;
+  final bool _isVerified;
+  bool _hasLocation;
   bool _isUploadingPhoto = false;
   bool _isUpdatingLocation = false;
 
@@ -38,6 +41,9 @@ class PersonalInfoViewModel extends ChangeNotifier {
     required String paternalSurname,
     required String maternalSurname,
     required String email,
+    required bool isLessor,
+    bool isVerified = false,
+    bool hasLocation = false,
     String? phone,
     String? avatarUrl,
   })  : _updateNameUseCase = updateNameUseCase,
@@ -50,6 +56,9 @@ class PersonalInfoViewModel extends ChangeNotifier {
         _paternalSurname = paternalSurname,
         _maternalSurname = maternalSurname,
         _email = email,
+        _isLessor = isLessor,
+        _isVerified = isVerified,
+        _hasLocation = hasLocation,
         _phone = phone,
         _avatarUrl = avatarUrl;
 
@@ -64,6 +73,20 @@ class PersonalInfoViewModel extends ChangeNotifier {
       .join(' ');
   bool get isUploadingPhoto => _isUploadingPhoto;
   bool get isUpdatingLocation => _isUpdatingLocation;
+
+  List<bool> get _completionChecklist => [
+        _firstName.trim().isNotEmpty,
+        _paternalSurname.trim().isNotEmpty,
+        _email.trim().isNotEmpty,
+        _avatarUrl?.isNotEmpty ?? false,
+        _isLessor ? (_phone?.trim().isNotEmpty ?? false) : _hasLocation,
+        if (_isLessor) _isVerified,
+      ];
+
+  double get completionPercent {
+    final items = _completionChecklist;
+    return items.where((done) => done).length / items.length;
+  }
 
   /// PATCH /users/me/name
   Future<void> updateName({
@@ -146,6 +169,7 @@ class PersonalInfoViewModel extends ChangeNotifier {
         latitude: position.latitude,
         longitude: position.longitude,
       );
+      _hasLocation = true;
     } finally {
       _isUpdatingLocation = false;
       notifyListeners();

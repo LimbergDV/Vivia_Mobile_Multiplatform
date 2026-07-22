@@ -41,6 +41,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   HomeNavItem _selectedNav = HomeNavItem.home;
   int _unreadCount = 0;
+  String? _publishSnackMessage;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -82,6 +83,7 @@ class _HomePageState extends State<HomePage> {
 
     switch (draftVm.streamStatus) {
       case DraftStreamStatus.success:
+        _hidePublishProgress();
         final s = draftVm.successData!;
         propertyVm.prependProperty(PropertyModel(
           id: s.id,
@@ -95,7 +97,13 @@ class _HomePageState extends State<HomePage> {
           imageUrl: s.mainImageUrl,
         ));
         draftVm.clearStreamStatus();
+        AppAlert.success(
+          context,
+          'Tu propiedad ya está publicada y visible.',
+          title: '¡Listo!',
+        );
       case DraftStreamStatus.failed:
+        _hidePublishProgress();
         final reason = draftVm.failureData!.reason;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
@@ -107,9 +115,42 @@ class _HomePageState extends State<HomePage> {
           draftVm.clearStreamStatus();
         });
       case DraftStreamStatus.validating:
+        _showPublishProgress(draftVm.streamStatusMessage);
       case DraftStreamStatus.idle:
-        break;
+        _hidePublishProgress();
     }
+  }
+
+  void _showPublishProgress(String message) {
+    if (message == _publishSnackMessage) return;
+    _publishSnackMessage = message;
+    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(days: 1),
+        behavior: SnackBarBehavior.floating,
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Text(message)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _hidePublishProgress() {
+    if (_publishSnackMessage == null) return;
+    _publishSnackMessage = null;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
   }
 
   void _onNavSelected(HomeNavItem item) {

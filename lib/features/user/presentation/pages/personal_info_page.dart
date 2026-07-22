@@ -50,6 +50,9 @@ class PersonalInfoPage extends StatelessWidget {
         paternalSurname: profile?.paternalSurname ?? seedPaternal,
         maternalSurname: profile?.maternalSurname ?? seedMaternal,
         email: profile?.email ?? '',
+        isLessor: role == UserRole.lessor,
+        isVerified: profile?.isVerified ?? false,
+        hasLocation: profile?.latitude != null && profile?.longitude != null,
         phone: role == UserRole.lessor ? (profile?.phoneNumber ?? '') : null,
         avatarUrl: profile?.photoUrl ?? avatarUrl,
       ),
@@ -176,6 +179,8 @@ class _AvatarSection extends StatelessWidget {
         .select<PersonalInfoViewModel, String?>((vm) => vm.avatarUrl);
     final isUploading = context
         .select<PersonalInfoViewModel, bool>((vm) => vm.isUploadingPhoto);
+    final progress = context
+        .select<PersonalInfoViewModel, double>((vm) => vm.completionPercent);
 
     return Center(
       child: Column(
@@ -195,7 +200,7 @@ class _AvatarSection extends StatelessWidget {
               children: [
                 ProfileAvatarRing(
                   avatarUrl: avatarUrl,
-                  progress: 0.75,
+                  progress: progress,
                   size: avatarSize,
                 ),
                 Positioned(
