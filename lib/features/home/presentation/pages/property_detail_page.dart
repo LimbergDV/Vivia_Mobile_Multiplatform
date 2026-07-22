@@ -18,6 +18,8 @@ import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_detail_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/lessee/reports/presentation/viewmodels/report_viewmodel.dart';
+import 'package:vivia_mobile/shared/widgets/amenity_icon.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
 import 'package:vivia_mobile/features/maps/domain/usecases/geocode_address_usecase.dart';
@@ -125,9 +127,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al eliminar: $e')),
-      );
+      AppAlert.error(context, 'No se pudo eliminar la propiedad. Intenta de nuevo.');
     }
   }
 
@@ -194,10 +194,10 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   Future<void> _onEdit() async {
     final detail = _vm.detail;
     if (detail == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Espera a que cargue la información de la propiedad'),
-        ),
+      AppAlert.show(
+        context,
+        message: 'Espera a que cargue la información de la propiedad',
+        type: AppAlertType.warning,
       );
       return;
     }
@@ -784,12 +784,23 @@ class _AmenityChip extends StatelessWidget {
         color: colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        label,
-        style: textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSurface,
-          fontWeight: FontWeight.w500,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            amenityIcon(label),
+            size: 16,
+            color: colorScheme.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

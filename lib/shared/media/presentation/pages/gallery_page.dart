@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 import 'package:vivia_mobile/shared/media/presentation/helpers/media_picker_helper.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_media.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/add_property_media_usecase.dart';
@@ -48,15 +49,13 @@ class _GalleryPageState extends State<GalleryPage> {
   }
 
   void _showActionMessage() {
-    final message = _vm.consumeActionMessage();
-    if (message == null || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    final action = _vm.consumeActionMessage();
+    if (action == null || !mounted) return;
+    if (action.isError) {
+      AppAlert.error(context, action.text);
+    } else {
+      AppAlert.success(context, action.text);
+    }
   }
 
   void _openFullscreen(List<PropertyMedia> photos, int index) {
@@ -221,7 +220,9 @@ class _GalleryPageState extends State<GalleryPage> {
             itemBuilder: (_, i) {
               final name = categories[i];
               return _CategoryChip(
-                label: name,
+                label: name == GalleryViewModel.mainClassification
+                    ? 'Fachada'
+                    : name,
                 isActive: name == _vm.selectedCategory,
                 onTap: () => _vm.selectCategory(name),
                 textTheme: textTheme,

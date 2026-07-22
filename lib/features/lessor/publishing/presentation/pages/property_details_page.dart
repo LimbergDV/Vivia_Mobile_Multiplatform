@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/property_photos_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/review_property_page.dart';
@@ -8,6 +9,8 @@ import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/form_section_header.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/number_selector.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/property_text_field.dart';
+import 'package:vivia_mobile/shared/widgets/amenity_icon.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 const _kAiFrom = Color(0xFF62E8EC); // cyan claro — inicio del degradado Premium
 const _kAiTo   = Color(0xFF26C6DA); // cyan oscuro — fin del degradado Premium
@@ -40,7 +43,17 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
     '11+',
   ];
   final List<String> _bathroomOptions = ['1', '2', '3', '4', '5', '6', '7+'];
-  final List<String> _parkingOptions = ['1', '2', '3', '4', '5', '6', '7+'];
+  // Los cajones de estacionamiento pueden ser 0.
+  final List<String> _parkingOptions = [
+    '0',
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7+',
+  ];
 
   final List<int> _yearOptions = List.generate(
     DateTime.now().year - 1950 + 1,
@@ -62,6 +75,14 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
     _descriptionController = TextEditingController(
       text: vm.form.description ?? '',
     );
+    // Año de construcción por defecto: 2000 cuando aún no se ha seleccionado.
+    if (vm.form.constructionYear == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && vm.form.constructionYear == null) {
+          vm.setConstructionYear(2000);
+        }
+      });
+    }
     vm.addListener(_onVmChanged);
   }
 
@@ -205,34 +226,25 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
     if (!mounted) return;
 
     if (saved) {
-      final messenger = ScaffoldMessenger.of(context);
-      // Cierra Details y AddProperty para volver al detalle de la propiedad.
+      AppAlert.success(
+        context,
+        'Los cambios se guardaron correctamente.',
+        title: 'Propiedad actualizada',
+      );
       Navigator.of(context)
         ..pop()
         ..pop();
       vm.reset();
-      messenger.showSnackBar(
-        SnackBar(
-          content: const Text('Propiedad actualizada'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
     } else {
-      _showSnack('No se pudieron guardar los cambios. Intenta de nuevo.');
+      AppAlert.error(
+        context,
+        'No se pudieron guardar los cambios. Intenta de nuevo.',
+      );
     }
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    AppAlert.show(context, message: message, type: AppAlertType.warning);
   }
 
   @override
@@ -275,6 +287,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
             ),
             child: Form(
               key: _formKey,
+              autovalidateMode: AutovalidateMode.disabled,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -314,12 +327,12 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
                   ),
                   const SizedBox(height: 14),
                   NumberSelector(
-                    // parkingSpots stores actual count (1-7); selector needs index (0-6)
+                    // parkingSpots stores actual count (0-7); index maps 1:1.
                     selected: vm.form.parkingSpots != null
-                        ? (vm.form.parkingSpots! - 1).clamp(0, 6)
+                        ? vm.form.parkingSpots!.clamp(0, 7)
                         : null,
                     options: _parkingOptions,
-                    onSelected: (i) => vm.setParkingSpots(i < 6 ? i + 1 : 7),
+                    onSelected: (i) => vm.setParkingSpots(i < 7 ? i : 7),
                   ),
                   const SizedBox(height: 28),
 
@@ -367,10 +380,19 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
                       controller: _titleController,
                       hint: 'Añade un título breve...',
                       readOnly: vm.aiStatus == AiGenerationStatus.loading,
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(150),
+                      ],
                       onChanged: vm.setTitle,
-                      validator: (v) => v == null || v.trim().isEmpty
-                          ? 'Campo requerido'
-                          : null,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Campo requerido';
+                        }
+                        if (v.trim().length < 10) {
+                          return 'El título debe tener al menos 10 caracteres';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                   const SizedBox(height: 28),
@@ -500,6 +522,17 @@ class _AiGenerateSectionState extends State<_AiGenerateSection> {
       AiGenerationStatus.error => _buildErrorCard(
           context,
           colorScheme,
+          textTheme,
+          vm,
+        ),
+      AiGenerationStatus.subscriptionCheckFailed => _buildSubscriptionCheckFailedCard(
+          context,
+          colorScheme,
+          textTheme,
+          vm,
+        ),
+      AiGenerationStatus.premiumRequired => _buildPremiumCard(
+          context,
           textTheme,
           vm,
         ),
@@ -707,6 +740,213 @@ class _AiGenerateSectionState extends State<_AiGenerateSection> {
       ),
     );
   }
+
+  Widget _buildSubscriptionCheckFailedCard(
+    BuildContext context,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    PropertyDraftViewModel vm,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.cloud_off_rounded,
+                size: 18,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'No pudimos verificar tu suscripción',
+                      style: textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Revisa tu conexión e intenta de nuevo.',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => vm.cancelAiGeneration(),
+                style: TextButton.styleFrom(
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Cancelar'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: vm.canGenerateAiContent
+                    ? () => vm.generateAiContent()
+                    : null,
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: const Text('Reintentar'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  textStyle: textTheme.labelMedium,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumCard(
+    BuildContext context,
+    TextTheme textTheme,
+    PropertyDraftViewModel vm,
+  ) {
+    const gradient = LinearGradient(
+      colors: [_kAiFrom, _kAiTo],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: _kAiTo.withOpacity(0.30),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.20),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.military_tech_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Función exclusiva Premium',
+                        style: textTheme.labelLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Genera título y descripción con IA en segundos. Actualiza tu plan para desbloquear esta y más funciones.',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withOpacity(0.88),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: _kAiTo,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      textStyle: textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Ver planes Premium'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                TextButton(
+                  onPressed: () => vm.cancelAiGeneration(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white.withOpacity(0.80),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: textTheme.labelMedium,
+                  ),
+                  child: const Text('Ahora no'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DescriptionField extends StatelessWidget {
@@ -730,9 +970,15 @@ class _DescriptionField extends StatelessWidget {
       readOnly: readOnly,
       maxLines: null,
       minLines: 4,
+      maxLength: 2000,
       onChanged: onChanged,
-      validator: (v) =>
-          v == null || v.trim().isEmpty ? 'Campo requerido' : null,
+      validator: (v) {
+        if (v == null || v.trim().isEmpty) return 'Campo requerido';
+        if (v.trim().length < 20) {
+          return 'La descripción debe tener al menos 20 caracteres';
+        }
+        return null;
+      },
       style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
       decoration: InputDecoration(
         hintText: 'Añade una descripción...',
@@ -946,6 +1192,13 @@ class _AmenitiesSection extends StatelessWidget {
           return CheckboxListTile(
             value: isSelected,
             onChanged: (_) => vm.toggleAmenity(amenity.id),
+            secondary: Icon(
+              amenityIcon(amenity.name),
+              size: 22,
+              color: isSelected
+                  ? const Color(0xFF0095FF)
+                  : colorScheme.onSurfaceVariant,
+            ),
             title: Text(
               amenity.name,
               style: textTheme.bodyMedium?.copyWith(

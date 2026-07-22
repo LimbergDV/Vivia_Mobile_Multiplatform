@@ -5,12 +5,14 @@ class HomeSearchBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback? onFilterTap;
   final ValueChanged<String>? onChanged;
+  final bool filtersActive;
 
   const HomeSearchBar({
     super.key,
     required this.controller,
     this.onFilterTap,
     this.onChanged,
+    this.filtersActive = false,
   });
 
   @override
@@ -82,6 +84,17 @@ class HomeSearchBar extends StatelessWidget {
                     BlendMode.srcIn,
                   ),
                 ),
+                if (filtersActive) ...[
+                  const SizedBox(width: 5),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: colorScheme.onPrimary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
                 const SizedBox(width: 6),
                 Text(
                   'Filtros',

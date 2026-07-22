@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:vivia_mobile/core/utils/input_validators.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/widgets.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/location_permissions_page.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/home_page.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class LoginPage extends StatelessWidget {
   final UserRole role;
@@ -35,6 +37,12 @@ class _LoginViewState extends State<_LoginView> {
   void _onAuthChanged() {
     final vm = context.read<AuthViewModel>();
     if (vm.status == AuthStatus.success) {
+      AppAlert.success(
+        context,
+        'Has iniciado sesión correctamente.',
+        title: '¡Bienvenido de nuevo!',
+      );
+
       final isLessee = vm.lastRole == UserRole.lessee;
       final hasSeenPermission = vm.hasSeenLocationPermission;
 
@@ -62,8 +70,10 @@ class _LoginViewState extends State<_LoginView> {
         );
       }
     } else if (vm.status == AuthStatus.error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.errorMessage ?? 'Error desconocido')),
+      AppAlert.error(
+        context,
+        vm.errorMessage ?? 'Ocurrió un error inesperado. Intenta de nuevo.',
+        title: 'No pudimos iniciar sesión',
       );
       vm.resetStatus();
     }
@@ -256,13 +266,7 @@ class _LandscapeLayout extends StatelessWidget {
                       hint: 'example@domain.com',
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return 'Ingresa tu correo';
-                        if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                          return 'Correo no válido';
-                        }
-                        return null;
-                      },
+                      validator: InputValidators.email,
                     ),
                     const SizedBox(height: 14),
                     AuthTextField(
@@ -273,11 +277,8 @@ class _LandscapeLayout extends StatelessWidget {
                       isPassword: true,
                       passwordVisible: viewModel.loginPasswordVisible,
                       onToggleVisibility: viewModel.toggleLoginPasswordVisibility,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return 'Ingresa tu contraseña';
-                        if (value.length < 6) return 'Mínimo 6 caracteres';
-                        return null;
-                      },
+                      validator: (value) =>
+                          InputValidators.requiredField(value, message: 'Ingresa tu contraseña'),
                     ),
                     const SizedBox(height: 20),
                     AuthPrimaryButton(

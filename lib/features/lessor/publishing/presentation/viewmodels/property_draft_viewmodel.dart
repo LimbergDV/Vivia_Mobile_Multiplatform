@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:vivia_mobile/core/utils/input_sanitizer.dart';
 import 'package:vivia_mobile/core/utils/media_file_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
@@ -24,7 +25,7 @@ import 'package:vivia_mobile/shared/property/domain/usecases/update_property_use
 
 enum NeighborhoodsStatus { idle, loading, success, error }
 
-enum AiGenerationStatus { idle, loading, error }
+enum AiGenerationStatus { idle, loading, error, premiumRequired, subscriptionCheckFailed }
 
 /// [needsPin]: el geocoding solo resolvió a nivel colonia/CP (o 404) y el
 /// usuario debe colocar el pin manualmente en el mapa de la revisión.
@@ -190,6 +191,19 @@ class PropertyDraftViewModel extends ChangeNotifier {
   String get streamStatusLabel => _streamStatusLabel;
   DraftPublicationSuccess? get successData => _successData;
   DraftPublicationFailed? get failureData => _failureData;
+
+  String get streamStatusMessage {
+    final s = _streamStatusLabel.toUpperCase();
+    if (s.contains('UPLOAD') || s.contains('MEDIA') || s.contains('IMAGE')) {
+      return 'Procesando las imágenes…';
+    }
+    if (s.contains('MODERA') || s.contains('REVIEW')) {
+      return 'Revisando el contenido…';
+    }
+    if (s.contains('VALID')) return 'Validando la información…';
+    if (s.contains('PUBLISH')) return 'Publicando tu propiedad…';
+    return 'Procesando tu publicación…';
+  }
 
   // ── Inicialización ────────────────────────────────────────────────────────
   Future<void> init() async {
@@ -399,6 +413,16 @@ class PropertyDraftViewModel extends ChangeNotifier {
               _aiError = detail;
               _aiSubscription = null;
               notifyListeners();
+            case AiContentPremiumRequired():
+              _aiStatus = AiGenerationStatus.premiumRequired;
+              _aiSubscription = null;
+              notifyListeners();
+            case AiContentSubscriptionCheckFailed():
+              _aiStatus = AiGenerationStatus.subscriptionCheckFailed;
+              _aiError =
+                  'No se pudo verificar tu suscripción. Intenta de nuevo.';
+              _aiSubscription = null;
+              notifyListeners();
           }
         },
         onError: (Object e) {
@@ -510,6 +534,49 @@ class PropertyDraftViewModel extends ChangeNotifier {
   /// extra sube la precisión. Debounce agresivo: el servicio no está pensado
   /// para search-as-you-type (integration.md §4.7). El punto resuelto (o el
   /// pin manual) viaja como latitude/longitude en el draft (_buildFormBody).
+  // Tipos de vialidad reconocidos: si el input ya empieza con alguno, se
+  // manda tal cual; si no, se antepone "Calle " para dar contexto al
+  // geocodificador (que espera una vialidad, no solo el nombre).
+  static const _streetTypes = [
+    'calle',
+    'avenida',
+    'av',
+    'cerrada',
+    'privada',
+    'priv',
+    'boulevard',
+    'blvd',
+    'calzada',
+    'calz',
+    'callejon',
+    'callejón',
+    'andador',
+    'circuito',
+    'camino',
+    'carretera',
+    'prolongacion',
+    'prolongación',
+    'diagonal',
+    'eje',
+    'retorno',
+    'pasaje',
+    'peatonal',
+    'via',
+    'vía',
+  ];
+
+  String _streetQuery(String street) {
+    final normalized = street
+        .trim()
+        .toLowerCase()
+        .replaceAll('.', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final firstWord = normalized.split(' ').first;
+    if (_streetTypes.contains(firstWord)) return street.trim();
+    return 'Calle ${street.trim()}';
+  }
+
   void _scheduleLocationPreview() {
     final geocode = _geocodeAddress;
     if (geocode == null) return;
@@ -536,7 +603,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
       try {
         final result = await geocode.execute(
           cp: cp,
-          street: street,
+          street: _streetQuery(street),
           exteriorNumber: _form.exteriorNumber,
           neighborhood: neighborhood.name,
         );
@@ -803,13 +870,13 @@ class PropertyDraftViewModel extends ChangeNotifier {
     return {
       'propertyTypeId': _form.propertyType!.id,
       'neighborhoodId': _form.neighborhood!.id,
-      'street': _form.street ?? '',
-      'exteriorNumber': _form.exteriorNumber ?? '',
+      'street': InputSanitizer.singleLine(_form.street ?? ''),
+      'exteriorNumber': InputSanitizer.singleLine(_form.exteriorNumber ?? ''),
       if (_form.interiorNumber != null && _form.interiorNumber!.isNotEmpty)
-        'interiorNumber': _form.interiorNumber,
+        'interiorNumber': InputSanitizer.singleLine(_form.interiorNumber!),
       'isAvailableToRent': _form.isAvailableToRent,
-      'title': _form.title ?? '',
-      'description': _form.description ?? '',
+      'title': InputSanitizer.singleLine(_form.title ?? ''),
+      'description': InputSanitizer.multiLine(_form.description ?? ''),
       'areaM2': double.tryParse(_form.area ?? '0') ?? 0.0,
       'bedrooms': _form.rooms ?? 0,
       'bathrooms': (_form.bathrooms ?? 0).toDouble(),
@@ -837,8 +904,8 @@ class PropertyDraftViewModel extends ChangeNotifier {
   // anidada en `address` y los campos omitidos no se modifican en el backend.
   Map<String, dynamic> _buildPatchBody() {
     return {
-      'title': _form.title ?? '',
-      'description': _form.description ?? '',
+      'title': InputSanitizer.singleLine(_form.title ?? ''),
+      'description': InputSanitizer.multiLine(_form.description ?? ''),
       'areaM2': double.tryParse(_form.area ?? '0') ?? 0.0,
       'bedrooms': _form.rooms ?? 0,
       'bathrooms': (_form.bathrooms ?? 0).toDouble(),
@@ -855,10 +922,10 @@ class PropertyDraftViewModel extends ChangeNotifier {
       'address': {
         if (_form.neighborhood != null)
           'neighborhoodId': _form.neighborhood!.id,
-        'street': _form.street ?? '',
-        'exteriorNumber': _form.exteriorNumber ?? '',
+        'street': InputSanitizer.singleLine(_form.street ?? ''),
+        'exteriorNumber': InputSanitizer.singleLine(_form.exteriorNumber ?? ''),
         if (_form.interiorNumber != null && _form.interiorNumber!.isNotEmpty)
-          'interiorNumber': _form.interiorNumber,
+          'interiorNumber': InputSanitizer.singleLine(_form.interiorNumber!),
         // Solo si el usuario cambió la dirección y el geocoding (o el pin
         // manual) resolvió; omitidas, el backend conserva las actuales.
         if (_publishPoint != null) ...{

@@ -32,3 +32,11 @@ final class AiContentError extends AiContentEvent {
   final String detail;
   const AiContentError(this.detail);
 }
+
+final class AiContentPremiumRequired extends AiContentEvent {
+  const AiContentPremiumRequired();
+}
+
+final class AiContentSubscriptionCheckFailed extends AiContentEvent {
+  const AiContentSubscriptionCheckFailed();
+}

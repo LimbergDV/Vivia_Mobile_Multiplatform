@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:vivia_mobile/features/maps/data/datasources/remote/constants/maps_api_constants.dart';
+import 'package:vivia_mobile/features/maps/data/map_style_loader.dart';
 import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
 
 /// Mapa vectorial de ViVia Maps centrado en [point] con un pin.
@@ -48,13 +48,26 @@ class _PropertyLocationMapState extends State<PropertyLocationMap> {
   static const _pinImageId = 'property-pin';
 
   @override
+  void initState() {
+    super.initState();
+    if (PropertyLocationMap.isPlatformSupported) {
+      MapStyleLoader.resolve().then((style) {
+        if (mounted) setState(() => _styleString = style);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (!PropertyLocationMap.isPlatformSupported) {
       return _UnsupportedFallback(displayName: widget.point.displayName);
     }
 
+    final style = _styleString;
+    if (style == null) return const _MapLoading();
+
     final map = MapLibreMap(
-      styleString: MapsApiConstants.styleUrl,
+      styleString: style,
       initialCameraPosition: CameraPosition(
         target: LatLng(widget.point.lat, widget.point.lon),
         zoom: widget.point.isApproximate ? 15 : 16,
@@ -109,6 +122,7 @@ class _PropertyLocationMapState extends State<PropertyLocationMap> {
   MapLibreMapController? _controller;
   Symbol? _symbol;
   bool _styleLoaded = false;
+  String? _styleString;
 
   @override
   void didUpdateWidget(covariant PropertyLocationMap oldWidget) {
@@ -190,6 +204,24 @@ class _PropertyLocationMapState extends State<PropertyLocationMap> {
         .toImage(size.toInt(), size.toInt());
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     return bytes!.buffer.asUint8List();
+  }
+}
+
+class _MapLoading extends StatelessWidget {
+  const _MapLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      color: colorScheme.surfaceContainerHighest,
+      alignment: Alignment.center,
+      child: SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.primary),
+      ),
+    );
   }
 }
 

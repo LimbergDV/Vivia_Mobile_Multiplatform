@@ -20,20 +20,45 @@ class ProfileViewModel extends ChangeNotifier {
   bool _isLoading = false;
   FullProfile? _profile;
 
-  final double _completionPercent = 0.75;
-  final bool _hasPersonalInfoPending = true;
-  final bool _hasPaymentInfoPending = true;
-
   String get displayName => _displayName;
   String? get avatarUrl => _avatarUrl;
   bool get isVerified => _isVerified;
   bool get isLoading => _isLoading;
   FullProfile? get profile => _profile;
 
-  double get completionPercent => _completionPercent;
-  int get completionPercentInt => (_completionPercent * 100).round();
-  bool get hasPersonalInfoPending => _hasPersonalInfoPending;
-  bool get hasPaymentInfoPending => _hasPaymentInfoPending;
+  List<bool> get _personalChecklist {
+    final p = _profile;
+    if (p == null) return const [];
+    return [
+      p.name.trim().isNotEmpty,
+      p.paternalSurname.trim().isNotEmpty,
+      p.email.trim().isNotEmpty,
+      p.photoUrl?.isNotEmpty ?? false,
+      _roleFieldComplete(p),
+    ];
+  }
+
+  bool _roleFieldComplete(FullProfile p) => isLessor
+      ? (p.phoneNumber?.trim().isNotEmpty ?? false)
+      : (p.latitude != null && p.longitude != null);
+
+  List<bool> get _completionChecklist {
+    final personal = _personalChecklist;
+    if (personal.isEmpty) return const [];
+    return [...personal, if (isLessor) _isVerified];
+  }
+
+  double get completionPercent {
+    final items = _completionChecklist;
+    if (items.isEmpty) return 0;
+    return items.where((done) => done).length / items.length;
+  }
+
+  int get completionPercentInt => (completionPercent * 100).round();
+  bool get isProfileComplete => _profile != null && completionPercent >= 1.0;
+  bool get hasPersonalInfoPending => _personalChecklist.contains(false);
+  bool get hasVerificationPending => isLessor && !_isVerified;
+  bool get hasPaymentInfoPending => false;
 
   bool get isLessor => _authRepository.savedRole == 'ROLE_LESSOR';
 

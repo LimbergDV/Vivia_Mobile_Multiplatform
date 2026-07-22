@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:vivia_mobile/core/utils/input_sanitizer.dart';
+import 'package:vivia_mobile/core/utils/input_validators.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class EditFieldConfig {
   final String label;
@@ -22,12 +25,14 @@ class EditInfoSheet extends StatefulWidget {
   final String title;
   final List<EditFieldConfig> fields;
   final Future<void> Function(List<String> values) onSave;
+  final String successMessage;
 
   const EditInfoSheet({
     super.key,
     required this.title,
     required this.fields,
     required this.onSave,
+    this.successMessage = 'Datos actualizados correctamente.',
   });
 
   static Future<void> show(
@@ -35,13 +40,19 @@ class EditInfoSheet extends StatefulWidget {
         required String title,
         required List<EditFieldConfig> fields,
         required Future<void> Function(List<String> values) onSave,
+        String successMessage = 'Datos actualizados correctamente.',
       }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       useSafeArea: true,
-      builder: (_) => EditInfoSheet(title: title, fields: fields, onSave: onSave),
+      builder: (_) => EditInfoSheet(
+        title: title,
+        fields: fields,
+        onSave: onSave,
+        successMessage: successMessage,
+      ),
     );
   }
 
@@ -80,8 +91,11 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
       _saveError = null;
     });
     try {
-      await widget.onSave(_controllers.map((c) => c.text.trim()).toList());
-      if (mounted) Navigator.of(context).pop();
+      await widget.onSave(_sanitizedValues());
+      if (mounted) {
+        AppAlert.success(context, widget.successMessage);
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       if (mounted) {
         setState(() =>
@@ -90,6 +104,15 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  List<String> _sanitizedValues() {
+    return List.generate(_controllers.length, (i) {
+      final text = _controllers[i].text;
+      return widget.fields[i].isPassword
+          ? text
+          : InputSanitizer.singleLine(text);
+    });
   }
 
   String? _validator(int index, String? value) {
@@ -101,9 +124,7 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
     }
 
     if (field.keyboardType == TextInputType.emailAddress) {
-      if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(trimmed)) {
-        return 'Correo no válido';
-      }
+      return InputValidators.email(trimmed);
     }
 
     if (field.isPassword && trimmed.length < 8) {

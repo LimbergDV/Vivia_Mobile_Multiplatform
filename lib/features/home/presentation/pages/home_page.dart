@@ -9,8 +9,12 @@ import 'package:vivia_mobile/features/home/presentation/widgets/shared/category_
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/empty_properties_state.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_header.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_search_bar.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_filter_sheet.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
+import 'package:vivia_mobile/shared/property/domain/models/property_filter.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_property_card.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/publish_progress_card.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_property_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
@@ -73,15 +77,7 @@ class _HomePageState extends State<HomePage> {
     if (draftVm.publishStatus == PublishStatus.error) {
       final error = draftVm.publishError;
       draftVm.reset();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error ?? 'Error al publicar. Intenta de nuevo.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Theme.of(context).colorScheme.error,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      AppAlert.error(context, error ?? 'Error al publicar. Intenta de nuevo.');
       return;
     }
 
@@ -100,6 +96,12 @@ class _HomePageState extends State<HomePage> {
           imageUrl: s.mainImageUrl,
         ));
         draftVm.clearStreamStatus();
+        AppAlert.success(
+          context,
+          'Tu propiedad ya está publicada y visible.',
+          title: '¡Listo!',
+          duration: const Duration(seconds: 7),
+        );
       case DraftStreamStatus.failed:
         final reason = draftVm.failureData!.reason;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -171,29 +173,59 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
+    final publishing = context.select<PropertyDraftViewModel, bool>(
+      (vm) => vm.streamStatus == DraftStreamStatus.validating,
+    );
 
-    if (isLandscape) {
-      return _LandscapeScaffold(
-        role: widget.role,
-        selectedNav: _selectedNav,
-        searchController: _searchController,
-        onNavSelected: _onNavSelected,
-        notificationCount: _unreadCount,
-        onNotificationTap: _openNotifications,
-        onProfileTap: _openProfile,
-      );
-    }
+    final scaffold = isLandscape
+        ? _LandscapeScaffold(
+            role: widget.role,
+            selectedNav: _selectedNav,
+            searchController: _searchController,
+            onNavSelected: _onNavSelected,
+            notificationCount: _unreadCount,
+            onNotificationTap: _openNotifications,
+            onProfileTap: _openProfile,
+          )
+        : _PortraitScaffold(
+            role: widget.role,
+            selectedNav: _selectedNav,
+            searchController: _searchController,
+            onNavSelected: _onNavSelected,
+            notificationCount: _unreadCount,
+            onNotificationTap: _openNotifications,
+            onProfileTap: _openProfile,
+          );
 
-    return _PortraitScaffold(
-      role: widget.role,
-      selectedNav: _selectedNav,
-      searchController: _searchController,
-      onNavSelected: _onNavSelected,
-      notificationCount: _unreadCount,
-      onNotificationTap: _openNotifications,
-      onProfileTap: _openProfile,
+    return Stack(
+      children: [
+        scaffold,
+        if (publishing)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 12,
+            left: 16,
+            right: 16,
+            child: const PublishProgressCard(),
+          ),
+      ],
     );
   }
+}
+
+Future<void> _showPropertyFilters(
+  BuildContext context,
+  PropertyViewModel vm,
+) async {
+  final result = await showModalBottomSheet<PropertyFilter>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => PropertyFilterSheet(
+      initial: vm.filter,
+      bounds: vm.filterBounds,
+    ),
+  );
+  if (result != null) vm.applyFilter(result);
 }
 
 class _PortraitScaffold extends StatelessWidget {
@@ -226,6 +258,7 @@ class _PortraitScaffold extends StatelessWidget {
       bottomNavigationBar: HomeBottomNavBar(
         selected: selectedNav,
         onItemSelected: onNavSelected,
+        showAddButton: role == UserRole.lessor,
       ),
       body: Consumer<PropertyViewModel>(
         builder: (context, vm, _) {
@@ -244,7 +277,12 @@ class _PortraitScaffold extends StatelessWidget {
                           onAvatarTap: onProfileTap,
                         ),
                         SizedBox(height: screenHeight * 0.025),
-                        HomeSearchBar(controller: searchController),
+                        HomeSearchBar(
+                          controller: searchController,
+                          filtersActive: vm.hasActiveFilters,
+                          onChanged: vm.setSearchQuery,
+                          onFilterTap: () => _showPropertyFilters(context, vm),
+                        ),
                         SizedBox(height: screenHeight * 0.02),
                       ]),
                     ),
@@ -312,9 +350,11 @@ class _PortraitScaffold extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: EmptyPropertiesState(
-                          title: vm.isLessor
-                              ? '¡No tienes propiedades\npublicadas aún!'
-                              : '¡Próximamente podrás\nexplorar propiedades!',
+                          title: vm.isNarrowed
+                              ? '¡No hay propiedades\ncon esa búsqueda!'
+                              : vm.isLessor
+                                  ? '¡No tienes propiedades\npublicadas aún!'
+                                  : '¡Próximamente podrás\nexplorar propiedades!',
                         ),
                       ),
                     )
@@ -399,6 +439,7 @@ class _LandscapeScaffold extends StatelessWidget {
               child: _VerticalNavBar(
                 selected: selectedNav,
                 onItemSelected: onNavSelected,
+                showAddButton: role == UserRole.lessor,
               ),
             ),
             Expanded(
@@ -418,7 +459,13 @@ class _LandscapeScaffold extends StatelessWidget {
                                 onAvatarTap: onProfileTap,
                               ),
                               const SizedBox(height: 14),
-                              HomeSearchBar(controller: searchController),
+                              HomeSearchBar(
+                                controller: searchController,
+                                filtersActive: vm.hasActiveFilters,
+                                onChanged: vm.setSearchQuery,
+                                onFilterTap: () =>
+                                    _showPropertyFilters(context, vm),
+                              ),
                               const SizedBox(height: 14),
                             ]),
                           ),
@@ -478,9 +525,15 @@ class _LandscapeScaffold extends StatelessWidget {
                             ),
                           )
                         else if (vm.displayedProperties.isEmpty)
-                          const SliverFillRemaining(
+                          SliverFillRemaining(
                             hasScrollBody: false,
-                            child: EmptyPropertiesState(),
+                            child: EmptyPropertiesState(
+                              title: vm.isNarrowed
+                                  ? '¡No hay propiedades\ncon esa búsqueda!'
+                                  : vm.isLessor
+                                      ? '¡No tienes propiedades\npublicadas aún!'
+                                      : '¡Próximamente podrás\nexplorar propiedades!',
+                            ),
                           )
                         else
                           SliverPadding(
@@ -721,10 +774,12 @@ class _SkeletonBox extends StatelessWidget {
 class _VerticalNavBar extends StatelessWidget {
   final HomeNavItem selected;
   final ValueChanged<HomeNavItem> onItemSelected;
+  final bool showAddButton;
 
   const _VerticalNavBar({
     required this.selected,
     required this.onItemSelected,
+    this.showAddButton = true,
   });
 
   @override
@@ -748,19 +803,21 @@ class _VerticalNavBar extends StatelessWidget {
           onTap: () => onItemSelected(HomeNavItem.notifications),
         ),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () => onItemSelected(HomeNavItem.add),
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              color: Color(0xFF04364A),
-              shape: BoxShape.circle,
+        if (showAddButton) ...[
+          GestureDetector(
+            onTap: () => onItemSelected(HomeNavItem.add),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: Color(0xFF04364A),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.add, color: colorScheme.surface, size: 24),
             ),
-            child: Icon(Icons.add, color: colorScheme.surface, size: 24),
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
+        ],
         _VerticalNavIcon(
           icon: Icons.chat_bubble_outline,
           selectedIcon: Icons.chat_bubble_rounded,

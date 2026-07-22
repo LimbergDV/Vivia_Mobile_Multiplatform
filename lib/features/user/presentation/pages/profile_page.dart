@@ -10,6 +10,7 @@ import 'package:vivia_mobile/features/user/presentation/viewmodels/profile_viewm
 import 'package:vivia_mobile/features/user/presentation/widgets/profile/profile_avatar_ring.dart';
 import 'package:vivia_mobile/features/user/presentation/widgets/profile/profile_completion_bar.dart';
 import 'package:vivia_mobile/features/user/presentation/widgets/profile/profile_settings_item.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 import 'package:vivia_mobile/features/user/presentation/widgets/profile/profile_subscription_banner.dart';
 import 'package:vivia_mobile/features/user/presentation/pages/personal_info_page.dart';
 import 'package:vivia_mobile/features/lessor/verification/presentation/pages/verify_entry_page.dart';
@@ -218,7 +219,7 @@ class _ProfileHeader extends StatelessWidget {
         // Barra de completado
         ProfileCompletionBar(
           completionPercent: vm.completionPercentInt,
-          showDot: true,
+          showDot: !vm.isProfileComplete,
         ),
 
         // Banner premium — solo para lessor
@@ -264,6 +265,7 @@ class _SettingsList extends StatelessWidget {
           ProfileSettingsItem(
             icon: Icons.verified_user_outlined,
             label: 'Verificar Cuenta',
+            showNotificationDot: vm.hasVerificationPending,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const VerifyEntryPage()),
@@ -409,12 +411,7 @@ class _SettingsList extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Función próximamente disponible'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              AppAlert.show(context, message: 'Función próximamente disponible');
             },
             child: Text(
               'Eliminar',

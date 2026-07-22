@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:vivia_mobile/core/utils/input_sanitizer.dart';
 import 'package:vivia_mobile/features/lessee/reports/domain/models/report_reason_model.dart';
 import 'package:vivia_mobile/features/lessee/reports/domain/usecases/get_report_reasons_usecase.dart';
 import 'package:vivia_mobile/features/lessee/reports/domain/usecases/submit_report_usecase.dart';
@@ -67,7 +68,7 @@ class ReportViewModel extends ChangeNotifier {
       await _submitUseCase.execute(
         propertyId: propertyId,
         reasonId: _selectedReason!.id,
-        comment: _details,
+        comment: InputSanitizer.multiLine(_details),
       );
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
