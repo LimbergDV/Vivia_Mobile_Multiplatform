@@ -31,9 +31,9 @@ class AuthHttpClient extends http.BaseClient {
 
     final response = await _inner.send(request);
 
-    if (response.statusCode != 401) return response;
+    if (response.statusCode != 401 && response.statusCode != 403) return response;
 
-    // Fallback reactivo: 401 por clock skew o token expirado en tránsito
+    // Fallback reactivo: 401/403 por clock skew o token expirado en tránsito
     final newToken = await _refreshToken();
     if (newToken == null) return response;
 
