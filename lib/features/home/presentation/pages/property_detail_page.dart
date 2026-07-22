@@ -462,6 +462,7 @@ class _ContentBody extends StatelessWidget {
               name: lessor.fullName,
               role: 'Dueño',
               avatarUrl: lessor.photoUrl,
+              verified: lessor.verified,
             ),
             const SizedBox(height: 24),
           ],
@@ -837,11 +838,13 @@ class _AgentCard extends StatelessWidget {
   final String name;
   final String role;
   final String? avatarUrl;
+  final bool verified;
 
   const _AgentCard({
     required this.name,
     required this.role,
     this.avatarUrl,
+    this.verified = false,
   });
 
   @override
@@ -867,12 +870,27 @@ class _AgentCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                name,
-                style: textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      name,
+                      style: textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  if (verified) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.verified,
+                      size: 16,
+                      color: colorScheme.primary,
+                    ),
+                  ],
+                ],
               ),
               Text(
                 role,

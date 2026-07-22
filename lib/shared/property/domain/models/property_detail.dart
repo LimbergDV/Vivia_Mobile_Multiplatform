@@ -173,6 +173,7 @@ class PropertyLessor {
   final String paternalSurname;
   final String maternalSurname;
   final String? photoUrl;
+  final bool verified;
 
   const PropertyLessor({
     required this.id,
@@ -180,6 +181,7 @@ class PropertyLessor {
     required this.paternalSurname,
     required this.maternalSurname,
     required this.photoUrl,
+    this.verified = false,
   });
 
   String get fullName =>
@@ -193,6 +195,7 @@ class PropertyLessor {
         paternalSurname: json['paternalSurname'] as String? ?? '',
         maternalSurname: json['maternalSurname'] as String? ?? '',
         photoUrl: json['photoUrl'] as String?,
+        verified: json['verified'] as bool? ?? false,
       );
 }
 
