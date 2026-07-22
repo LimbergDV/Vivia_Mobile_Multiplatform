@@ -38,6 +38,7 @@ class ChatViewModel extends ChangeNotifier {
   String? _editingInitialText;
   StreamSubscription<Map<String, dynamic>>? _wsSub;
   Timer? _typingTimer;
+  final Map<String, Timer> _confirmationTimers = {};
 
   List<ChatMessage> get messages => _messages;
   bool get isLoading => _isLoading;
@@ -58,7 +59,7 @@ class ChatViewModel extends ChangeNotifier {
     try {
       await _repository.connectWebSocket();
       final msgs = await _getMessagesUseCase.execute(conversationId);
-      _messages = msgs.reversed.toList(); // más recientes al final
+      _messages = msgs.reversed.toList();
       _hasMore = msgs.length == 50;
       _repository.joinConversation(conversationId);
       _subscribeToWs();
@@ -91,20 +92,56 @@ class ChatViewModel extends ChangeNotifier {
   void sendMessage(String text) {
     final value = text.trim();
     if (value.isEmpty) return;
-    _repository.sendMessage(conversationId, value);
-    // Mensaje optimista mientras el servidor lo confirma
+
+    final localId = 'local_${DateTime.now().microsecondsSinceEpoch}';
+
     _messages = [
       ..._messages,
       ChatMessage(
-        id: 'local_${DateTime.now().microsecondsSinceEpoch}',
+        id: localId,
         senderId: _currentUserId,
         text: value,
         sentAt: DateTime.now(),
         isMine: true,
-        status: MessageStatus.sent,
+        status: MessageStatus.pending,
       ),
     ];
     notifyListeners();
+
+    _repository.sendMessage(conversationId, value, localId: localId);
+    _startConfirmationTimer(localId);
+  }
+
+  void retryMessage(String localId) {
+    final idx = _messages.indexWhere((m) => m.id == localId);
+    if (idx == -1) return;
+    if (!_messages[idx].status.isFailed) return;
+
+    final msg = _messages[idx];
+    final updated = List<ChatMessage>.from(_messages);
+    updated[idx] = msg.copyWith(status: MessageStatus.pending);
+    _messages = updated;
+    notifyListeners();
+
+    _repository.acknowledgeMessage(localId);
+    _repository.connectWebSocket().then((_) {
+      _repository.joinConversation(conversationId);
+      _repository.sendMessage(conversationId, msg.text, localId: localId);
+      _startConfirmationTimer(localId);
+    });
+  }
+
+  void _startConfirmationTimer(String localId) {
+    _confirmationTimers[localId]?.cancel();
+    _confirmationTimers[localId] = Timer(const Duration(seconds: 10), () {
+      _confirmationTimers.remove(localId);
+      final idx = _messages.indexWhere((m) => m.id == localId);
+      if (idx == -1) return;
+      final updated = List<ChatMessage>.from(_messages);
+      updated[idx] = updated[idx].copyWith(status: MessageStatus.failed);
+      _messages = updated;
+      notifyListeners();
+    });
   }
 
   void notifyTyping() {
@@ -178,10 +215,17 @@ class ChatViewModel extends ChangeNotifier {
 
   void _handleNewMessage(Map<String, dynamic> payload) {
     final incoming = MessageModel.fromJson(payload).toDomain(_currentUserId);
-    // Si el mensaje es mío, reemplaza el primer optimista pendiente (FIFO)
+
     if (incoming.isMine) {
-      final optIdx = _messages.indexWhere((m) => m.id.startsWith('local_'));
+      final optIdx = _messages.indexWhere(
+        (m) => m.id.startsWith('local_') && m.text == incoming.text,
+      );
       if (optIdx != -1) {
+        final localId = _messages[optIdx].id;
+        _confirmationTimers[localId]?.cancel();
+        _confirmationTimers.remove(localId);
+        _repository.acknowledgeMessage(localId);
+
         final updated = List<ChatMessage>.from(_messages);
         updated[optIdx] = incoming;
         _messages = updated;
@@ -189,8 +233,8 @@ class ChatViewModel extends ChangeNotifier {
         return;
       }
     }
+
     _messages = [..._messages, incoming];
-    // Si recibo un mensaje del otro mientras estoy en el chat, marco como leído
     if (!incoming.isMine) {
       _repository.markRead(conversationId);
     }
@@ -209,7 +253,10 @@ class ChatViewModel extends ChangeNotifier {
 
   void _handleMessagesRead() {
     _messages = _messages.map((m) {
-      if (m.isMine && m.status != MessageStatus.read) {
+      if (m.isMine &&
+          !m.status.isPending &&
+          !m.status.isFailed &&
+          m.status != MessageStatus.read) {
         return m.copyWith(status: MessageStatus.read);
       }
       return m;
@@ -225,7 +272,6 @@ class ChatViewModel extends ChangeNotifier {
     if (hardDeleted) {
       _messages = _messages.where((m) => m.id != messageId).toList();
     } else {
-      // Soft-delete: servidor manda el objeto actualizado con deletedAt y content null
       final messageJson = payload['message'] as Map<String, dynamic>?;
       _messages = _messages.map((m) {
         if (m.id != messageId) return m;
@@ -249,6 +295,10 @@ class ChatViewModel extends ChangeNotifier {
     activeConversationId = null;
     _wsSub?.cancel();
     _typingTimer?.cancel();
+    for (final timer in _confirmationTimers.values) {
+      timer.cancel();
+    }
+    _confirmationTimers.clear();
     super.dispose();
   }
 }

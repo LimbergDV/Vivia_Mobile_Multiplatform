@@ -5,6 +5,6 @@ class SendMessageUseCase {
 
   SendMessageUseCase(this._repository);
 
-  void execute(String conversationId, String content) =>
-      _repository.sendMessage(conversationId, content);
+  void execute(String conversationId, String content, {required String localId}) =>
+      _repository.sendMessage(conversationId, content, localId: localId);
 }

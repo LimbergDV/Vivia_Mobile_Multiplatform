@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:vivia_mobile/shared/chat/domain/enums/message_status.dart';
 import 'package:vivia_mobile/shared/chat/domain/models/chat_message.dart';
 import 'package:vivia_mobile/shared/chat/presentation/helpers/chat_time_formatter.dart';
 import 'package:vivia_mobile/shared/chat/presentation/viewmodels/chat_viewmodel.dart';
@@ -27,6 +28,7 @@ class ChatMessageItem extends StatelessWidget {
     final canDel = !isLocal && message.canDelete(now);
     final canEdt = !isLocal && message.canEdit(now);
     final hasMenu = canDel || canEdt;
+    final isFailed = message.status.isFailed;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -35,14 +37,19 @@ class ChatMessageItem extends StatelessWidget {
         children: [
           GestureDetector(
             onLongPress: hasMenu ? () => _showContextMenu(context, canDel, canEdt) : null,
+            onTap: isFailed
+                ? () => context.read<ChatViewModel>().retryMessage(message.id)
+                : null,
             child: ChatBubble(
               text: message.text,
               isMine: message.isMine,
               isDeleted: message.isDeleted,
               maxWidth: maxWidth.clamp(0, 460),
+              status: message.status,
             ),
           ),
-          if (showLabel) _Label(message: message, isLastOverall: isLastOverall),
+          if (showLabel || isFailed)
+            _Label(message: message, isLastOverall: isLastOverall),
         ],
       ),
     );
@@ -152,12 +159,44 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-    final showRead = isLastOverall && message.status.isRead;
     final time = ChatTimeFormatter.format(message.sentAt, upperMeridiem: true);
     final labelStyle = textTheme.labelSmall?.copyWith(
       color: colorScheme.onSurfaceVariant,
       fontWeight: FontWeight.w600,
     );
+
+    if (message.status.isFailed) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 13, color: Colors.red.shade400),
+            const SizedBox(width: 4),
+            Text(
+              'Error al enviar. Toca para reintentar',
+              style: labelStyle?.copyWith(color: Colors.red.shade400),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (message.status.isPending) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.access_time, size: 13, color: colorScheme.onSurfaceVariant),
+            const SizedBox(width: 4),
+            Text(time, style: labelStyle),
+          ],
+        ),
+      );
+    }
+
+    final showRead = isLastOverall && message.status.isRead;
     return Padding(
       padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
       child: Row(

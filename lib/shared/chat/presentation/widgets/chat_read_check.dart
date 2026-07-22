@@ -11,8 +11,22 @@ class ChatReadCheck extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        status.isRead ? _readColor : Theme.of(context).colorScheme.outline;
+    switch (status) {
+      case MessageStatus.pending:
+        return Icon(Icons.access_time, size: size,
+            color: Theme.of(context).colorScheme.outline);
+      case MessageStatus.failed:
+        return Icon(Icons.error_outline, size: size,
+            color: Colors.red.shade400);
+      case MessageStatus.sent:
+      case MessageStatus.delivered:
+        return _doubleCheck(Theme.of(context).colorScheme.outline);
+      case MessageStatus.read:
+        return _doubleCheck(_readColor);
+    }
+  }
+
+  Widget _doubleCheck(Color color) {
     return SizedBox(
       width: size + 6,
       height: size,

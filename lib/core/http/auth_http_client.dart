@@ -21,10 +21,12 @@ class AuthHttpClient extends http.BaseClient {
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     // Pre-check: refrescar proactivamente si el token está a punto de expirar
+    var didRefresh = false;
     final currentToken = _local.getAccessToken();
     if (currentToken != null &&
         JwtUtils.isExpiredOrExpiringSoon(currentToken)) {
       await _refreshToken();
+      didRefresh = true;
     }
 
     _injectToken(request);
@@ -32,6 +34,9 @@ class AuthHttpClient extends http.BaseClient {
     final response = await _inner.send(request);
 
     if (response.statusCode != 401 && response.statusCode != 403) return response;
+
+    // Si ya refrescamos proactivamente, el 401/403 no es por token expirado
+    if (didRefresh) return response;
 
     // Fallback reactivo: 401/403 por clock skew o token expirado en tránsito
     final newToken = await _refreshToken();
@@ -89,13 +94,11 @@ class AuthHttpClient extends http.BaseClient {
         return data['accessToken'] as String;
       }
 
-      // Refresh rechazado por el servidor — sesión muerta
       await _local.clearSession();
       _refreshCompleter!.complete();
       _onSessionExpired();
       return null;
     } catch (_) {
-      // Error de red durante el refresh — sesión muerta
       await _local.clearSession();
       _refreshCompleter!.complete();
       _onSessionExpired();

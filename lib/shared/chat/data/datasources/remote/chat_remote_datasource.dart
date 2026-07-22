@@ -134,7 +134,7 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
         final json = jsonDecode(res.body) as Map<String, dynamic>;
         msg = json['message'] as String? ?? msg;
       } catch (_) {}
-      throw Exception(msg);
+      throw Exception('$msg (${res.statusCode})');
     }
   }
 }

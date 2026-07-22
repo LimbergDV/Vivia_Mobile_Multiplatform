@@ -27,7 +27,9 @@ abstract class ChatRepository {
   void disconnectWebSocket();
   void joinConversation(String conversationId);
   void markRead(String conversationId);
-  void sendMessage(String conversationId, String content);
+  void sendMessage(String conversationId, String content, {required String localId});
+  void acknowledgeMessage(String localId);
+  void retryMessage(String localId);
   void sendTyping(String conversationId);
   void deleteMessage(String messageId);
   void editMessage(String messageId, String content);

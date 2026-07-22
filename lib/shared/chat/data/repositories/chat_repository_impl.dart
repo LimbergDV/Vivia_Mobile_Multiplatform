@@ -90,8 +90,14 @@ class ChatRepositoryImpl implements ChatRepository {
       _ws.send('markRead', {'conversationId': conversationId});
 
   @override
-  void sendMessage(String conversationId, String content) =>
-      _ws.send('newMessage', {'conversationId': conversationId, 'content': content});
+  void sendMessage(String conversationId, String content, {required String localId}) =>
+      _ws.sendMessage(localId, {'conversationId': conversationId, 'content': content});
+
+  @override
+  void acknowledgeMessage(String localId) => _ws.acknowledgeMessage(localId);
+
+  @override
+  void retryMessage(String localId) => _ws.retryMessage(localId);
 
   @override
   void sendTyping(String conversationId) =>
