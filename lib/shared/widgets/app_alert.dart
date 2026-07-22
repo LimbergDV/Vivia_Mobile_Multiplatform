@@ -26,11 +26,33 @@ class AppAlert {
     overlay.insert(entry);
   }
 
-  static void success(BuildContext context, String message, {String? title}) =>
-      show(context, message: message, title: title, type: AppAlertType.success);
+  static void success(
+    BuildContext context,
+    String message, {
+    String? title,
+    Duration duration = const Duration(seconds: 4),
+  }) =>
+      show(
+        context,
+        message: message,
+        title: title,
+        type: AppAlertType.success,
+        duration: duration,
+      );
 
-  static void error(BuildContext context, String message, {String? title}) =>
-      show(context, message: message, title: title, type: AppAlertType.error);
+  static void error(
+    BuildContext context,
+    String message, {
+    String? title,
+    Duration duration = const Duration(seconds: 4),
+  }) =>
+      show(
+        context,
+        message: message,
+        title: title,
+        type: AppAlertType.error,
+        duration: duration,
+      );
 }
 
 class _AppAlertView extends StatefulWidget {

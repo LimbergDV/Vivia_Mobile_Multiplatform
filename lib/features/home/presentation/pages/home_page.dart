@@ -14,6 +14,7 @@ import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_filter.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_property_card.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/publish_progress_card.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_property_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
@@ -41,7 +42,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   HomeNavItem _selectedNav = HomeNavItem.home;
   int _unreadCount = 0;
-  String? _publishSnackMessage;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -83,7 +83,6 @@ class _HomePageState extends State<HomePage> {
 
     switch (draftVm.streamStatus) {
       case DraftStreamStatus.success:
-        _hidePublishProgress();
         final s = draftVm.successData!;
         propertyVm.prependProperty(PropertyModel(
           id: s.id,
@@ -101,9 +100,9 @@ class _HomePageState extends State<HomePage> {
           context,
           'Tu propiedad ya está publicada y visible.',
           title: '¡Listo!',
+          duration: const Duration(seconds: 7),
         );
       case DraftStreamStatus.failed:
-        _hidePublishProgress();
         final reason = draftVm.failureData!.reason;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
@@ -115,42 +114,9 @@ class _HomePageState extends State<HomePage> {
           draftVm.clearStreamStatus();
         });
       case DraftStreamStatus.validating:
-        _showPublishProgress(draftVm.streamStatusMessage);
       case DraftStreamStatus.idle:
-        _hidePublishProgress();
+        break;
     }
-  }
-
-  void _showPublishProgress(String message) {
-    if (message == _publishSnackMessage) return;
-    _publishSnackMessage = message;
-    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        duration: const Duration(days: 1),
-        behavior: SnackBarBehavior.floating,
-        content: Row(
-          children: [
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(child: Text(message)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _hidePublishProgress() {
-    if (_publishSnackMessage == null) return;
-    _publishSnackMessage = null;
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
   }
 
   void _onNavSelected(HomeNavItem item) {
@@ -207,27 +173,41 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
+    final publishing = context.select<PropertyDraftViewModel, bool>(
+      (vm) => vm.streamStatus == DraftStreamStatus.validating,
+    );
 
-    if (isLandscape) {
-      return _LandscapeScaffold(
-        role: widget.role,
-        selectedNav: _selectedNav,
-        searchController: _searchController,
-        onNavSelected: _onNavSelected,
-        notificationCount: _unreadCount,
-        onNotificationTap: _openNotifications,
-        onProfileTap: _openProfile,
-      );
-    }
+    final scaffold = isLandscape
+        ? _LandscapeScaffold(
+            role: widget.role,
+            selectedNav: _selectedNav,
+            searchController: _searchController,
+            onNavSelected: _onNavSelected,
+            notificationCount: _unreadCount,
+            onNotificationTap: _openNotifications,
+            onProfileTap: _openProfile,
+          )
+        : _PortraitScaffold(
+            role: widget.role,
+            selectedNav: _selectedNav,
+            searchController: _searchController,
+            onNavSelected: _onNavSelected,
+            notificationCount: _unreadCount,
+            onNotificationTap: _openNotifications,
+            onProfileTap: _openProfile,
+          );
 
-    return _PortraitScaffold(
-      role: widget.role,
-      selectedNav: _selectedNav,
-      searchController: _searchController,
-      onNavSelected: _onNavSelected,
-      notificationCount: _unreadCount,
-      onNotificationTap: _openNotifications,
-      onProfileTap: _openProfile,
+    return Stack(
+      children: [
+        scaffold,
+        if (publishing)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 12,
+            left: 16,
+            right: 16,
+            child: const PublishProgressCard(),
+          ),
+      ],
     );
   }
 }
