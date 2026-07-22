@@ -11,6 +11,7 @@ import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/for
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/property_dropdown_field.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/property_text_field.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/property_type_toggle.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class AddPropertyPage extends StatefulWidget {
   const AddPropertyPage({super.key});
@@ -125,13 +126,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    AppAlert.show(context, message: message, type: AppAlertType.warning);
   }
 
   @override

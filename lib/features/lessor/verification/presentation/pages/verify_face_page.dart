@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/auth_background_blobs.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 import 'package:vivia_mobile/features/lessor/verification/presentation/pages/verify_intro_page.dart';
 import 'package:vivia_mobile/features/lessor/verification/presentation/pages/verify_results_page.dart';
 import 'package:vivia_mobile/features/lessor/verification/presentation/widgets/verify_loader.dart';
@@ -49,13 +50,9 @@ class VerifyFacePage extends StatelessWidget {
         },
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            vm.submitError ??
-                'Error al enviar los documentos. Intenta de nuevo.',
-          ),
-        ),
+      AppAlert.error(
+        context,
+        vm.submitError ?? 'Error al enviar los documentos. Intenta de nuevo.',
       );
     }
   }

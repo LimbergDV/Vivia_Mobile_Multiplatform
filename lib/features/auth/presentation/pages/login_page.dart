@@ -5,6 +5,7 @@ import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmode
 import 'package:vivia_mobile/features/auth/presentation/widgets/widgets.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/location_permissions_page.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/home_page.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class LoginPage extends StatelessWidget {
   final UserRole role;
@@ -35,6 +36,12 @@ class _LoginViewState extends State<_LoginView> {
   void _onAuthChanged() {
     final vm = context.read<AuthViewModel>();
     if (vm.status == AuthStatus.success) {
+      AppAlert.success(
+        context,
+        'Has iniciado sesión correctamente.',
+        title: '¡Bienvenido de nuevo!',
+      );
+
       final isLessee = vm.lastRole == UserRole.lessee;
       final hasSeenPermission = vm.hasSeenLocationPermission;
 
@@ -62,8 +69,10 @@ class _LoginViewState extends State<_LoginView> {
         );
       }
     } else if (vm.status == AuthStatus.error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.errorMessage ?? 'Error desconocido')),
+      AppAlert.error(
+        context,
+        vm.errorMessage ?? 'Ocurrió un error inesperado. Intenta de nuevo.',
+        title: 'No pudimos iniciar sesión',
       );
       vm.resetStatus();
     }

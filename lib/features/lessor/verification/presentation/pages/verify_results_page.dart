@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/auth_background_blobs.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 import 'package:vivia_mobile/features/lessor/verification/presentation/pages/verify_intro_page.dart';
 import 'package:vivia_mobile/features/lessor/verification/presentation/widgets/verify_loader.dart';
 import 'package:vivia_mobile/features/lessor/verification/presentation/viewmodels/verification_viewmodel.dart';
@@ -45,11 +46,7 @@ class VerifyResultsPage extends StatelessWidget {
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(vm.errorMessage ?? 'Error al reiniciar el proceso'),
-        ),
-      );
+      AppAlert.error(context, vm.errorMessage ?? 'Error al reiniciar el proceso');
     }
   }
 

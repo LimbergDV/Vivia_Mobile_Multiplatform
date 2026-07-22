@@ -6,6 +6,7 @@ import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmode
 import 'package:vivia_mobile/features/auth/presentation/widgets/widgets.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/location_permissions_page.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/home_page.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class RegisterPage extends StatelessWidget {
   final UserRole role;
@@ -40,6 +41,12 @@ class _RegisterViewState extends State<_RegisterView> {
     if (!mounted) return;
     final vm = _vm;
     if (vm.status == AuthStatus.success) {
+      AppAlert.success(
+        context,
+        'Tu cuenta se creó correctamente. ¡Bienvenido a Vivia!',
+        title: '¡Registro exitoso!',
+      );
+
       final isLessee = vm.lastRole == UserRole.lessee;
       final hasSeenPermission = vm.hasSeenLocationPermission;
 
@@ -67,8 +74,10 @@ class _RegisterViewState extends State<_RegisterView> {
         );
       }
     } else if (vm.status == AuthStatus.error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.errorMessage ?? 'Error desconocido')),
+      AppAlert.error(
+        context,
+        vm.errorMessage ?? 'Ocurrió un error inesperado. Intenta de nuevo.',
+        title: 'No pudimos crear tu cuenta',
       );
       vm.resetStatus();
     }

@@ -50,7 +50,7 @@ class HomeBottomNavBar extends StatelessWidget {
                     isSelected: selected == HomeNavItem.notifications,
                     onTap: () => onItemSelected(HomeNavItem.notifications),
                   ),
-                  const SizedBox(width: 58),
+                  if (showAddButton) const SizedBox(width: 58),
                   _NavItem(
                     assetPath: 'assets/icons/chat_icon.svg',
                     isSelected: selected == HomeNavItem.messages,

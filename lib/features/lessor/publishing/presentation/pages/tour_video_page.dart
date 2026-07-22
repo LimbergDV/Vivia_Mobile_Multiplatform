@@ -4,6 +4,7 @@ import 'package:vivia_mobile/shared/media/presentation/helpers/media_picker_help
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/review_property_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/dashed_upload_zone.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class TourVideoPage extends StatelessWidget {
   const TourVideoPage({super.key});
@@ -20,14 +21,10 @@ class TourVideoPage extends StatelessWidget {
     if (result.isSuccess && context.mounted) {
       context.read<PropertyDraftViewModel>().setVideoPath(result.path);
     } else if (result.isCameraDenied && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Permiso de cámara denegado. Usa la galería.'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+      AppAlert.show(
+        context,
+        message: 'Permiso de cámara denegado. Usa la galería.',
+        type: AppAlertType.warning,
       );
     }
   }

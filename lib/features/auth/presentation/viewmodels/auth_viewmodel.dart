@@ -81,6 +81,15 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  String _friendlyError(Object e) {
+    if (e is SocketException ||
+        e is TimeoutException ||
+        e is http.ClientException) {
+      return 'Sin conexión a internet. Revisa tu red e intenta de nuevo.';
+    }
+    return e.toString().replaceFirst('Exception: ', '');
+  }
+
   final TextEditingController loginEmailController = TextEditingController();
   final TextEditingController loginPasswordController = TextEditingController();
   final GlobalKey<FormState> loginFormKey = GlobalKey<FormState>();
@@ -148,7 +157,7 @@ class AuthViewModel extends ChangeNotifier {
       _registerFcmTokenUseCase.execute().ignore();
     } catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _errorMessage = _friendlyError(e);
     } finally {
       notifyListeners();
     }
@@ -187,7 +196,7 @@ class AuthViewModel extends ChangeNotifier {
       _clearRegisterFields();
     } catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _errorMessage = _friendlyError(e);
     } finally {
       notifyListeners();
     }
@@ -253,7 +262,7 @@ class AuthViewModel extends ChangeNotifier {
       _registerFcmTokenUseCase.execute().ignore();
     } catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _errorMessage = _friendlyError(e);
     } finally {
       notifyListeners();
     }
@@ -270,7 +279,7 @@ class AuthViewModel extends ChangeNotifier {
       _onSessionCleared?.call();
     } catch (e) {
       _status = AuthStatus.error;
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      _errorMessage = _friendlyError(e);
     } finally {
       notifyListeners();
     }

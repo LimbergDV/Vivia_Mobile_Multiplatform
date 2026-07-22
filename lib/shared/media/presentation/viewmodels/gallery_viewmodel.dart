@@ -71,6 +71,7 @@ class GalleryViewModel extends ChangeNotifier {
   List<PendingMedia> _pending = const [];
   bool _isSubmitting = false;
   String? _actionMessage;
+  bool _actionIsError = false;
 
   GalleryStatus get status => _status;
   String get selectedCategory => _selectedCategory;
@@ -96,11 +97,14 @@ class GalleryViewModel extends ChangeNotifier {
   String get uploadClassification =>
       _selectedCategory == allCategory ? 'OTHER' : _selectedCategory;
 
-  /// Mensaje one-shot para SnackBars (éxito/error). Se limpia al consumirlo.
-  String? consumeActionMessage() {
+  /// Mensaje one-shot para alertas (éxito/error). Se limpia al consumirlo.
+  ({String text, bool isError})? consumeActionMessage() {
     final message = _actionMessage;
+    if (message == null) return null;
+    final isError = _actionIsError;
     _actionMessage = null;
-    return message;
+    _actionIsError = false;
+    return (text: message, isError: isError);
   }
 
   List<PropertyMedia> get _photos =>
@@ -241,6 +245,7 @@ class GalleryViewModel extends ChangeNotifier {
     } catch (_) {
       _pending = _pending.where((p) => !newPending.contains(p)).toList();
       _actionMessage = 'No se pudieron subir los archivos. Intenta de nuevo.';
+      _actionIsError = true;
     } finally {
       _isSubmitting = false;
       notifyListeners();
@@ -274,6 +279,7 @@ class GalleryViewModel extends ChangeNotifier {
     } catch (_) {
       _actionMessage =
           'No se pudo cambiar la imagen principal. Intenta de nuevo.';
+      _actionIsError = true;
       _isSubmitting = false;
       notifyListeners();
     }
@@ -299,9 +305,11 @@ class GalleryViewModel extends ChangeNotifier {
     } on MainImageDeletionException {
       _actionMessage =
           'No puedes eliminar la portada. Primero elige otra imagen principal.';
+      _actionIsError = true;
       return false;
     } catch (_) {
       _actionMessage = 'No se pudo eliminar el medio. Intenta de nuevo.';
+      _actionIsError = true;
       return false;
     } finally {
       _isSubmitting = false;
