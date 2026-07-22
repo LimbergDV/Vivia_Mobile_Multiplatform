@@ -18,6 +18,7 @@ import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_detail_viewmodel.dart';
 import 'package:vivia_mobile/features/home/presentation/viewmodels/property_viewmodel.dart';
 import 'package:vivia_mobile/features/lessee/reports/presentation/viewmodels/report_viewmodel.dart';
+import 'package:vivia_mobile/shared/widgets/amenity_icon.dart';
 import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/bottom_nav_bar.dart';
 import 'package:vivia_mobile/features/maps/domain/models/geocode_result.dart';
@@ -708,12 +709,23 @@ class _AmenityChip extends StatelessWidget {
         color: colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        label,
-        style: textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSurface,
-          fontWeight: FontWeight.w500,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            amenityIcon(label),
+            size: 16,
+            color: colorScheme.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
