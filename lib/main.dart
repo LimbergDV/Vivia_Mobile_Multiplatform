@@ -25,8 +25,12 @@ import 'package:vivia_mobile/features/auth/domain/usecases/put_ubication_usecase
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/core/database/app_database.dart';
 import 'package:vivia_mobile/core/utils/jwt_utils.dart';
-import 'package:vivia_mobile/shared/chat/data/datasources/local/chat_mock_datasource.dart';
+import 'package:vivia_mobile/shared/chat/data/datasources/local/chat_local_datasource.dart';
+import 'package:vivia_mobile/shared/chat/data/datasources/remote/chat_remote_datasource.dart';
+import 'package:vivia_mobile/shared/chat/data/datasources/remote/chat_websocket_datasource.dart';
 import 'package:vivia_mobile/shared/chat/data/repositories/chat_repository_impl.dart';
+import 'package:vivia_mobile/shared/chat/domain/repositories/chat_repository.dart';
+import 'package:vivia_mobile/shared/chat/domain/usecases/create_conversation_usecase.dart';
 import 'package:vivia_mobile/shared/chat/domain/usecases/get_conversations_usecase.dart';
 import 'package:vivia_mobile/shared/chat/domain/usecases/get_messages_usecase.dart';
 import 'package:vivia_mobile/shared/notifications/data/datasources/local/notification_local_datasource.dart';
@@ -89,6 +93,7 @@ import 'package:vivia_mobile/features/maps/domain/usecases/reverse_geocode_useca
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 import 'package:vivia_mobile/firebase_options.dart';
 
+import 'package:vivia_mobile/shared/chat/presentation/viewmodels/chat_viewmodel.dart';
 import 'app.dart';
 
 const _channelId = 'vivia_notifications';
@@ -145,6 +150,11 @@ void _listenForegroundMessages(void Function(RemoteMessage) onCapture) {
     final notification = message.notification;
     if (notification == null) return;
 
+    // Chat push notifications are handled by the WS listener to guarantee
+    // delivery even when the backend skips push for active WS connections.
+    final msgConvId = message.data['conversationId'] as String?;
+    if (msgConvId != null) return;
+
     _localNotifications.show(
       notification.hashCode,
       notification.title,
@@ -159,6 +169,52 @@ void _listenForegroundMessages(void Function(RemoteMessage) onCapture) {
       ),
     );
   });
+}
+
+void _listenWsChatNotifications(
+  ChatRepository repository,
+  AuthLocalDatasource local,
+) {
+  repository.wsEvents.listen((envelope) {
+    final event = envelope['event'] as String?;
+    final payload = envelope['payload'] as Map<String, dynamic>?;
+    if (event != 'newMessage' || payload == null) return;
+
+    final convId = payload['conversationId'] as String?;
+    if (convId == null) return;
+    if (convId == ChatViewModel.activeConversationId) return;
+
+    final senderId = payload['senderId'] as String?;
+    final currentUserId = local.getUserId();
+    if (senderId == currentUserId) return;
+
+    final content = payload['content'] as String? ?? '';
+
+    _localNotifications.show(
+      convId.hashCode,
+      'Nuevo mensaje',
+      content,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      ),
+    );
+  });
+}
+
+void _connectAndJoinChat(ChatRepositoryImpl? repo) {
+  if (repo == null) return;
+  repo.connectWebSocket().then((_) {
+    repo.getConversations().then((conversations) {
+      for (final c in conversations) {
+        repo.joinConversation(c.id);
+      }
+    }).catchError((_) {});
+  }).catchError((_) {});
 }
 
 void main() async {
@@ -183,6 +239,7 @@ void main() async {
 
   AuthViewModel? authViewModelRef;
   PropertyViewModel? propertyViewModelRef;
+  ChatRepositoryImpl? chatRepositoryRef;
 
   final authHttpClient = AuthHttpClient(
     http.Client(),
@@ -234,11 +291,15 @@ void main() async {
     putUbicationUseCase: putUbicationUseCase,
     authRepository: authRepository,
     registerFcmTokenUseCase: registerFcmTokenUseCase,
-    onSessionCleared: () => propertyViewModelRef?.reset(),
+    onSessionCleared: () {
+      propertyViewModelRef?.reset();
+      chatRepositoryRef?.disconnectWebSocket();
+    },
+    onSessionStarted: () => _connectAndJoinChat(chatRepositoryRef),
   );
   authViewModelRef = authViewModel;
 
-  final userViewModel = UserViewModel(getMeUseCase: getMeUseCase);
+  final userViewModel = UserViewModel(getMeUseCase: getMeUseCase, local: localDatasource);
 
   final propertyRemoteDatasource =
   PropertyRemoteDatasourceImpl(authHttpClient, http.Client());
@@ -325,9 +386,22 @@ void main() async {
   final getUnreadCountUseCase =
   GetUnreadCountUseCase(notificationRepository);
 
-  final chatRepository = ChatRepositoryImpl(local: ChatMockDatasourceImpl());
+  final chatLocalDatasource = ChatLocalDatasourceImpl(prefs);
+
+  final chatWsDatasource = ChatWebSocketDatasourceImpl(
+    localDatasource,
+    () => authViewModelRef?.handleSessionExpired(),
+  );
+  final chatRemoteDatasource = ChatRemoteDatasourceImpl(authHttpClient);
+  final chatRepository = ChatRepositoryImpl(
+    remote: chatRemoteDatasource,
+    ws: chatWsDatasource,
+    local: localDatasource,
+  );
+  chatRepositoryRef = chatRepository;
   final getConversationsUseCase = GetConversationsUseCase(chatRepository);
   final getMessagesUseCase = GetMessagesUseCase(chatRepository);
+  final createConversationUseCase = CreateConversationUseCase(chatRepository);
 
   _listenForegroundMessages(
     (message) => saveNotificationUseCase.execute(
@@ -335,7 +409,10 @@ void main() async {
     ),
   );
 
+  _listenWsChatNotifications(chatRepository, localDatasource);
+
   final isLoggedIn = authRepository.isLoggedIn;
+  if (isLoggedIn) _connectAndJoinChat(chatRepositoryRef);
   final savedUserName = authRepository.savedUserName;
   final savedRole = authRepository.savedRole;
   final savedAvatarUrl = authRepository.savedAvatarUrl;
@@ -381,9 +458,14 @@ void main() async {
         Provider<MarkNotificationsReadUseCase>.value(
             value: markNotificationsReadUseCase),
         Provider<GetUnreadCountUseCase>.value(value: getUnreadCountUseCase),
+        Provider<AuthLocalDatasource>.value(value: localDatasource),
+        Provider<ChatRepository>.value(value: chatRepository),
         Provider<GetConversationsUseCase>.value(
             value: getConversationsUseCase),
         Provider<GetMessagesUseCase>.value(value: getMessagesUseCase),
+        Provider<CreateConversationUseCase>.value(
+            value: createConversationUseCase),
+        Provider<ChatLocalDatasource>.value(value: chatLocalDatasource),
       ],
       child: kIsWeb
           ? DevicePreview(enabled: true, builder: (_) => app)

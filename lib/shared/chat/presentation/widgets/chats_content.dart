@@ -17,6 +17,7 @@ class ChatsContent extends StatelessWidget {
     if (vm.error != null && vm.conversations.isEmpty) {
       return _ErrorView(message: vm.error!);
     }
+    if (vm.isEmpty) return const _EmptyState();
     return _ChatsList(
       conversations: vm.conversations,
       onOpenConversation: onOpenConversation,
@@ -46,6 +47,48 @@ class _ChatsList extends StatelessWidget {
             conversation: conversations[i],
             onTap: () => onOpenConversation(conversations[i]),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 64,
+              color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Aún no tienes conversaciones',
+              textAlign: TextAlign.center,
+              style: textTheme.titleMedium?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Contacta a un propietario desde el detalle de una propiedad para comenzar.',
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
       ),
     );

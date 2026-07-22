@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:vivia_mobile/shared/chat/domain/enums/message_status.dart';
 
 class ChatBubble extends StatelessWidget {
   final String text;
   final bool isMine;
   final double maxWidth;
+  final bool isDeleted;
+  final MessageStatus status;
 
   const ChatBubble({
     super.key,
     required this.text,
     required this.isMine,
     required this.maxWidth,
+    this.isDeleted = false,
+    this.status = MessageStatus.sent,
   });
 
   static const _mineColor = Color(0xFF5B8DF0);
@@ -19,28 +24,48 @@ class ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: maxWidth),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
-        decoration: BoxDecoration(
-          color: isMine ? _mineColor : colorScheme.surface,
-          borderRadius: _borderRadius,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isMine ? 0.10 : 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Text(
-          text,
-          style: textTheme.bodyMedium?.copyWith(
-            color: isMine ? Colors.white : colorScheme.onSurface,
-            fontWeight: FontWeight.w500,
-            height: 1.35,
+    final isFailed = status.isFailed;
+    final isPending = status.isPending;
+
+    return Opacity(
+      opacity: isPending ? 0.7 : 1.0,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
+          decoration: BoxDecoration(
+            color: isMine ? _mineColor : colorScheme.surface,
+            borderRadius: _borderRadius,
+            border: isFailed
+                ? Border.all(color: Colors.red.shade400, width: 1.5)
+                : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isMine ? 0.10 : 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
+          child: isDeleted
+              ? Text(
+                  'Mensaje eliminado',
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: isMine
+                        ? Colors.white.withOpacity(0.65)
+                        : colorScheme.onSurfaceVariant,
+                    height: 1.35,
+                  ),
+                )
+              : Text(
+                  text,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: isMine ? Colors.white : colorScheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                    height: 1.35,
+                  ),
+                ),
         ),
       ),
     );

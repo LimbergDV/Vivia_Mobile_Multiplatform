@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:vivia_mobile/features/auth/data/datasources/local/auth_local_datasource.dart';
 import 'package:vivia_mobile/shared/chat/domain/models/chat_conversation.dart';
+import 'package:vivia_mobile/shared/chat/domain/repositories/chat_repository.dart';
 import 'package:vivia_mobile/shared/chat/domain/usecases/get_messages_usecase.dart';
 import 'package:vivia_mobile/shared/chat/presentation/viewmodels/chat_viewmodel.dart';
 import 'package:vivia_mobile/shared/chat/presentation/widgets/chat_input_bar.dart';
@@ -9,8 +11,13 @@ import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class ChatPage extends StatelessWidget {
   final ChatConversation conversation;
+  final String? autoMessage;
 
-  const ChatPage({super.key, required this.conversation});
+  const ChatPage({
+    super.key,
+    required this.conversation,
+    this.autoMessage,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +25,9 @@ class ChatPage extends StatelessWidget {
       create: (ctx) => ChatViewModel(
         conversationId: conversation.id,
         getMessagesUseCase: ctx.read<GetMessagesUseCase>(),
+        repository: ctx.read<ChatRepository>(),
+        local: ctx.read<AuthLocalDatasource>(),
+        autoMessage: autoMessage,
       )..load(),
       child: _ChatView(title: conversation.name),
     );
@@ -41,9 +51,13 @@ class _ChatView extends StatelessWidget {
       body: Column(
         children: [
           const Expanded(child: ChatMessagesView()),
-          ChatInputBar(
-            onSend: context.read<ChatViewModel>().sendMessage,
-            onAttach: () => _showComingSoon(context),
+          Consumer<ChatViewModel>(
+            builder: (ctx, vm, _) => ChatInputBar(
+              onSend: vm.editingMessageId != null ? vm.editMessage : vm.sendMessage,
+              onAttach: () => _showComingSoon(ctx),
+              editingText: vm.editingInitialText,
+              onCancelEdit: vm.editingMessageId != null ? vm.cancelEditing : null,
+            ),
           ),
         ],
       ),

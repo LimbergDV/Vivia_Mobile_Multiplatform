@@ -33,6 +33,19 @@ class _ChatMessagesViewState extends State<ChatMessagesView> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ChatViewModel>();
+
+    if (vm.wsError != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(vm.wsError!),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        vm.clearWsError();
+      });
+    }
+
     if (vm.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -42,13 +55,18 @@ class _ChatMessagesViewState extends State<ChatMessagesView> {
         constraints: const BoxConstraints(maxWidth: 760),
         child: ListView.builder(
           controller: _controller,
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           itemCount: vm.messages.length,
-          itemBuilder: (_, i) => ChatMessageItem(
-            message: vm.messages[i],
-            showLabel: _isLastInRun(vm.messages, i),
-            isLastOverall: i == vm.messages.length - 1,
-          ),
+          itemBuilder: (_, i) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ChatMessageItem(
+                message: vm.messages[i],
+                showLabel: _isLastInRun(vm.messages, i),
+                isLastOverall: i == vm.messages.length - 1,
+              ),
+            );
+          },
         ),
       ),
     );

@@ -6,6 +6,10 @@ class GetMessagesUseCase {
 
   GetMessagesUseCase(this._repository);
 
-  Future<List<ChatMessage>> execute(String conversationId) =>
-      _repository.getMessages(conversationId);
+  Future<List<ChatMessage>> execute(
+    String conversationId, {
+    String? before,
+    int limit = 50,
+  }) =>
+      _repository.getMessages(conversationId, before: before, limit: limit);
 }
