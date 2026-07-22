@@ -28,6 +28,10 @@ import 'package:vivia_mobile/features/maps/domain/usecases/geocode_address_useca
 import 'package:vivia_mobile/features/maps/presentation/pages/map_fullscreen_page.dart';
 import 'package:vivia_mobile/features/maps/presentation/widgets/property_location_map.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
+import 'package:vivia_mobile/shared/chat/data/datasources/local/chat_local_datasource.dart';
+import 'package:vivia_mobile/shared/chat/domain/models/chat_conversation.dart';
+import 'package:vivia_mobile/shared/chat/domain/usecases/create_conversation_usecase.dart';
+import 'package:vivia_mobile/shared/chat/presentation/pages/chat_page.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final PropertyModel property;
@@ -47,6 +51,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   HomeNavItem _selectedNav = HomeNavItem.home;
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _isContacting = false;
 
   late final PropertyDetailViewModel _vm;
 
@@ -125,6 +130,66 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     } catch (e) {
       if (!mounted) return;
       AppAlert.error(context, 'No se pudo eliminar la propiedad. Intenta de nuevo.');
+    }
+  }
+
+  Future<void> _onContact(PropertyDetail detail, PropertyLessor lessor) async {
+    setState(() => _isContacting = true);
+    try {
+      final userVm = context.read<UserViewModel>();
+      final result = await context
+          .read<CreateConversationUseCase>()
+          .execute(
+            otherUserId: lessor.id,
+            otherUserRole: 'ROLE_LESSOR',
+            propertyId: detail.id,
+            propertyTitle: detail.title,
+            requesterName: userVm.displayName.isNotEmpty
+                ? userVm.displayName
+                : null,
+            requesterPhotoUrl: userVm.avatarUrl,
+            otherUserName: lessor.fullName,
+            otherUserPhotoUrl: lessor.photoUrl,
+          );
+      if (!mounted) return;
+
+      final chatLocal = context.read<ChatLocalDatasource>();
+      String? autoMessage;
+      if (!chatLocal.hasPropertyBeenIntroduced(result.id, detail.id)) {
+        chatLocal.markPropertyIntroduced(result.id, detail.id);
+        autoMessage = 'Me interesa: ${detail.title}';
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatPage(
+            conversation: ChatConversation(
+              id: result.id,
+              name: lessor.fullName,
+              participantOneId: result.participantOneId,
+              participantTwoId: result.participantTwoId,
+              propertyId: detail.id,
+              propertyTitle: detail.title,
+              avatarUrl: lessor.photoUrl,
+              lastMessage: '',
+              lastMessageAt: result.lastMessageAt,
+              unreadCount: 0,
+            ),
+            autoMessage: autoMessage,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Error al iniciar chat: ${e.toString().replaceFirst("Exception: ", "")}'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isContacting = false);
     }
   }
 
@@ -289,12 +354,16 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       isLandscape: isLandscape,
                       isLessor: isLessor,
                       isFavorite: _vm.currentLike,
+                      isContacting: _isContacting,
                       mapStatus: _vm.mapStatus,
                       mapPoint: _vm.mapPoint,
                       onFavoriteTap: () =>
                           _vm.toggleLike(widget.property.id),
                       onDeleteTap: _confirmDelete,
                       onEditTap: _onEdit,
+                      onContactTap: (!isLessor && detail?.lessor != null)
+                          ? () => _onContact(detail!, detail!.lessor!)
+                          : null,
                     ),
                   ),
                 ),
@@ -319,9 +388,11 @@ class _ContentBody extends StatelessWidget {
   final bool isFavorite;
   final PropertyMapStatus mapStatus;
   final GeocodeResult? mapPoint;
+  final bool isContacting;
   final VoidCallback onFavoriteTap;
   final VoidCallback onDeleteTap;
   final VoidCallback onEditTap;
+  final VoidCallback? onContactTap;
 
   const _ContentBody({
     required this.property,
@@ -335,9 +406,11 @@ class _ContentBody extends StatelessWidget {
     required this.isFavorite,
     required this.mapStatus,
     required this.mapPoint,
+    required this.isContacting,
     required this.onFavoriteTap,
     required this.onDeleteTap,
     required this.onEditTap,
+    this.onContactTap,
   });
 
   @override
@@ -463,6 +536,8 @@ class _ContentBody extends StatelessWidget {
               role: 'Dueño',
               avatarUrl: lessor.photoUrl,
               verified: lessor.verified,
+              onContactTap: onContactTap,
+              isContacting: isContacting,
             ),
             const SizedBox(height: 24),
           ],
@@ -839,12 +914,16 @@ class _AgentCard extends StatelessWidget {
   final String role;
   final String? avatarUrl;
   final bool verified;
+  final VoidCallback? onContactTap;
+  final bool isContacting;
 
   const _AgentCard({
     required this.name,
     required this.role,
     this.avatarUrl,
     this.verified = false,
+    this.onContactTap,
+    this.isContacting = false,
   });
 
   @override
@@ -901,17 +980,32 @@ class _AgentCard extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHigh,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.chat_bubble_outline,
-            color: colorScheme.onSurfaceVariant,
-            size: 20,
+        GestureDetector(
+          onTap: isContacting ? null : onContactTap,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: onContactTap != null
+                  ? colorScheme.primaryContainer
+                  : colorScheme.surfaceContainerHigh,
+              shape: BoxShape.circle,
+            ),
+            child: isContacting
+                ? Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colorScheme.primary,
+                    ),
+                  )
+                : Icon(
+                    Icons.chat_bubble_outline,
+                    color: onContactTap != null
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                    size: 20,
+                  ),
           ),
         ),
       ],
