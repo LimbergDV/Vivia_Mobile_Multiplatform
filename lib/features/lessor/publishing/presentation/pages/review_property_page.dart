@@ -226,7 +226,7 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
                         Divider(color: colorScheme.outlineVariant, height: 1),
                         const SizedBox(height: 24),
                         Text(
-                          'Overview',
+                          'Descripción general',
                           style: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: colorScheme.onSurface,
@@ -481,21 +481,21 @@ class _StatsRow extends StatelessWidget {
       children: [
         _StatItem(
           svgPath: 'assets/icons/bed_icon.svg',
-          label: '$rooms Beds',
+          label: '$rooms Habitaciones',
           textTheme: textTheme,
           colorScheme: colorScheme,
         ),
         const SizedBox(width: 24),
         _StatItem(
           svgPath: 'assets/icons/bath_icon.svg',
-          label: '$bathrooms bath',
+          label: '$bathrooms Baños',
           textTheme: textTheme,
           colorScheme: colorScheme,
         ),
         const SizedBox(width: 24),
         _StatItem(
           svgPath: 'assets/icons/area_icon.svg',
-          label: '$area sqft',
+          label: '$area m²',
           textTheme: textTheme,
           colorScheme: colorScheme,
         ),
@@ -568,7 +568,7 @@ class _GallerySection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Gallery',
+          'Galería',
           style: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
@@ -663,7 +663,7 @@ class _LocationSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Location',
+          'Ubicación',
           style: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,

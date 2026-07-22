@@ -44,7 +44,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
     _interiorNumberController = TextEditingController(
       text: form.interiorNumber ?? '',
     );
-    _priceController = TextEditingController(text: form.price ?? '');
+    _priceController = TextEditingController(
+      text: _groupThousands(form.price ?? ''),
+    );
     _areaController = TextEditingController(text: form.area ?? '');
   }
 
@@ -182,6 +184,7 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                 ),
                 child: Form(
                   key: _formKey,
+                  autovalidateMode: AutovalidateMode.disabled,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -243,10 +246,19 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                       PropertyTextField(
                         controller: _streetController,
                         hint: 'Nombre de la calle',
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(100),
+                        ],
                         onChanged: vm.setStreet,
-                        validator: (v) => v == null || v.trim().isEmpty
-                            ? 'Campo requerido'
-                            : null,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Campo requerido';
+                          }
+                          if (v.trim().length < 4) {
+                            return 'La calle debe tener al menos 4 caracteres';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 10),
 
@@ -256,6 +268,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                             child: PropertyTextField(
                               controller: _exteriorNumberController,
                               hint: 'Núm. Exterior',
+                              inputFormatters: [
+                                LengthLimitingTextInputFormatter(10),
+                              ],
                               onChanged: vm.setExteriorNumber,
                               validator: (v) => v == null || v.trim().isEmpty
                                   ? 'Requerido'
@@ -316,12 +331,17 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                         controller: _priceController,
                         hint: 'Escriba el precio',
                         keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        onChanged: vm.setPrice,
-                        validator: (v) =>
-                            v == null || v.isEmpty ? 'Campo requerido' : null,
+                        inputFormatters: const [_ThousandsInputFormatter()],
+                        // Se guarda sin comas: la API recibe solo dígitos.
+                        onChanged: (v) => vm.setPrice(v.replaceAll(',', '')),
+                        validator: (v) {
+                          final digits = (v ?? '').replaceAll(',', '');
+                          if (digits.isEmpty) return 'Campo requerido';
+                          if ((int.tryParse(digits) ?? 0) <= 0) {
+                            return 'Ingresa un precio válido';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 24),
 
@@ -339,8 +359,13 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                           FilteringTextInputFormatter.digitsOnly,
                         ],
                         onChanged: vm.setArea,
-                        validator: (v) =>
-                            v == null || v.isEmpty ? 'Campo requerido' : null,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Campo requerido';
+                          if ((int.tryParse(v) ?? 0) < 35) {
+                            return 'El área debe ser de al menos 35 m²';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 32),
 
@@ -452,6 +477,34 @@ class _PostalCodeField extends StatelessWidget {
           borderSide: BorderSide(color: colorScheme.error, width: 1.5),
         ),
       ),
+    );
+  }
+}
+
+/// Agrupa los dígitos en miles con comas: 1234567 → 1,234,567.
+String _groupThousands(String value) {
+  final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.isEmpty) return '';
+  return digits.replaceAllMapped(
+    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+    (m) => '${m[1]},',
+  );
+}
+
+/// Da formato al precio con separadores de miles mientras se escribe.
+/// El valor real (sin comas) se envía a la API desde el onChanged del campo.
+class _ThousandsInputFormatter extends TextInputFormatter {
+  const _ThousandsInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final formatted = _groupThousands(newValue.text);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

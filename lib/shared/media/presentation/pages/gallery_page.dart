@@ -221,7 +221,9 @@ class _GalleryPageState extends State<GalleryPage> {
             itemBuilder: (_, i) {
               final name = categories[i];
               return _CategoryChip(
-                label: name,
+                label: name == GalleryViewModel.mainClassification
+                    ? 'Fachada'
+                    : name,
                 isActive: name == _vm.selectedCategory,
                 onTap: () => _vm.selectCategory(name),
                 textTheme: textTheme,

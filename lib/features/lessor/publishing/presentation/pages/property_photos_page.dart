@@ -48,6 +48,11 @@ class _PropertyPhotosPageState extends State<PropertyPhotosPage> {
   }
 
   void _onNext() {
+    // La fachada (foto principal) es obligatoria para continuar.
+    if (context.read<PropertyDraftViewModel>().form.mainPhotoPath == null) {
+      _showSnack('Agrega la fotografía de la fachada para continuar');
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const SpacePhotosPage()),
