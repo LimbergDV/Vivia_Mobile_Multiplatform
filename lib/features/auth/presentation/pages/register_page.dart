@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:vivia_mobile/core/utils/input_validators.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/widgets.dart';
@@ -123,12 +124,7 @@ class _RegisterViewState extends State<_RegisterView> {
                   hint: 'Escribe tu nombre(s)',
                   prefixIcon: Icons.person_outline,
                   maxLength: 50,
-                  validator: (value) {
-                    final trimmed = value?.trim() ?? '';
-                    if (trimmed.isEmpty) return 'Ingresa tu nombre';
-                    if (trimmed.length > 50) return 'Máximo 50 caracteres';
-                    return null;
-                  },
+                  validator: InputValidators.name,
                 ),
                 const SizedBox(height: 16),
                 AuthTextField(
@@ -137,12 +133,7 @@ class _RegisterViewState extends State<_RegisterView> {
                   hint: 'Escribe tu apellido paterno',
                   prefixIcon: Icons.person_outline,
                   maxLength: 50,
-                  validator: (value) {
-                    final trimmed = value?.trim() ?? '';
-                    if (trimmed.isEmpty) return 'Ingresa tu apellido paterno';
-                    if (trimmed.length > 50) return 'Máximo 50 caracteres';
-                    return null;
-                  },
+                  validator: InputValidators.name,
                 ),
                 const SizedBox(height: 16),
                 AuthTextField(
@@ -151,12 +142,7 @@ class _RegisterViewState extends State<_RegisterView> {
                   hint: 'Escribe tu apellido materno',
                   prefixIcon: Icons.person_outline,
                   maxLength: 50,
-                  validator: (value) {
-                    final trimmed = value?.trim() ?? '';
-                    if (trimmed.isEmpty) return 'Ingresa tu apellido materno';
-                    if (trimmed.length > 50) return 'Máximo 50 caracteres';
-                    return null;
-                  },
+                  validator: InputValidators.name,
                 ),
                 const SizedBox(height: 16),
                 AuthTextField(
@@ -166,15 +152,7 @@ class _RegisterViewState extends State<_RegisterView> {
                   prefixIcon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                   maxLength: 254,
-                  validator: (value) {
-                    final trimmed = value?.trim() ?? '';
-                    if (trimmed.isEmpty) return 'Ingresa tu correo';
-                    if (trimmed.length > 254) return 'Máximo 254 caracteres';
-                    if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(trimmed)) {
-                      return 'Correo no válido';
-                    }
-                    return null;
-                  },
+                  validator: InputValidators.email,
                 ),
                 const SizedBox(height: 16),
                 if (widget.role == UserRole.lessor) ...[
@@ -186,12 +164,7 @@ class _RegisterViewState extends State<_RegisterView> {
                     keyboardType: TextInputType.phone,
                     maxLength: 10,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    validator: (value) {
-                      final trimmed = value?.trim() ?? '';
-                      if (trimmed.isEmpty) return 'Ingresa tu número de teléfono';
-                      if (trimmed.length != 10) return 'Debe tener 10 caracteres';
-                      return null;
-                    },
+                    validator: InputValidators.phone,
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -204,12 +177,7 @@ class _RegisterViewState extends State<_RegisterView> {
                   passwordVisible: viewModel.registerPasswordVisible,
                   onToggleVisibility: viewModel.toggleRegisterPasswordVisibility,
                   maxLength: 40,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Ingresa una contraseña';
-                    if (value.length < 8) return 'Mínimo 8 caracteres';
-                    if (value.length > 40) return 'Máximo 40 caracteres';
-                    return null;
-                  },
+                  validator: InputValidators.password,
                 ),
                 const SizedBox(height: 16),
                 AuthTextField(

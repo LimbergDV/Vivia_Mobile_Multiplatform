@@ -277,6 +277,9 @@ class _AddPropertyPageState extends State<AddPropertyPage> {
                             child: PropertyTextField(
                               controller: _interiorNumberController,
                               hint: 'Núm. Interior (opcional)',
+                              inputFormatters: [
+                                LengthLimitingTextInputFormatter(10),
+                              ],
                               onChanged: vm.setInteriorNumber,
                             ),
                           ),
