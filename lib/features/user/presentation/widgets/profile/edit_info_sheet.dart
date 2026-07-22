@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:vivia_mobile/core/utils/input_sanitizer.dart';
+import 'package:vivia_mobile/core/utils/input_validators.dart';
 import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class EditFieldConfig {
@@ -89,7 +91,7 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
       _saveError = null;
     });
     try {
-      await widget.onSave(_controllers.map((c) => c.text.trim()).toList());
+      await widget.onSave(_sanitizedValues());
       if (mounted) {
         AppAlert.success(context, widget.successMessage);
         Navigator.of(context).pop();
@@ -104,6 +106,15 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
     }
   }
 
+  List<String> _sanitizedValues() {
+    return List.generate(_controllers.length, (i) {
+      final text = _controllers[i].text;
+      return widget.fields[i].isPassword
+          ? text
+          : InputSanitizer.singleLine(text);
+    });
+  }
+
   String? _validator(int index, String? value) {
     final trimmed = value?.trim() ?? '';
     final field = widget.fields[index];
@@ -113,9 +124,7 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
     }
 
     if (field.keyboardType == TextInputType.emailAddress) {
-      if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(trimmed)) {
-        return 'Correo no válido';
-      }
+      return InputValidators.email(trimmed);
     }
 
     if (field.isPassword && trimmed.length < 8) {

@@ -14,6 +14,7 @@ import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_filter.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_property_card.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/publish_progress_card.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_property_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
@@ -95,6 +96,12 @@ class _HomePageState extends State<HomePage> {
           imageUrl: s.mainImageUrl,
         ));
         draftVm.clearStreamStatus();
+        AppAlert.success(
+          context,
+          'Tu propiedad ya está publicada y visible.',
+          title: '¡Listo!',
+          duration: const Duration(seconds: 7),
+        );
       case DraftStreamStatus.failed:
         final reason = draftVm.failureData!.reason;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -166,27 +173,41 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
+    final publishing = context.select<PropertyDraftViewModel, bool>(
+      (vm) => vm.streamStatus == DraftStreamStatus.validating,
+    );
 
-    if (isLandscape) {
-      return _LandscapeScaffold(
-        role: widget.role,
-        selectedNav: _selectedNav,
-        searchController: _searchController,
-        onNavSelected: _onNavSelected,
-        notificationCount: _unreadCount,
-        onNotificationTap: _openNotifications,
-        onProfileTap: _openProfile,
-      );
-    }
+    final scaffold = isLandscape
+        ? _LandscapeScaffold(
+            role: widget.role,
+            selectedNav: _selectedNav,
+            searchController: _searchController,
+            onNavSelected: _onNavSelected,
+            notificationCount: _unreadCount,
+            onNotificationTap: _openNotifications,
+            onProfileTap: _openProfile,
+          )
+        : _PortraitScaffold(
+            role: widget.role,
+            selectedNav: _selectedNav,
+            searchController: _searchController,
+            onNavSelected: _onNavSelected,
+            notificationCount: _unreadCount,
+            onNotificationTap: _openNotifications,
+            onProfileTap: _openProfile,
+          );
 
-    return _PortraitScaffold(
-      role: widget.role,
-      selectedNav: _selectedNav,
-      searchController: _searchController,
-      onNavSelected: _onNavSelected,
-      notificationCount: _unreadCount,
-      onNotificationTap: _openNotifications,
-      onProfileTap: _openProfile,
+    return Stack(
+      children: [
+        scaffold,
+        if (publishing)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 12,
+            left: 16,
+            right: 16,
+            child: const PublishProgressCard(),
+          ),
+      ],
     );
   }
 }

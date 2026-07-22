@@ -227,19 +227,16 @@ class LessorRemoteDatasourceImpl implements LessorRemoteDatasource {
       } else if (line.startsWith('data:')) {
         buf.write(line.substring(5).trim());
       } else if (line.isEmpty && eventType != null && buf.isNotEmpty) {
-        if (eventType != 'status_update') {
-          try {
-            final payload = jsonDecode(buf.toString()) as Map<String, dynamic>;
-            final ev = switch (eventType) {
-              'publication_success' => DraftPublicationSuccess.fromJson(
-                payload,
-              ),
-              'publication_failed' => DraftPublicationFailed.fromJson(payload),
-              _ => null,
-            };
-            if (ev != null) yield ev;
-          } catch (_) {}
-        }
+        try {
+          final payload = jsonDecode(buf.toString()) as Map<String, dynamic>;
+          final ev = switch (eventType) {
+            'status_update' => DraftStatusUpdate.fromJson(payload),
+            'publication_success' => DraftPublicationSuccess.fromJson(payload),
+            'publication_failed' => DraftPublicationFailed.fromJson(payload),
+            _ => null,
+          };
+          if (ev != null) yield ev;
+        } catch (_) {}
         eventType = null;
         buf.clear();
       }

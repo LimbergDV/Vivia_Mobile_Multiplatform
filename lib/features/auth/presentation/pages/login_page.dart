@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:vivia_mobile/core/utils/input_validators.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:vivia_mobile/features/auth/presentation/widgets/widgets.dart';
@@ -265,13 +266,7 @@ class _LandscapeLayout extends StatelessWidget {
                       hint: 'example@domain.com',
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return 'Ingresa tu correo';
-                        if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                          return 'Correo no válido';
-                        }
-                        return null;
-                      },
+                      validator: InputValidators.email,
                     ),
                     const SizedBox(height: 14),
                     AuthTextField(
@@ -282,11 +277,8 @@ class _LandscapeLayout extends StatelessWidget {
                       isPassword: true,
                       passwordVisible: viewModel.loginPasswordVisible,
                       onToggleVisibility: viewModel.toggleLoginPasswordVisibility,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return 'Ingresa tu contraseña';
-                        if (value.length < 6) return 'Mínimo 6 caracteres';
-                        return null;
-                      },
+                      validator: (value) =>
+                          InputValidators.requiredField(value, message: 'Ingresa tu contraseña'),
                     ),
                     const SizedBox(height: 20),
                     AuthPrimaryButton(

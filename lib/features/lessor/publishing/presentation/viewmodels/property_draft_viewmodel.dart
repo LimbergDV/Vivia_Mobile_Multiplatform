@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:vivia_mobile/core/utils/input_sanitizer.dart';
 import 'package:vivia_mobile/core/utils/media_file_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
@@ -190,6 +191,19 @@ class PropertyDraftViewModel extends ChangeNotifier {
   String get streamStatusLabel => _streamStatusLabel;
   DraftPublicationSuccess? get successData => _successData;
   DraftPublicationFailed? get failureData => _failureData;
+
+  String get streamStatusMessage {
+    final s = _streamStatusLabel.toUpperCase();
+    if (s.contains('UPLOAD') || s.contains('MEDIA') || s.contains('IMAGE')) {
+      return 'Procesando las imágenes…';
+    }
+    if (s.contains('MODERA') || s.contains('REVIEW')) {
+      return 'Revisando el contenido…';
+    }
+    if (s.contains('VALID')) return 'Validando la información…';
+    if (s.contains('PUBLISH')) return 'Publicando tu propiedad…';
+    return 'Procesando tu publicación…';
+  }
 
   // ── Inicialización ────────────────────────────────────────────────────────
   Future<void> init() async {
@@ -856,13 +870,13 @@ class PropertyDraftViewModel extends ChangeNotifier {
     return {
       'propertyTypeId': _form.propertyType!.id,
       'neighborhoodId': _form.neighborhood!.id,
-      'street': _form.street ?? '',
-      'exteriorNumber': _form.exteriorNumber ?? '',
+      'street': InputSanitizer.singleLine(_form.street ?? ''),
+      'exteriorNumber': InputSanitizer.singleLine(_form.exteriorNumber ?? ''),
       if (_form.interiorNumber != null && _form.interiorNumber!.isNotEmpty)
-        'interiorNumber': _form.interiorNumber,
+        'interiorNumber': InputSanitizer.singleLine(_form.interiorNumber!),
       'isAvailableToRent': _form.isAvailableToRent,
-      'title': _form.title ?? '',
-      'description': _form.description ?? '',
+      'title': InputSanitizer.singleLine(_form.title ?? ''),
+      'description': InputSanitizer.multiLine(_form.description ?? ''),
       'areaM2': double.tryParse(_form.area ?? '0') ?? 0.0,
       'bedrooms': _form.rooms ?? 0,
       'bathrooms': (_form.bathrooms ?? 0).toDouble(),
@@ -890,8 +904,8 @@ class PropertyDraftViewModel extends ChangeNotifier {
   // anidada en `address` y los campos omitidos no se modifican en el backend.
   Map<String, dynamic> _buildPatchBody() {
     return {
-      'title': _form.title ?? '',
-      'description': _form.description ?? '',
+      'title': InputSanitizer.singleLine(_form.title ?? ''),
+      'description': InputSanitizer.multiLine(_form.description ?? ''),
       'areaM2': double.tryParse(_form.area ?? '0') ?? 0.0,
       'bedrooms': _form.rooms ?? 0,
       'bathrooms': (_form.bathrooms ?? 0).toDouble(),
@@ -908,10 +922,10 @@ class PropertyDraftViewModel extends ChangeNotifier {
       'address': {
         if (_form.neighborhood != null)
           'neighborhoodId': _form.neighborhood!.id,
-        'street': _form.street ?? '',
-        'exteriorNumber': _form.exteriorNumber ?? '',
+        'street': InputSanitizer.singleLine(_form.street ?? ''),
+        'exteriorNumber': InputSanitizer.singleLine(_form.exteriorNumber ?? ''),
         if (_form.interiorNumber != null && _form.interiorNumber!.isNotEmpty)
-          'interiorNumber': _form.interiorNumber,
+          'interiorNumber': InputSanitizer.singleLine(_form.interiorNumber!),
         // Solo si el usuario cambió la dirección y el geocoding (o el pin
         // manual) resolvió; omitidas, el backend conserva las actuales.
         if (_publishPoint != null) ...{

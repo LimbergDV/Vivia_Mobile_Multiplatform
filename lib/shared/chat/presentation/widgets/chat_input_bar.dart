@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vivia_mobile/core/utils/input_sanitizer.dart';
 
 class ChatInputBar extends StatefulWidget {
   final ValueChanged<String> onSend;
@@ -22,8 +23,9 @@ class _ChatInputBarState extends State<ChatInputBar> {
   }
 
   void _handleSend() {
-    if (_controller.text.trim().isEmpty) return;
-    widget.onSend(_controller.text);
+    final message = InputSanitizer.multiLine(_controller.text);
+    if (message.isEmpty) return;
+    widget.onSend(message);
     _controller.clear();
   }
 
@@ -95,6 +97,9 @@ class _TextField extends StatelessWidget {
       controller: controller,
       minLines: 1,
       maxLines: 5,
+      maxLength: 1000,
+      buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
+          null,
       cursorColor: colorScheme.primary,
       textCapitalization: TextCapitalization.sentences,
       style: TextStyle(color: colorScheme.onSurface, fontSize: 16),

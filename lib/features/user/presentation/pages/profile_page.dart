@@ -219,7 +219,7 @@ class _ProfileHeader extends StatelessWidget {
         // Barra de completado
         ProfileCompletionBar(
           completionPercent: vm.completionPercentInt,
-          showDot: true,
+          showDot: !vm.isProfileComplete,
         ),
 
         // Banner premium — solo para lessor
@@ -265,6 +265,7 @@ class _SettingsList extends StatelessWidget {
           ProfileSettingsItem(
             icon: Icons.verified_user_outlined,
             label: 'Verificar Cuenta',
+            showNotificationDot: vm.hasVerificationPending,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const VerifyEntryPage()),

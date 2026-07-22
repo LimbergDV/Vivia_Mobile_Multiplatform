@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:vivia_mobile/core/utils/input_sanitizer.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/login_usecase.dart';
 import 'package:vivia_mobile/features/auth/domain/usecases/login_google_usecase.dart';
@@ -135,7 +136,7 @@ class AuthViewModel extends ChangeNotifier {
     _setLoading();
     try {
       final result = await _loginUseCase.execute(
-        loginEmailController.text.trim(),
+        InputSanitizer.singleLine(loginEmailController.text),
         loginPasswordController.text,
       );
 
@@ -167,24 +168,28 @@ class AuthViewModel extends ChangeNotifier {
     if (!registerFormKey.currentState!.validate()) return;
     _setLoading();
     try {
-      final name = registerNameController.text.trim();
-      final paternalSurname = registerLastNameController.text.trim();
+      final name = InputSanitizer.singleLine(registerNameController.text);
+      final paternalSurname =
+          InputSanitizer.singleLine(registerLastNameController.text);
+      final maternalSurname =
+          InputSanitizer.singleLine(registerMaternalSurnameController.text);
+      final email = InputSanitizer.singleLine(registerEmailController.text);
 
       if (role == UserRole.lessee) {
         await _registerLesseeUseCase.execute(
           name: name,
           paternalSurname: paternalSurname,
-          maternalSurname: registerMaternalSurnameController.text.trim(),
-          email: registerEmailController.text.trim(),
+          maternalSurname: maternalSurname,
+          email: email,
           password: registerPasswordController.text,
         );
       } else {
         await _registerLessorUseCase.execute(
           name: name,
           paternalSurname: paternalSurname,
-          maternalSurname: registerMaternalSurnameController.text.trim(),
-          email: registerEmailController.text.trim(),
-          phoneNumber: registerPhoneController.text.trim(),
+          maternalSurname: maternalSurname,
+          email: email,
+          phoneNumber: InputSanitizer.singleLine(registerPhoneController.text),
           password: registerPasswordController.text,
         );
       }
