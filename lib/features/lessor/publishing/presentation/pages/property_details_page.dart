@@ -9,6 +9,7 @@ import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/form_section_header.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/number_selector.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/property_text_field.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 const _kAiFrom = Color(0xFF62E8EC); // cyan claro — inicio del degradado Premium
 const _kAiTo   = Color(0xFF26C6DA); // cyan oscuro — fin del degradado Premium
@@ -224,34 +225,25 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
     if (!mounted) return;
 
     if (saved) {
-      final messenger = ScaffoldMessenger.of(context);
-      // Cierra Details y AddProperty para volver al detalle de la propiedad.
+      AppAlert.success(
+        context,
+        'Los cambios se guardaron correctamente.',
+        title: 'Propiedad actualizada',
+      );
       Navigator.of(context)
         ..pop()
         ..pop();
       vm.reset();
-      messenger.showSnackBar(
-        SnackBar(
-          content: const Text('Propiedad actualizada'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
     } else {
-      _showSnack('No se pudieron guardar los cambios. Intenta de nuevo.');
+      AppAlert.error(
+        context,
+        'No se pudieron guardar los cambios. Intenta de nuevo.',
+      );
     }
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    AppAlert.show(context, message: message, type: AppAlertType.warning);
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class EditFieldConfig {
   final String label;
@@ -22,12 +23,14 @@ class EditInfoSheet extends StatefulWidget {
   final String title;
   final List<EditFieldConfig> fields;
   final Future<void> Function(List<String> values) onSave;
+  final String successMessage;
 
   const EditInfoSheet({
     super.key,
     required this.title,
     required this.fields,
     required this.onSave,
+    this.successMessage = 'Datos actualizados correctamente.',
   });
 
   static Future<void> show(
@@ -35,13 +38,19 @@ class EditInfoSheet extends StatefulWidget {
         required String title,
         required List<EditFieldConfig> fields,
         required Future<void> Function(List<String> values) onSave,
+        String successMessage = 'Datos actualizados correctamente.',
       }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       useSafeArea: true,
-      builder: (_) => EditInfoSheet(title: title, fields: fields, onSave: onSave),
+      builder: (_) => EditInfoSheet(
+        title: title,
+        fields: fields,
+        onSave: onSave,
+        successMessage: successMessage,
+      ),
     );
   }
 
@@ -81,7 +90,10 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
     });
     try {
       await widget.onSave(_controllers.map((c) => c.text.trim()).toList());
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        AppAlert.success(context, widget.successMessage);
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       if (mounted) {
         setState(() =>

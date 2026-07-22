@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/lessee/reports/presentation/pages/report_success_page.dart';
 import 'package:vivia_mobile/features/lessee/reports/presentation/viewmodels/report_viewmodel.dart';
 import 'package:vivia_mobile/features/lessee/reports/presentation/widgets/report_step_header.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class ReportReviewPage extends StatefulWidget {
   const ReportReviewPage({super.key});
@@ -18,12 +19,7 @@ class _ReportReviewPageState extends State<ReportReviewPage> {
     if (!mounted) return;
 
     if (vm.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(vm.error!),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
+      AppAlert.error(context, vm.error!, title: 'No se pudo enviar el reporte');
     } else {
       Navigator.pushReplacement(
         context,

@@ -14,6 +14,7 @@ import 'package:vivia_mobile/features/user/presentation/viewmodels/personal_info
 import 'package:vivia_mobile/features/user/presentation/widgets/profile/edit_info_sheet.dart';
 import 'package:vivia_mobile/features/user/presentation/widgets/profile/personal_info_field.dart';
 import 'package:vivia_mobile/features/user/presentation/widgets/profile/profile_avatar_ring.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class PersonalInfoPage extends StatelessWidget {
   final String userName;
@@ -237,40 +238,26 @@ class _AvatarSection extends StatelessWidget {
 
   Future<void> _pickAndUploadPhoto(BuildContext context) async {
     final vm = context.read<PersonalInfoViewModel>();
-    final messenger = ScaffoldMessenger.of(context);
 
     final file = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (file == null) return;
+    if (file == null || !context.mounted) return;
 
     final isPng = file.name.toLowerCase().endsWith('.png');
     final contentType =
         file.mimeType ?? (isPng ? 'image/png' : 'image/jpeg');
     if (contentType != 'image/jpeg' && contentType != 'image/png') {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Solo se permiten imágenes JPG o PNG'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppAlert.error(context, 'Solo se permiten imágenes JPG o PNG');
       return;
     }
 
     try {
       final bytes = await file.readAsBytes();
       await vm.updatePhoto(bytes: bytes, contentType: contentType);
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Foto de perfil actualizada'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (!context.mounted) return;
+      AppAlert.success(context, 'Tu foto de perfil se actualizó correctamente.');
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (!context.mounted) return;
+      AppAlert.error(context, e.toString().replaceFirst('Exception: ', ''));
     }
   }
 }
@@ -364,6 +351,7 @@ class _FieldsSection extends StatelessWidget {
         paternalSurname: v[1],
         maternalSurname: v[2],
       ),
+      successMessage: 'Tu nombre se actualizó correctamente.',
     );
   }
 
@@ -380,6 +368,7 @@ class _FieldsSection extends StatelessWidget {
         ),
       ],
       onSave: (v) => vm.updateEmail(v[0]),
+      successMessage: 'Tu correo electrónico se actualizó correctamente.',
     );
   }
 
@@ -396,6 +385,7 @@ class _FieldsSection extends StatelessWidget {
         ),
       ],
       onSave: (v) => vm.updatePhone(v[0]),
+      successMessage: 'Tu teléfono se actualizó correctamente.',
     );
   }
 
@@ -414,6 +404,7 @@ class _FieldsSection extends StatelessWidget {
         ),
       ],
       onSave: (v) => vm.updatePassword(v[0]),
+      successMessage: 'Tu contraseña se actualizó correctamente.',
     );
   }
 }
@@ -424,22 +415,13 @@ class _EditLocationButton extends StatelessWidget {
 
   Future<void> _onPressed(BuildContext context) async {
     final vm = context.read<PersonalInfoViewModel>();
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await vm.updateUbication();
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Ubicación actualizada exitosamente'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (!context.mounted) return;
+      AppAlert.success(context, 'Ubicación actualizada exitosamente.');
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (!context.mounted) return;
+      AppAlert.error(context, e.toString().replaceFirst('Exception: ', ''));
     }
   }
 

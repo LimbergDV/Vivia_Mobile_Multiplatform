@@ -8,6 +8,7 @@ import 'package:vivia_mobile/features/maps/presentation/widgets/property_locatio
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_property_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/gallery_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class ReviewPropertyPage extends StatefulWidget {
   static const routeName = '/review-property';
@@ -92,14 +93,10 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
   ) async {
     final mainPhoto = vm.form.mainPhotoPath;
     if (mainPhoto == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Agrega al menos una fotografía principal'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+      AppAlert.show(
+        context,
+        message: 'Agrega al menos una fotografía principal',
+        type: AppAlertType.warning,
       );
       return;
     }
@@ -123,29 +120,16 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
     if (!mounted) return;
 
     if (status == PublishStatus.success) {
-      final messenger = ScaffoldMessenger.of(context);
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      messenger.showSnackBar(
-        SnackBar(
-          content: const Text('Publicando tu propiedad...'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+      AppAlert.success(
+        context,
+        'Estamos publicando tu propiedad. Te avisaremos cuando esté lista.',
+        title: '¡Publicación enviada!',
       );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Ocurrió un error al publicar. Intenta de nuevo.',
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Theme.of(context).colorScheme.error,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+      AppAlert.error(
+        context,
+        'Ocurrió un error al publicar. Intenta de nuevo.',
       );
     }
   }

@@ -10,6 +10,7 @@ import 'package:vivia_mobile/features/home/presentation/widgets/shared/empty_pro
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_header.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_search_bar.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_filter_sheet.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_filter.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_property_card.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
@@ -75,15 +76,7 @@ class _HomePageState extends State<HomePage> {
     if (draftVm.publishStatus == PublishStatus.error) {
       final error = draftVm.publishError;
       draftVm.reset();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error ?? 'Error al publicar. Intenta de nuevo.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Theme.of(context).colorScheme.error,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      AppAlert.error(context, error ?? 'Error al publicar. Intenta de nuevo.');
       return;
     }
 

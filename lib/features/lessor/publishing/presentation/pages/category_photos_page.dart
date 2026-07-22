@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/shared/media/presentation/helpers/media_picker_helper.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class CategoryPhotosPage extends StatefulWidget {
   final String categoryName;
@@ -38,16 +39,10 @@ class _CategoryPhotosPageState extends State<CategoryPhotosPage> {
     if (result.isSuccess && mounted) {
       setState(() => _photos.add(result.path!));
     } else if (result.isCameraDenied && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Permiso de cámara denegado. Usa la galería para subir fotos.',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+      AppAlert.show(
+        context,
+        message: 'Permiso de cámara denegado. Usa la galería para subir fotos.',
+        type: AppAlertType.warning,
       );
     }
   }

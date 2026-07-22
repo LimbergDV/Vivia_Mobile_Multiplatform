@@ -5,6 +5,7 @@ import 'package:vivia_mobile/shared/chat/domain/usecases/get_messages_usecase.da
 import 'package:vivia_mobile/shared/chat/presentation/viewmodels/chat_viewmodel.dart';
 import 'package:vivia_mobile/shared/chat/presentation/widgets/chat_input_bar.dart';
 import 'package:vivia_mobile/shared/chat/presentation/widgets/chat_messages_view.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class ChatPage extends StatelessWidget {
   final ChatConversation conversation;
@@ -29,12 +30,7 @@ class _ChatView extends StatelessWidget {
   const _ChatView({required this.title});
 
   void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Adjuntar archivos estará disponible pronto'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    AppAlert.show(context, message: 'Adjuntar archivos estará disponible pronto');
   }
 
   @override

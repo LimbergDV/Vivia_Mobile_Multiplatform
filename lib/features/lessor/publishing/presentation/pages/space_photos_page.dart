@@ -4,6 +4,7 @@ import 'package:vivia_mobile/shared/media/presentation/helpers/media_picker_help
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/tour_video_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/space_category_section.dart';
+import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class SpacePhotosPage extends StatefulWidget {
   const SpacePhotosPage({super.key});
@@ -118,13 +119,7 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    AppAlert.show(context, message: message, type: AppAlertType.warning);
   }
 
   @override
