@@ -9,6 +9,7 @@ import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/form_section_header.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/number_selector.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/property_text_field.dart';
+import 'package:vivia_mobile/shared/widgets/amenity_icon.dart';
 import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 const _kAiFrom = Color(0xFF62E8EC); // cyan claro — inicio del degradado Premium
@@ -1191,6 +1192,13 @@ class _AmenitiesSection extends StatelessWidget {
           return CheckboxListTile(
             value: isSelected,
             onChanged: (_) => vm.toggleAmenity(amenity.id),
+            secondary: Icon(
+              amenityIcon(amenity.name),
+              size: 22,
+              color: isSelected
+                  ? const Color(0xFF0095FF)
+                  : colorScheme.onSurfaceVariant,
+            ),
             title: Text(
               amenity.name,
               style: textTheme.bodyMedium?.copyWith(
