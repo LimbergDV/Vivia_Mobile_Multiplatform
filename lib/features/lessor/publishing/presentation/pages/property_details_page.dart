@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/property_photos_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/review_property_page.dart';
@@ -40,7 +41,17 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
     '11+',
   ];
   final List<String> _bathroomOptions = ['1', '2', '3', '4', '5', '6', '7+'];
-  final List<String> _parkingOptions = ['1', '2', '3', '4', '5', '6', '7+'];
+  // Los cajones de estacionamiento pueden ser 0.
+  final List<String> _parkingOptions = [
+    '0',
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7+',
+  ];
 
   final List<int> _yearOptions = List.generate(
     DateTime.now().year - 1950 + 1,
@@ -275,6 +286,7 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
             ),
             child: Form(
               key: _formKey,
+              autovalidateMode: AutovalidateMode.disabled,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -314,12 +326,12 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
                   ),
                   const SizedBox(height: 14),
                   NumberSelector(
-                    // parkingSpots stores actual count (1-7); selector needs index (0-6)
+                    // parkingSpots stores actual count (0-7); index maps 1:1.
                     selected: vm.form.parkingSpots != null
-                        ? (vm.form.parkingSpots! - 1).clamp(0, 6)
+                        ? vm.form.parkingSpots!.clamp(0, 7)
                         : null,
                     options: _parkingOptions,
-                    onSelected: (i) => vm.setParkingSpots(i < 6 ? i + 1 : 7),
+                    onSelected: (i) => vm.setParkingSpots(i < 7 ? i : 7),
                   ),
                   const SizedBox(height: 28),
 
@@ -367,10 +379,19 @@ class _PropertyDetailsPageState extends State<PropertyDetailsPage>
                       controller: _titleController,
                       hint: 'Añade un título breve...',
                       readOnly: vm.aiStatus == AiGenerationStatus.loading,
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(200),
+                      ],
                       onChanged: vm.setTitle,
-                      validator: (v) => v == null || v.trim().isEmpty
-                          ? 'Campo requerido'
-                          : null,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Campo requerido';
+                        }
+                        if (v.trim().length < 10) {
+                          return 'El título debe tener al menos 10 caracteres';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                   const SizedBox(height: 28),
@@ -730,9 +751,15 @@ class _DescriptionField extends StatelessWidget {
       readOnly: readOnly,
       maxLines: null,
       minLines: 4,
+      maxLength: 200,
       onChanged: onChanged,
-      validator: (v) =>
-          v == null || v.trim().isEmpty ? 'Campo requerido' : null,
+      validator: (v) {
+        if (v == null || v.trim().isEmpty) return 'Campo requerido';
+        if (v.trim().length < 20) {
+          return 'La descripción debe tener al menos 20 caracteres';
+        }
+        return null;
+      },
       style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
       decoration: InputDecoration(
         hintText: 'Añade una descripción...',

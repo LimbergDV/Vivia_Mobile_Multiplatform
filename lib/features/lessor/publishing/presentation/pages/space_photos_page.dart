@@ -14,9 +14,12 @@ class SpacePhotosPage extends StatefulWidget {
 
 class _SpacePhotosPageState extends State<SpacePhotosPage> {
   final List<_SpaceCategory> _categories = [
-    _SpaceCategory(label: 'Fachada', isExpanded: true),
+    _SpaceCategory(label: 'Habitaciones', isExpanded: true),
     _SpaceCategory(label: 'Baños'),
-    _SpaceCategory(label: 'Jardines'),
+    _SpaceCategory(label: 'Cocina'),
+    _SpaceCategory(label: 'Sala'),
+    _SpaceCategory(label: 'Jardín', isOptional: true),
+    _SpaceCategory(label: 'Áreas adicionales', isOptional: true),
   ];
 
   @override
@@ -30,6 +33,7 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
         _categories[i] = _SpaceCategory(
           label: _categories[i].label,
           isExpanded: _categories[i].isExpanded,
+          isOptional: _categories[i].isOptional,
           imagePaths: List.of(paths),
         );
       }
@@ -42,6 +46,7 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
         _categories[i] = _SpaceCategory(
           label: _categories[i].label,
           isExpanded: i == index ? !_categories[i].isExpanded : false,
+          isOptional: _categories[i].isOptional,
           imagePaths: List.of(_categories[i].imagePaths),
         );
       }
@@ -55,6 +60,7 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
         _categories[index] = _SpaceCategory(
           label: _categories[index].label,
           isExpanded: _categories[index].isExpanded,
+          isOptional: _categories[index].isOptional,
           imagePaths: [..._categories[index].imagePaths, ...paths],
         );
       });
@@ -69,6 +75,7 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
         _categories[index] = _SpaceCategory(
           label: _categories[index].label,
           isExpanded: _categories[index].isExpanded,
+          isOptional: _categories[index].isOptional,
           imagePaths: [..._categories[index].imagePaths, result.path!],
         );
       });
@@ -87,6 +94,7 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
       _categories[categoryIndex] = _SpaceCategory(
         label: _categories[categoryIndex].label,
         isExpanded: _categories[categoryIndex].isExpanded,
+        isOptional: _categories[categoryIndex].isOptional,
         imagePaths: updated,
       );
     });
@@ -173,6 +181,7 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: SpaceCategorySection(
                   label: cat.label,
+                  isOptional: cat.isOptional,
                   isExpanded: cat.isExpanded,
                   imagePaths: cat.imagePaths,
                   onTap: () => _toggleCategory(i),
@@ -215,11 +224,13 @@ class _SpacePhotosPageState extends State<SpacePhotosPage> {
 class _SpaceCategory {
   final String label;
   final bool isExpanded;
+  final bool isOptional;
   final List<String> imagePaths;
 
   _SpaceCategory({
     required this.label,
     this.isExpanded = false,
+    this.isOptional = false,
     this.imagePaths = const [],
   });
 }
