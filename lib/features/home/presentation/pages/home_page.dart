@@ -9,6 +9,8 @@ import 'package:vivia_mobile/features/home/presentation/widgets/shared/category_
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/empty_properties_state.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_header.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/home_search_bar.dart';
+import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_filter_sheet.dart';
+import 'package:vivia_mobile/shared/property/domain/models/property_filter.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_property_card.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_property_page.dart';
@@ -196,6 +198,22 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+Future<void> _showPropertyFilters(
+  BuildContext context,
+  PropertyViewModel vm,
+) async {
+  final result = await showModalBottomSheet<PropertyFilter>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => PropertyFilterSheet(
+      initial: vm.filter,
+      bounds: vm.filterBounds,
+    ),
+  );
+  if (result != null) vm.applyFilter(result);
+}
+
 class _PortraitScaffold extends StatelessWidget {
   final UserRole role;
   final HomeNavItem selectedNav;
@@ -244,7 +262,12 @@ class _PortraitScaffold extends StatelessWidget {
                           onAvatarTap: onProfileTap,
                         ),
                         SizedBox(height: screenHeight * 0.025),
-                        HomeSearchBar(controller: searchController),
+                        HomeSearchBar(
+                          controller: searchController,
+                          filtersActive: vm.hasActiveFilters,
+                          onChanged: vm.setSearchQuery,
+                          onFilterTap: () => _showPropertyFilters(context, vm),
+                        ),
                         SizedBox(height: screenHeight * 0.02),
                       ]),
                     ),
@@ -312,9 +335,11 @@ class _PortraitScaffold extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: EmptyPropertiesState(
-                          title: vm.isLessor
-                              ? '¡No tienes propiedades\npublicadas aún!'
-                              : '¡Próximamente podrás\nexplorar propiedades!',
+                          title: vm.isNarrowed
+                              ? '¡No hay propiedades\ncon esa búsqueda!'
+                              : vm.isLessor
+                                  ? '¡No tienes propiedades\npublicadas aún!'
+                                  : '¡Próximamente podrás\nexplorar propiedades!',
                         ),
                       ),
                     )
@@ -418,7 +443,13 @@ class _LandscapeScaffold extends StatelessWidget {
                                 onAvatarTap: onProfileTap,
                               ),
                               const SizedBox(height: 14),
-                              HomeSearchBar(controller: searchController),
+                              HomeSearchBar(
+                                controller: searchController,
+                                filtersActive: vm.hasActiveFilters,
+                                onChanged: vm.setSearchQuery,
+                                onFilterTap: () =>
+                                    _showPropertyFilters(context, vm),
+                              ),
                               const SizedBox(height: 14),
                             ]),
                           ),
@@ -478,9 +509,15 @@ class _LandscapeScaffold extends StatelessWidget {
                             ),
                           )
                         else if (vm.displayedProperties.isEmpty)
-                          const SliverFillRemaining(
+                          SliverFillRemaining(
                             hasScrollBody: false,
-                            child: EmptyPropertiesState(),
+                            child: EmptyPropertiesState(
+                              title: vm.isNarrowed
+                                  ? '¡No hay propiedades\ncon esa búsqueda!'
+                                  : vm.isLessor
+                                      ? '¡No tienes propiedades\npublicadas aún!'
+                                      : '¡Próximamente podrás\nexplorar propiedades!',
+                            ),
                           )
                         else
                           SliverPadding(

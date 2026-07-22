@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vivia_mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:vivia_mobile/shared/property/domain/models/property_filter.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_model.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_type_model.dart';
 import 'package:vivia_mobile/shared/property/domain/models/selected_category.dart';
@@ -41,19 +42,69 @@ class PropertyViewModel extends ChangeNotifier {
 
   List<SelectedCategory> _categoryTabs = const [AllCategory()];
   SelectedCategory _selectedCategory = const AllCategory();
+  PropertyFilter _filter = PropertyFilter.empty;
+  String _searchQuery = '';
   List<PropertyModel> _allProperties = [];
   List<PropertyModel> _likedProperties = [];
   List<PropertyModel> _nearbyProperties = [];
 
   List<SelectedCategory> get categoryTabs => _categoryTabs;
   SelectedCategory get selectedCategory => _selectedCategory;
+  PropertyFilter get filter => _filter;
+  bool get hasActiveFilters => _filter.isActive;
+  bool get isNarrowed => _filter.isActive || _searchQuery.isNotEmpty;
 
-  List<PropertyModel> get displayedProperties => switch (_selectedCategory) {
-    AllCategory() => _allProperties,
-    FavoritesCategory() => _likedProperties,
-    TypeCategory(type: final t) =>
-        _allProperties.where((p) => p.type == t.name).toList(),
-  };
+  List<PropertyModel> get displayedProperties {
+    final base = switch (_selectedCategory) {
+      AllCategory() => _allProperties,
+      FavoritesCategory() => _likedProperties,
+      TypeCategory(type: final t) =>
+          _allProperties.where((p) => p.type == t.name).toList(),
+    };
+    var result = base;
+    if (_filter.isActive) result = result.where(_filter.matches).toList();
+    if (_searchQuery.isNotEmpty) {
+      result = result.where(_matchesQuery).toList();
+    }
+    return _sorted(result);
+  }
+
+  bool _matchesQuery(PropertyModel p) {
+    final q = _searchQuery.toLowerCase();
+    return p.title.toLowerCase().contains(q) ||
+        p.type.toLowerCase().contains(q) ||
+        p.location.toLowerCase().contains(q);
+  }
+
+  List<PropertyModel> _sorted(List<PropertyModel> list) {
+    switch (_filter.sort) {
+      case PropertySort.relevance:
+        return list;
+      case PropertySort.priceAsc:
+        return [...list]..sort((a, b) => a.price.compareTo(b.price));
+      case PropertySort.priceDesc:
+        return [...list]..sort((a, b) => b.price.compareTo(a.price));
+    }
+  }
+
+  FilterBounds get filterBounds => FilterBounds.fixed;
+
+  void setSearchQuery(String query) {
+    final trimmed = query.trim();
+    if (trimmed == _searchQuery) return;
+    _searchQuery = trimmed;
+    notifyListeners();
+  }
+
+  void applyFilter(PropertyFilter filter) {
+    _filter = filter;
+    notifyListeners();
+  }
+
+  void clearFilter() {
+    _filter = PropertyFilter.empty;
+    notifyListeners();
+  }
 
   List<PropertyModel> get nearbyProperties => _nearbyProperties;
 
@@ -252,6 +303,8 @@ class PropertyViewModel extends ChangeNotifier {
     _propertiesStatus = PropertyLoadStatus.idle;
     _categoryTabs = const [AllCategory()];
     _selectedCategory = const AllCategory();
+    _filter = PropertyFilter.empty;
+    _searchQuery = '';
     _allProperties = [];
     _likedProperties = [];
     _nearbyProperties = [];
