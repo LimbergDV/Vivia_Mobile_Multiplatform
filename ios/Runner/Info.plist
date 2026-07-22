@@ -70,5 +70,19 @@
     	<string>Vivia necesita acceso a la cámara para tomar fotos y videos de tu propiedad.</string>
     	<key>NSPhotoLibraryUsageDescription</key>
     	<string>Vivia necesita acceso a tu galería para seleccionar fotos de tu propiedad.</string>
+    	<!-- Deep link: vivia://property/{id} para compartir propiedades por chat -->
+    	<key>CFBundleURLTypes</key>
+    	<array>
+    		<dict>
+    			<key>CFBundleTypeRole</key>
+    			<string>Editor</string>
+    			<key>CFBundleURLName</key>
+    			<string>app.vivia.deeplink</string>
+    			<key>CFBundleURLSchemes</key>
+    			<array>
+    				<string>vivia</string>
+    			</array>
+    		</dict>
+    	</array>
 </dict>
 </plist>

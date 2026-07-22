@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vívia — Abrir propiedad</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f6f8;
+      color: #1a1c1e;
+      padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      padding: 32px 28px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+    }
+    .logo {
+      width: 72px; height: 72px;
+      border-radius: 20px;
+      background: #2f6f4f;
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 34px; font-weight: 700;
+      margin: 0 auto 18px;
+    }
+    h1 { font-size: 20px; margin: 0 0 8px; }
+    p { font-size: 15px; line-height: 1.5; color: #5b5f63; margin: 0 0 24px; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+    .btn-primary { background: #2f6f4f; color: #fff; }
+    .btn-secondary { background: #eef0f2; color: #1a1c1e; }
+    .muted { font-size: 13px; color: #8a8f94; margin: 8px 0 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">V</div>
+    <h1>Abre esta propiedad en Vívia</h1>
+    <p>Te estamos llevando a la app. Si no se abre sola, usa los botones.</p>
+    <a id="open-app" class="btn btn-primary" href="#">Abrir en la app</a>
+    <a id="get-app" class="btn btn-secondary" href="#">Descargar Vívia</a>
+    <p class="muted">Vívia — busca casa sin tanto drama</p>
+  </div>
+
+  <script>
+    (function () {
+      // Config
+      var ANDROID_PACKAGE = "com.quantum.vivia_mobile";
+      var SCHEME = "vivia";        // esquema propio: vivia://property/{id}
+      var SCHEME_HOST = "property";
+      var PLAY_URL =
+        "https://play.google.com/store/apps/details?id=" + ANDROID_PACKAGE;
+      // iOS: aún sin app publicada. Cambia por la URL del App Store cuando exista.
+      var IOS_STORE_URL = "";
+
+      // Extrae el id del path: /property/{id}
+      var parts = window.location.pathname.split("/").filter(Boolean);
+      var idx = parts.indexOf("property");
+      var id = idx >= 0 && parts.length > idx + 1 ? parts[idx + 1] : "";
+
+      var ua = navigator.userAgent || navigator.vendor || "";
+      var isAndroid = /android/i.test(ua);
+      var isIOS = /iphone|ipad|ipod/i.test(ua) && !window.MSStream;
+
+      var openAppBtn = document.getElementById("open-app");
+      var getAppBtn = document.getElementById("get-app");
+
+      // URL intent de Android: abre la app o, si no está, va a Play (fallback nativo).
+      function androidIntentUrl() {
+        return (
+          "intent://" + SCHEME_HOST + "/" + encodeURIComponent(id) +
+          "#Intent;scheme=" + SCHEME +
+          ";package=" + ANDROID_PACKAGE +
+          ";S.browser_fallback_url=" + encodeURIComponent(PLAY_URL) +
+          ";end"
+        );
+      }
+
+      var openUrl;
+      var storeUrl;
+
+      if (isAndroid) {
+        openUrl = androidIntentUrl();
+        storeUrl = PLAY_URL;
+      } else if (isIOS) {
+        openUrl = SCHEME + "://" + SCHEME_HOST + "/" + encodeURIComponent(id);
+        storeUrl = IOS_STORE_URL || PLAY_URL;
+      } else {
+        // Escritorio u otros: no hay app; a la tienda.
+        openUrl = PLAY_URL;
+        storeUrl = PLAY_URL;
+      }
+
+      openAppBtn.setAttribute("href", openUrl);
+      getAppBtn.setAttribute("href", storeUrl);
+
+      // Intento automático de abrir la app (solo móvil).
+      if ((isAndroid || isIOS) && id) {
+        // El intent de Android ya cae solo a Play si no está instalada.
+        // En iOS, si el esquema no abre nada, nos quedamos en la página.
+        window.location.replace(openUrl);
+      }
+    })();
+  </script>
+</body>
+</html>

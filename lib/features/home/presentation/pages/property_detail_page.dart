@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:vivia_mobile/core/deeplink/property_deep_link.dart';
 import 'package:vivia_mobile/features/auth/domain/enums/user_role.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_detail.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_model.dart';
@@ -378,8 +380,14 @@ class _ContentBody extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  Icon(Icons.send_outlined,
-                      color: colorScheme.onSurface, size: 24),
+                  Builder(
+                    builder: (iconContext) => GestureDetector(
+                      onTap: () =>
+                          _shareProperty(iconContext, property, detail),
+                      child: Icon(Icons.send_outlined,
+                          color: colorScheme.onSurface, size: 24),
+                    ),
+                  ),
                   if (isLessor) ...[
                     const SizedBox(width: 4),
                     PopupMenuButton<String>(
@@ -960,4 +968,33 @@ class _GalleryRow extends StatelessWidget {
       },
     );
   }
+}
+
+/// Comparte la propiedad por la hoja del sistema (WhatsApp, Telegram, etc.)
+/// con un deep link `vivia://property/{id}` que abre el detalle al tocarlo,
+/// sin importar el rol del receptor.
+Future<void> _shareProperty(
+  BuildContext context,
+  PropertyModel property,
+  PropertyDetail? detail,
+) async {
+  final title = (detail?.title ?? property.title).trim();
+  final link = PropertyDeepLink.buildUrl(property.id);
+  final text = title.isEmpty
+      ? 'Mira esta propiedad en Vívia:\n$link'
+      : 'Mira esta propiedad en Vívia: $title\n$link';
+
+  // sharePositionOrigin: requerido en iPad para anclar el popover de compartir.
+  final box = context.findRenderObject() as RenderBox?;
+  final origin = (box != null && box.hasSize)
+      ? box.localToGlobal(Offset.zero) & box.size
+      : null;
+
+  await SharePlus.instance.share(
+    ShareParams(
+      text: text,
+      subject: 'Propiedad en Vívia',
+      sharePositionOrigin: origin,
+    ),
+  );
 }

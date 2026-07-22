@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.quantum.vivia_mobile",
+      "sha256_cert_fingerprints": [
+        "REEMPLAZAR_CON_SHA256_DE_PLAY_APP_SIGNING",
+        "BA:C5:A8:B4:59:79:42:7A:70:BE:05:DB:18:4A:BF:11:20:54:52:E6:59:F0:D4:7B:32:62:96:2D:5B:F5:10:A6"
+      ]
+    }
+  }
+]
