@@ -244,6 +244,7 @@ class _PortraitScaffold extends StatelessWidget {
       bottomNavigationBar: HomeBottomNavBar(
         selected: selectedNav,
         onItemSelected: onNavSelected,
+        showAddButton: role == UserRole.lessor,
       ),
       body: Consumer<PropertyViewModel>(
         builder: (context, vm, _) {
@@ -424,6 +425,7 @@ class _LandscapeScaffold extends StatelessWidget {
               child: _VerticalNavBar(
                 selected: selectedNav,
                 onItemSelected: onNavSelected,
+                showAddButton: role == UserRole.lessor,
               ),
             ),
             Expanded(
@@ -758,10 +760,12 @@ class _SkeletonBox extends StatelessWidget {
 class _VerticalNavBar extends StatelessWidget {
   final HomeNavItem selected;
   final ValueChanged<HomeNavItem> onItemSelected;
+  final bool showAddButton;
 
   const _VerticalNavBar({
     required this.selected,
     required this.onItemSelected,
+    this.showAddButton = true,
   });
 
   @override
@@ -785,19 +789,21 @@ class _VerticalNavBar extends StatelessWidget {
           onTap: () => onItemSelected(HomeNavItem.notifications),
         ),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () => onItemSelected(HomeNavItem.add),
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              color: Color(0xFF04364A),
-              shape: BoxShape.circle,
+        if (showAddButton) ...[
+          GestureDetector(
+            onTap: () => onItemSelected(HomeNavItem.add),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: Color(0xFF04364A),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.add, color: colorScheme.surface, size: 24),
             ),
-            child: Icon(Icons.add, color: colorScheme.surface, size: 24),
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
+        ],
         _VerticalNavIcon(
           icon: Icons.chat_bubble_outline,
           selectedIcon: Icons.chat_bubble_rounded,
