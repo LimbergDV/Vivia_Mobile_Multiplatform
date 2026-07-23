@@ -9,6 +9,7 @@ import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_p
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/gallery_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
 import 'package:vivia_mobile/shared/widgets/app_alert.dart';
+import 'package:vivia_mobile/features/premium/presentation/widgets/premium_required_dialog.dart';
 
 class ReviewPropertyPage extends StatefulWidget {
   static const routeName = '/review-property';
@@ -126,6 +127,13 @@ class _ReviewPropertyPageState extends State<ReviewPropertyPage> {
         title: '¡Publicación enviada!',
       );
       Navigator.of(context).popUntil((route) => route.isFirst);
+    } else if (vm.publishBlockedByPremium) {
+      PremiumRequiredDialog.show(
+        context,
+        message:
+            'Alcanzaste el límite de propiedades gratis. Suscríbete a Premium '
+            'para publicar sin límite.',
+      );
     } else {
       AppAlert.error(
         context,

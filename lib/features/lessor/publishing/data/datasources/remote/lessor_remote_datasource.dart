@@ -7,6 +7,7 @@ import 'package:vivia_mobile/features/lessor/publishing/data/models/draft_upload
 import 'package:vivia_mobile/features/lessor/publishing/data/models/neighborhood_model.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/ai_content_event.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/models/draft_status_event.dart';
+import 'package:vivia_mobile/features/premium/domain/exceptions/premium_required_exception.dart';
 
 abstract class LessorRemoteDatasource {
   Future<List<NeighborhoodModel>> getNeighborhoodsByPostalCode(String cp);
@@ -68,6 +69,9 @@ class LessorRemoteDatasourceImpl implements LessorRemoteDatasource {
       headers: LessorApiConstants.headers(),
       body: jsonEncode(body),
     );
+    if (response.statusCode == 403) {
+      throw const PremiumRequiredException();
+    }
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Error al crear draft: ${response.statusCode}');
     }

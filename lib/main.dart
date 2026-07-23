@@ -91,6 +91,12 @@ import 'package:vivia_mobile/features/maps/data/repositories/maps_repository_imp
 import 'package:vivia_mobile/features/maps/domain/usecases/geocode_address_usecase.dart';
 import 'package:vivia_mobile/features/maps/domain/usecases/reverse_geocode_usecase.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
+import 'package:vivia_mobile/features/premium/data/datasources/remote/premium_remote_datasource.dart';
+import 'package:vivia_mobile/features/premium/data/repositories/premium_repository_impl.dart';
+import 'package:vivia_mobile/features/premium/domain/usecases/create_checkout_usecase.dart';
+import 'package:vivia_mobile/features/premium/domain/usecases/get_payment_history_usecase.dart';
+import 'package:vivia_mobile/features/premium/domain/usecases/get_premium_status_usecase.dart';
+import 'package:vivia_mobile/features/premium/presentation/viewmodels/premium_viewmodel.dart';
 import 'package:vivia_mobile/firebase_options.dart';
 
 import 'package:vivia_mobile/shared/chat/presentation/viewmodels/chat_viewmodel.dart';
@@ -240,6 +246,7 @@ void main() async {
   AuthViewModel? authViewModelRef;
   PropertyViewModel? propertyViewModelRef;
   ChatRepositoryImpl? chatRepositoryRef;
+  PremiumViewModel? premiumViewModelRef;
 
   final authHttpClient = AuthHttpClient(
     http.Client(),
@@ -294,12 +301,28 @@ void main() async {
     onSessionCleared: () {
       propertyViewModelRef?.reset();
       chatRepositoryRef?.disconnectWebSocket();
+      premiumViewModelRef?.reset();
     },
-    onSessionStarted: () => _connectAndJoinChat(chatRepositoryRef),
+    onSessionStarted: () {
+      _connectAndJoinChat(chatRepositoryRef);
+      premiumViewModelRef?.refresh();
+    },
   );
   authViewModelRef = authViewModel;
 
   final userViewModel = UserViewModel(getMeUseCase: getMeUseCase, local: localDatasource);
+
+  final premiumRemoteDatasource = PremiumRemoteDatasourceImpl(authHttpClient);
+  final premiumRepository =
+      PremiumRepositoryImpl(remote: premiumRemoteDatasource);
+  final getPremiumStatusUseCase = GetPremiumStatusUseCase(premiumRepository);
+  final createCheckoutUseCase = CreateCheckoutUseCase(premiumRepository);
+  final getPaymentHistoryUseCase = GetPaymentHistoryUseCase(premiumRepository);
+  final premiumViewModel = PremiumViewModel(
+    getStatusUseCase: getPremiumStatusUseCase,
+    createCheckoutUseCase: createCheckoutUseCase,
+  );
+  premiumViewModelRef = premiumViewModel;
 
   final propertyRemoteDatasource =
   PropertyRemoteDatasourceImpl(authHttpClient, http.Client());
@@ -413,6 +436,9 @@ void main() async {
 
   final isLoggedIn = authRepository.isLoggedIn;
   if (isLoggedIn) _connectAndJoinChat(chatRepositoryRef);
+  if (isLoggedIn && authRepository.savedRole == 'ROLE_LESSOR') {
+    premiumViewModel.refresh();
+  }
   final savedUserName = authRepository.savedUserName;
   final savedRole = authRepository.savedRole;
   final savedAvatarUrl = authRepository.savedAvatarUrl;
@@ -429,6 +455,9 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: authViewModel),
         ChangeNotifierProvider.value(value: userViewModel),
+        ChangeNotifierProvider.value(value: premiumViewModel),
+        Provider<GetPaymentHistoryUseCase>.value(
+            value: getPaymentHistoryUseCase),
         ChangeNotifierProvider.value(value: propertyViewModel),
         Provider<GetPropertyByIdUseCase>.value(value: getPropertyByIdUseCase),
         Provider<GetPropertyMediaUseCase>.value(value: getPropertyMediaUseCase),

@@ -22,6 +22,7 @@ import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/publish_
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/watch_draft_status_usecase.dart';
 import 'package:vivia_mobile/shared/property/domain/models/property_detail.dart';
 import 'package:vivia_mobile/shared/property/domain/usecases/update_property_usecase.dart';
+import 'package:vivia_mobile/features/premium/domain/exceptions/premium_required_exception.dart';
 
 enum NeighborhoodsStatus { idle, loading, success, error }
 
@@ -82,6 +83,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
   PublishStatus _publishStatus = PublishStatus.idle;
   String? _publishError;
   String? _publishedDraftId;
+  bool _publishBlockedByPremium = false;
 
   // ── Modo del formulario y guardado de ediciones ───────────────────────────
   PropertyFormMode _mode = PropertyFormMode.create;
@@ -185,6 +187,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
   PublishStatus get publishStatus => _publishStatus;
   String? get publishError => _publishError;
   String? get publishedDraftId => _publishedDraftId;
+  bool get publishBlockedByPremium => _publishBlockedByPremium;
 
   // ── Getters del stream ────────────────────────────────────────────────────
   DraftStreamStatus get streamStatus => _streamStatus;
@@ -230,6 +233,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
     _publishStatus = PublishStatus.idle;
     _publishError = null;
     _publishedDraftId = null;
+    _publishBlockedByPremium = false;
     _mode = PropertyFormMode.create;
     _editingPropertyId = null;
     _saveStatus = PublishStatus.idle;
@@ -767,6 +771,7 @@ class PropertyDraftViewModel extends ChangeNotifier {
 
     _publishStatus = PublishStatus.loading;
     _publishError = null;
+    _publishBlockedByPremium = false;
     notifyListeners();
 
     try {
@@ -832,7 +837,8 @@ class PropertyDraftViewModel extends ChangeNotifier {
       _uploadAndStream(draftUpload.draftId, draftUpload.uploads, fileKeyToPath);
     } catch (e) {
       _publishStatus = PublishStatus.error;
-      _publishError = e.toString();
+      _publishBlockedByPremium = e is PremiumRequiredException;
+      _publishError = e.toString().replaceFirst('Exception: ', '');
       notifyListeners();
     }
   }

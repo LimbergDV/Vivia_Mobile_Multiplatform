@@ -28,11 +28,36 @@ class FullProfileModel {
       paternalSurname: data['paternalSurname'] as String? ?? '',
       maternalSurname: data['maternalSurname'] as String? ?? '',
       email: data['email'] as String? ?? '',
-      photoUrl: data['photoUrl'] as String?,
+      photoUrl: _string(data, ['photoUrl', 'profilePhotoUrl', 'avatarUrl', 'photo']),
       verificationStatus: data['verificationStatus'] as String? ?? '',
       phoneNumber: data['phoneNumber'] as String?,
-      latitude: (data['latitude'] as num?)?.toDouble(),
-      longitude: (data['longitude'] as num?)?.toDouble(),
+      latitude: _coord(data, ['latitude', 'lat']),
+      longitude: _coord(data, ['longitude', 'lng', 'lon', 'long']),
     );
+  }
+
+  static const _coordContainers = ['ubication', 'location', 'coordinates', 'coords'];
+
+  static double? _coord(Map<String, dynamic> data, List<String> keys) {
+    for (final key in keys) {
+      final value = data[key];
+      if (value is num) return value.toDouble();
+    }
+    for (final container in _coordContainers) {
+      final nested = data[container];
+      if (nested is Map<String, dynamic>) {
+        final value = _coord(nested, keys);
+        if (value != null) return value;
+      }
+    }
+    return null;
+  }
+
+  static String? _string(Map<String, dynamic> data, List<String> keys) {
+    for (final key in keys) {
+      final value = data[key];
+      if (value is String && value.isNotEmpty) return value;
+    }
+    return null;
   }
 }
