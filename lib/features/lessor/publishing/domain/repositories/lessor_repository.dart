@@ -7,6 +7,7 @@ import 'package:vivia_mobile/features/lessor/publishing/domain/models/draft_stat
 abstract class LessorRepository {
   Future<List<NeighborhoodModel>> getNeighborhoods(String cp);
   Future<List<AmenityModel>> getAmenities();
+  Future<void> checkCanPublish();
   Future<DraftUploadModel> createDraft(Map<String, dynamic> body);
   Future<void> uploadFile(
     String uploadUrl,

@@ -132,7 +132,14 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
       String msg = defaultMsg;
       try {
         final json = jsonDecode(res.body) as Map<String, dynamic>;
-        msg = json['message'] as String? ?? msg;
+        final rawMsg = json['message'];
+        // NestJS devuelve `message` como String o como List<String>
+        // (errores de validación). Aceptamos ambos.
+        if (rawMsg is String) {
+          msg = rawMsg;
+        } else if (rawMsg is List && rawMsg.isNotEmpty) {
+          msg = rawMsg.join('\n');
+        }
       } catch (_) {}
       throw Exception('$msg (${res.statusCode})');
     }

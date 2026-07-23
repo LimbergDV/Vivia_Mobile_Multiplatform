@@ -12,6 +12,7 @@ import 'package:vivia_mobile/features/premium/domain/exceptions/premium_required
 abstract class LessorRemoteDatasource {
   Future<List<NeighborhoodModel>> getNeighborhoodsByPostalCode(String cp);
   Future<List<AmenityModel>> getAmenities();
+  Future<void> checkCanPublish();
   Future<DraftUploadModel> createDraft(Map<String, dynamic> body);
   Future<void> uploadFile(
     String uploadUrl,
@@ -63,14 +64,30 @@ class LessorRemoteDatasourceImpl implements LessorRemoteDatasource {
   }
 
   @override
+  Future<void> checkCanPublish() async {
+    final response = await _authClient.get(
+      Uri.parse(LessorApiConstants.propertiesPosts),
+      headers: LessorApiConstants.headers(),
+    );
+    // 402 = límite gratuito alcanzado → requiere Premium (ver endpoints.md).
+    if (response.statusCode == 402) {
+      throw PremiumRequiredException(_premiumMessage(response.body));
+    }
+    if (response.statusCode != 200) {
+      throw Exception('Error al verificar publicación: ${response.statusCode}');
+    }
+  }
+
+  @override
   Future<DraftUploadModel> createDraft(Map<String, dynamic> body) async {
     final response = await _authClient.post(
       Uri.parse(LessorApiConstants.propertiesDraft),
       headers: LessorApiConstants.headers(),
       body: jsonEncode(body),
     );
-    if (response.statusCode == 403) {
-      throw const PremiumRequiredException();
+    // Barrera definitiva del servidor: 402 (documentado) y 403 (compat).
+    if (response.statusCode == 402 || response.statusCode == 403) {
+      throw PremiumRequiredException(_premiumMessage(response.body));
     }
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Error al crear draft: ${response.statusCode}');
@@ -78,6 +95,17 @@ class LessorRemoteDatasourceImpl implements LessorRemoteDatasource {
     return DraftUploadModel.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
+  }
+
+  /// Extrae el `message` listo-para-mostrar del `ErrorResponse` del backend.
+  /// Cae al mensaje por defecto de [PremiumRequiredException] si no se puede.
+  String _premiumMessage(String body) {
+    try {
+      final parsed = jsonDecode(body) as Map<String, dynamic>;
+      final message = parsed['message'] as String?;
+      if (message != null && message.isNotEmpty) return message;
+    } catch (_) {}
+    return const PremiumRequiredException().message;
   }
 
   @override

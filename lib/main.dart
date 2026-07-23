@@ -69,6 +69,7 @@ import 'package:vivia_mobile/features/lessor/verification/domain/usecases/get_ve
 import 'package:vivia_mobile/features/lessor/verification/domain/usecases/request_verification_upload_urls_usecase.dart';
 import 'package:vivia_mobile/features/lessor/verification/domain/usecases/reset_verification_usecase.dart';
 import 'package:vivia_mobile/features/lessor/verification/domain/usecases/upload_verification_document_usecase.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/check_can_publish_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/generate_ai_content_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_amenities_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/get_neighborhoods_usecase.dart';
@@ -361,6 +362,7 @@ void main() async {
   LessorRemoteDatasourceImpl(authHttpClient, http.Client());
   final lessorRepository =
   LessorRepositoryImpl(remote: lessorRemoteDatasource);
+  final checkCanPublishUseCase = CheckCanPublishUseCase(lessorRepository);
   final propertyDraftViewModel = PropertyDraftViewModel(
     getNeighborhoodsUseCase: GetNeighborhoodsUseCase(lessorRepository),
     getAmenitiesUseCase: GetAmenitiesUseCase(lessorRepository),
@@ -487,6 +489,7 @@ void main() async {
         Provider<MarkNotificationsReadUseCase>.value(
             value: markNotificationsReadUseCase),
         Provider<GetUnreadCountUseCase>.value(value: getUnreadCountUseCase),
+        Provider<CheckCanPublishUseCase>.value(value: checkCanPublishUseCase),
         Provider<AuthLocalDatasource>.value(value: localDatasource),
         Provider<ChatRepository>.value(value: chatRepository),
         Provider<GetConversationsUseCase>.value(

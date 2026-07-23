@@ -949,11 +949,18 @@ class _AiGenerateSectionState extends State<_AiGenerateSection> {
     );
   }
 
-  void _openPaywall(BuildContext context, PropertyDraftViewModel vm) {
+  Future<void> _openPaywall(
+    BuildContext context,
+    PropertyDraftViewModel vm,
+  ) async {
     vm.cancelAiGeneration();
-    Navigator.of(context).push(
+    final becamePremium = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const PaywallPage()),
     );
+    // Al suscribirse, retomamos la acción en el mismo formulario.
+    if (becamePremium == true && context.mounted) {
+      vm.generateAiContent();
+    }
   }
 }
 

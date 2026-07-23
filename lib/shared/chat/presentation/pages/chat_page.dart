@@ -7,6 +7,7 @@ import 'package:vivia_mobile/shared/chat/domain/usecases/get_messages_usecase.da
 import 'package:vivia_mobile/shared/chat/presentation/viewmodels/chat_viewmodel.dart';
 import 'package:vivia_mobile/shared/chat/presentation/widgets/chat_input_bar.dart';
 import 'package:vivia_mobile/shared/chat/presentation/widgets/chat_messages_view.dart';
+import 'package:vivia_mobile/features/premium/presentation/widgets/premium_required_dialog.dart';
 import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class ChatPage extends StatelessWidget {
@@ -43,8 +44,26 @@ class _ChatView extends StatelessWidget {
     AppAlert.show(context, message: 'Adjuntar archivos estará disponible pronto');
   }
 
+  /// El lessor free superó el límite de conversaciones al responder: ofrecemos
+  /// Premium y, si se suscribe, reintentamos el mensaje sin salir del chat.
+  Future<void> _handlePremiumBlock(BuildContext context, ChatViewModel vm) async {
+    final message = vm.premiumRequiredMessage!;
+    vm.clearPremiumRequired();
+    final becamePremium =
+        await PremiumRequiredDialog.show(context, message: message);
+    if (becamePremium && context.mounted) {
+      vm.retryBlockedMessage();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<ChatViewModel>();
+    if (vm.premiumRequiredMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) _handlePremiumBlock(context, vm);
+      });
+    }
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       appBar: _ChatAppBar(title: title),

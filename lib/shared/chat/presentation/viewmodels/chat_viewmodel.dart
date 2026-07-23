@@ -34,6 +34,8 @@ class ChatViewModel extends ChangeNotifier {
   bool _isTyping = false;
   String? _error;
   String? _wsError;
+  String? _premiumRequiredMessage;
+  String? _premiumBlockedLocalId;
   String? _editingMessageId;
   String? _editingInitialText;
   StreamSubscription<Map<String, dynamic>>? _wsSub;
@@ -46,6 +48,7 @@ class ChatViewModel extends ChangeNotifier {
   bool get isTyping => _isTyping;
   String? get error => _error;
   String? get wsError => _wsError;
+  String? get premiumRequiredMessage => _premiumRequiredMessage;
   String? get editingMessageId => _editingMessageId;
   String? get editingInitialText => _editingInitialText;
 
@@ -144,6 +147,24 @@ class ChatViewModel extends ChangeNotifier {
     });
   }
 
+  /// Marca como fallido el último mensaje propio pendiente (el que el servidor
+  /// acaba de rechazar) y cancela su timer de confirmación. Devuelve su localId
+  /// para poder reintentarlo luego.
+  String? _failLastPendingMineMessage() {
+    for (var i = _messages.length - 1; i >= 0; i--) {
+      final m = _messages[i];
+      if (m.isMine && m.status.isPending) {
+        _confirmationTimers[m.id]?.cancel();
+        _confirmationTimers.remove(m.id);
+        final updated = List<ChatMessage>.from(_messages);
+        updated[i] = m.copyWith(status: MessageStatus.failed);
+        _messages = updated;
+        return m.id;
+      }
+    }
+    return null;
+  }
+
   void notifyTyping() {
     _repository.sendTyping(conversationId);
   }
@@ -179,6 +200,18 @@ class ChatViewModel extends ChangeNotifier {
     _wsError = null;
   }
 
+  void clearPremiumRequired() {
+    _premiumRequiredMessage = null;
+  }
+
+  /// Reintenta el mensaje que quedó bloqueado por el límite de conversaciones,
+  /// tras hacerse Premium. Usa el flujo de reintento estándar.
+  void retryBlockedMessage() {
+    final localId = _premiumBlockedLocalId;
+    _premiumBlockedLocalId = null;
+    if (localId != null) retryMessage(localId);
+  }
+
   void _subscribeToWs() {
     _wsSub?.cancel();
     _wsSub = _repository.wsEvents.listen((envelope) {
@@ -204,8 +237,17 @@ class ChatViewModel extends ChangeNotifier {
         case 'messageEdited':
           if (convId == conversationId) _handleMessageEdited(payload);
         case 'error':
+          // El servicio de chat (NestJS) usa payload.reason + payload.code.
+          // code == CONVERSATION_LIMIT_REACHED → requiere Premium.
           final reason = payload['reason'] as String?;
-          if (reason != null) {
+          final code = payload['code'] as String?;
+          if (code == 'CONVERSATION_LIMIT_REACHED') {
+            _premiumBlockedLocalId = _failLastPendingMineMessage();
+            _premiumRequiredMessage = reason ??
+                'Alcanzaste el límite gratuito de conversaciones. '
+                    'Hazte Premium para responder a más lessees.';
+            notifyListeners();
+          } else if (reason != null) {
             _wsError = reason;
             notifyListeners();
           }

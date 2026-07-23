@@ -15,8 +15,11 @@ import 'package:vivia_mobile/shared/property/domain/models/property_filter.dart'
 import 'package:vivia_mobile/features/home/presentation/widgets/lessee/nearby_property_card.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/shared/property_card.dart';
 import 'package:vivia_mobile/features/home/presentation/widgets/publish_progress_card.dart';
+import 'package:vivia_mobile/features/lessor/publishing/domain/usecases/check_can_publish_usecase.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/add_property_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
+import 'package:vivia_mobile/features/premium/domain/exceptions/premium_required_exception.dart';
+import 'package:vivia_mobile/features/premium/presentation/widgets/premium_required_dialog.dart';
 import 'package:vivia_mobile/features/user/presentation/viewmodels/user_viewmodel.dart';
 import 'package:vivia_mobile/features/user/presentation/pages/profile_page.dart';
 import 'package:vivia_mobile/shared/chat/presentation/pages/chats_page.dart';
@@ -121,10 +124,7 @@ class _HomePageState extends State<HomePage> {
 
   void _onNavSelected(HomeNavItem item) {
     if (item == HomeNavItem.add && context.read<PropertyViewModel>().isLessor) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const AddPropertyPage()),
-      );
+      _openAddProperty();
       return;
     }
     if (item == HomeNavItem.notifications) {
@@ -140,6 +140,32 @@ class _HomePageState extends State<HomePage> {
       return;
     }
     setState(() => _selectedNav = item);
+  }
+
+  /// Pre-check `GET /properties/posts` antes de abrir el formulario: si el
+  /// lessor free alcanzó el límite (402), ofrece Premium en vez del formulario.
+  /// Al suscribirse, retoma la acción original abriendo el formulario.
+  Future<void> _openAddProperty() async {
+    try {
+      await context.read<CheckCanPublishUseCase>().execute();
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AddPropertyPage()),
+      );
+    } on PremiumRequiredException catch (e) {
+      if (!mounted) return;
+      final becamePremium =
+          await PremiumRequiredDialog.show(context, message: e.message);
+      if (!becamePremium || !mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AddPropertyPage()),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      AppAlert.error(context, 'No se pudo verificar la publicación. Intenta de nuevo.');
+    }
   }
 
   void _openChats() {

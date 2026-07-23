@@ -5,15 +5,18 @@ import 'package:vivia_mobile/features/premium/presentation/pages/paywall_page.da
 class PremiumRequiredDialog {
   const PremiumRequiredDialog._();
 
-  static Future<void> show(
+  /// Devuelve `true` si el usuario terminó suscribiéndose (quedó Premium),
+  /// de modo que el llamador pueda retomar la acción que abrió el diálogo.
+  static Future<bool> show(
     BuildContext context, {
     String message =
         'Esta función es exclusiva de Vivía Premium. Suscríbete para desbloquearla.',
-  }) {
-    return showDialog<void>(
+  }) async {
+    final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => _PremiumRequiredView(message: message),
     );
+    return result ?? false;
   }
 }
 
@@ -31,7 +34,7 @@ class _PremiumRequiredView extends StatelessWidget {
       content: Text(message, style: textTheme.bodyMedium),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).pop(false),
           child: const Text('Ahora no'),
         ),
         FilledButton(
@@ -42,10 +45,11 @@ class _PremiumRequiredView extends StatelessWidget {
     );
   }
 
-  void _goToPaywall(BuildContext context) {
-    Navigator.of(context).pop();
-    Navigator.of(context).push(
+  Future<void> _goToPaywall(BuildContext context) async {
+    final becamePremium = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const PaywallPage()),
     );
+    if (!context.mounted) return;
+    Navigator.of(context).pop(becamePremium == true);
   }
 }

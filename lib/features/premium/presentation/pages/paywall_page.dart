@@ -52,6 +52,12 @@ class _PaywallPageState extends State<PaywallPage> {
     if (!mounted) return;
     if (method.isInstant) {
       await PremiumSuccessDialog.show(context);
+      if (!mounted) return;
+      // El usuario ya es Premium: devolvemos el éxito a quien abrió el Paywall
+      // para que retome la acción que lo trajo aquí (publicar, IA, chat).
+      if (context.read<PremiumViewModel>().isPremium) {
+        Navigator.of(context).pop(true);
+      }
     } else {
       _goToPending(method);
     }

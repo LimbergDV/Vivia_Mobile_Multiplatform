@@ -14,6 +14,7 @@ class LessorApiConstants {
   static String get verificationUploadUrls =>
       '$baseUrl/lessors/verifications/upload-urls';
 
+  static String get propertiesPosts => '$baseUrl/properties/posts';
   static String get propertiesDraft => '$baseUrl/properties/draft';
   static String draftStatusStream(String draftId) =>
       '$baseUrl/properties/draft/$draftId/status/stream';

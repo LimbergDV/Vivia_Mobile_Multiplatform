@@ -20,6 +20,9 @@ class LessorRepositoryImpl implements LessorRepository {
   Future<List<AmenityModel>> getAmenities() => _remote.getAmenities();
 
   @override
+  Future<void> checkCanPublish() => _remote.checkCanPublish();
+
+  @override
   Future<DraftUploadModel> createDraft(Map<String, dynamic> body) =>
       _remote.createDraft(body);
 
