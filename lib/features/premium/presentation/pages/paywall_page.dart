@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:vivia_mobile/core/deeplink/premium_deep_link.dart';
 import 'package:vivia_mobile/features/premium/domain/enums/payment_method.dart';
-import 'package:vivia_mobile/features/premium/presentation/helpers/checkout_launcher.dart';
+import 'package:vivia_mobile/features/premium/presentation/pages/checkout_webview_page.dart';
 import 'package:vivia_mobile/features/premium/presentation/pages/payment_pending_page.dart';
 import 'package:vivia_mobile/features/premium/presentation/viewmodels/premium_viewmodel.dart';
 import 'package:vivia_mobile/features/premium/presentation/widgets/paywall_content.dart';
+import 'package:vivia_mobile/features/premium/presentation/widgets/premium_success_dialog.dart';
 import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 
 class PaywallPage extends StatefulWidget {
@@ -32,13 +34,27 @@ class _PaywallPageState extends State<PaywallPage> {
       AppAlert.error(context, vm.checkoutError ?? 'No se pudo iniciar el pago');
       return;
     }
-    final opened = await CheckoutLauncher.open(session.checkoutUrl);
+    final result = await Navigator.of(context).push<PremiumDeepLinkResult>(
+      MaterialPageRoute(
+        builder: (_) => CheckoutWebViewPage(checkoutUrl: session.checkoutUrl),
+      ),
+    );
     if (!mounted) return;
-    if (!opened) {
-      AppAlert.error(context, 'No se pudo abrir la página de pago');
-      return;
+    await _onCheckoutReturn(method, result);
+  }
+
+  Future<void> _onCheckoutReturn(
+    PaymentMethod method,
+    PremiumDeepLinkResult? result,
+  ) async {
+    if (result != PremiumDeepLinkResult.success) return;
+    await context.read<PremiumViewModel>().refresh();
+    if (!mounted) return;
+    if (method.isInstant) {
+      await PremiumSuccessDialog.show(context);
+    } else {
+      _goToPending(method);
     }
-    if (!method.isInstant) _goToPending(method);
   }
 
   void _goToPending(PaymentMethod method) {
