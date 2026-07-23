@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:vivia_mobile/features/user/data/datasources/remote/constants/user_api_constants.dart';
@@ -75,6 +75,7 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
       headers: UserApiConstants.headers(),
     ).timeout(_timeout);
 
+    debugPrint('PROFILE_JSON ${res.body}');
     final json = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode == 200 && json['success'] == true) {
       return FullProfileModel.fromJson(json);

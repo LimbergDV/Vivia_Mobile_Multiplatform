@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:vivia_mobile/core/deeplink/premium_deep_link.dart';
 import 'package:vivia_mobile/core/deeplink/property_deep_link.dart';
+import 'package:vivia_mobile/features/premium/presentation/viewmodels/premium_viewmodel.dart';
 import 'package:vivia_mobile/features/auth/presentation/pages/splash_page.dart';
 import 'package:vivia_mobile/features/home/presentation/pages/property_deep_link_page.dart';
 import 'package:vivia_mobile/shared/theme/theme.dart';
@@ -26,7 +29,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSub;
@@ -39,12 +42,13 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initDeepLinks();
   }
 
   Future<void> _initDeepLinks() async {
     // App ya abierta o en background: navega en cuanto llega el enlace.
-    _linkSub = _appLinks.uriLinkStream.listen(_openProperty);
+    _linkSub = _appLinks.uriLinkStream.listen(_handleUri);
 
     // Arranque en frío: el splash hace su propia navegación (~2.9s). Esperamos
     // a que termine para empujar el detalle encima del home, no debajo.
@@ -52,8 +56,32 @@ class _MyAppState extends State<MyApp> {
     if (initial == null) return;
     Future.delayed(
       const Duration(seconds: 3),
-      () => _openProperty(initial),
+      () => _handleUri(initial),
     );
+  }
+
+  void _handleUri(Uri uri) {
+    final premium = PremiumDeepLink.parse(uri);
+    if (premium != null) {
+      _handlePremiumReturn(premium);
+      return;
+    }
+    _openProperty(uri);
+  }
+
+  void _handlePremiumReturn(PremiumDeepLinkResult result) {
+    if (result != PremiumDeepLinkResult.success) return;
+    final ctx = _navigatorKey.currentContext;
+    if (ctx == null) return;
+    Provider.of<PremiumViewModel>(ctx, listen: false).refresh();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final ctx = _navigatorKey.currentContext;
+    if (ctx == null) return;
+    Provider.of<PremiumViewModel>(ctx, listen: false).refresh();
   }
 
   void _openProperty(Uri uri) {
@@ -78,6 +106,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _linkSub?.cancel();
     super.dispose();
   }

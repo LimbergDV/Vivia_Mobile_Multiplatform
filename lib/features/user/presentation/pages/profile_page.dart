@@ -12,6 +12,8 @@ import 'package:vivia_mobile/features/user/presentation/widgets/profile/profile_
 import 'package:vivia_mobile/features/user/presentation/widgets/profile/profile_settings_item.dart';
 import 'package:vivia_mobile/shared/widgets/app_alert.dart';
 import 'package:vivia_mobile/features/user/presentation/widgets/profile/profile_subscription_banner.dart';
+import 'package:vivia_mobile/features/premium/presentation/pages/paywall_page.dart';
+import 'package:vivia_mobile/features/premium/presentation/pages/payment_history_page.dart';
 import 'package:vivia_mobile/features/user/presentation/pages/personal_info_page.dart';
 import 'package:vivia_mobile/features/lessor/verification/presentation/pages/verify_entry_page.dart';
 
@@ -226,9 +228,10 @@ class _ProfileHeader extends StatelessWidget {
         if (vm.showSubscriptionBanner) ...[
           const SizedBox(height: 16),
           ProfileSubscriptionBanner(
-            onTap: () {
-              // TODO: navegar a suscripción
-            },
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PaywallPage()),
+            ),
           ),
         ],
       ],
@@ -293,12 +296,12 @@ class _SettingsList extends StatelessWidget {
         ),
         if (vm.showPaymentMethods)
           ProfileSettingsItem(
-            icon: Icons.credit_card_outlined,
-            label: 'Formas De Pago',
-            showNotificationDot: vm.hasPaymentInfoPending,
-            onTap: () {
-              // TODO: navegar a formas de pago
-            },
+            icon: Icons.receipt_long_outlined,
+            label: 'Historial de pago',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PaymentHistoryPage()),
+            ),
           ),
         ProfileSettingsItem(
           icon: Icons.logout_rounded,

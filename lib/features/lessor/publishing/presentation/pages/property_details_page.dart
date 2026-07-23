@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/property_photos_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/pages/review_property_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/viewmodels/property_draft_viewmodel.dart';
+import 'package:vivia_mobile/features/premium/presentation/pages/paywall_page.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/form_section_header.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/number_selector.dart';
 import 'package:vivia_mobile/features/lessor/publishing/presentation/widgets/property_text_field.dart';
@@ -910,7 +911,7 @@ class _AiGenerateSectionState extends State<_AiGenerateSection> {
               children: [
                 Expanded(
                   child: FilledButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => _openPaywall(context, vm),
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: _kAiTo,
@@ -945,6 +946,13 @@ class _AiGenerateSectionState extends State<_AiGenerateSection> {
           ),
         ],
       ),
+    );
+  }
+
+  void _openPaywall(BuildContext context, PropertyDraftViewModel vm) {
+    vm.cancelAiGeneration();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PaywallPage()),
     );
   }
 }
