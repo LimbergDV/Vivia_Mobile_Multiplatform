@@ -32,6 +32,8 @@ import 'package:vivia_mobile/shared/chat/data/datasources/local/chat_local_datas
 import 'package:vivia_mobile/shared/chat/domain/models/chat_conversation.dart';
 import 'package:vivia_mobile/shared/chat/domain/usecases/create_conversation_usecase.dart';
 import 'package:vivia_mobile/shared/chat/presentation/pages/chat_page.dart';
+import 'package:vivia_mobile/shared/chat/presentation/pages/chats_page.dart';
+import 'package:vivia_mobile/shared/notifications/presentation/pages/notifications_page.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final PropertyModel property;
@@ -134,6 +136,13 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   }
 
   Future<void> _onContact(PropertyDetail detail, PropertyLessor lessor) async {
+    if (lessor.id.trim().isEmpty) {
+      AppAlert.error(
+        context,
+        'No se pudo identificar al arrendador de esta propiedad.',
+      );
+      return;
+    }
     setState(() => _isContacting = true);
     try {
       final userVm = context.read<UserViewModel>();
@@ -220,21 +229,37 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
       Navigator.of(context).pop();
       return;
     }
-    if (item == HomeNavItem.profile) {
-      final userVm = context.read<UserViewModel>();
-      final isLessor = context.read<PropertyViewModel>().isLessor;
+    if (item == HomeNavItem.notifications) {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ProfilePage(
-            userName: userVm.displayName,
-            avatarUrl: userVm.avatarUrl,
-            role: isLessor ? UserRole.lessor : UserRole.lessee,
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => const NotificationsPage()),
       );
       return;
     }
+    if (item == HomeNavItem.messages) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ChatsPage()),
+      );
+      return;
+    }
+    if (item == HomeNavItem.profile) {
+      _openProfileFromNav();
+      return;
+    }
     setState(() => _selectedNav = item);
+  }
+
+  void _openProfileFromNav() {
+    final userVm = context.read<UserViewModel>();
+    final isLessor = context.read<PropertyViewModel>().isLessor;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProfilePage(
+          userName: userVm.displayName,
+          avatarUrl: userVm.avatarUrl,
+          role: isLessor ? UserRole.lessor : UserRole.lessee,
+        ),
+      ),
+    );
   }
 
   @override
