@@ -158,7 +158,8 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
         padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomInset),
         child: Form(
           key: _formKey,
-          child: Column(
+          child: SingleChildScrollView(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -254,6 +255,7 @@ class _EditInfoSheetState extends State<EditInfoSheet> {
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),
