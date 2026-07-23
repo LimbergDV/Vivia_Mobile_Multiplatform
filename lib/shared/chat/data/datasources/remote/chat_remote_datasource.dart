@@ -93,9 +93,11 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
       if (propertyId != null) 'propertyId': propertyId,
       if (propertyTitle != null) 'propertyTitle': propertyTitle,
       if (requesterName != null) 'requesterName': requesterName,
-      if (requesterPhotoUrl != null) 'requesterPhotoUrl': requesterPhotoUrl,
+      if (_isValidUrl(requesterPhotoUrl))
+        'requesterPhotoUrl': requesterPhotoUrl,
       if (otherUserName != null) 'otherUserName': otherUserName,
-      if (otherUserPhotoUrl != null) 'otherUserPhotoUrl': otherUserPhotoUrl,
+      if (_isValidUrl(otherUserPhotoUrl))
+        'otherUserPhotoUrl': otherUserPhotoUrl,
     };
     final res = await _client
         .post(
@@ -127,14 +129,29 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
     }
   }
 
+  bool _isValidUrl(String? url) {
+    if (url == null || url.trim().isEmpty) return false;
+    final uri = Uri.tryParse(url.trim());
+    return uri != null && (uri.isScheme('http') || uri.isScheme('https'));
+  }
+
   void _assertOk(http.Response res, String defaultMsg) {
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      String msg = defaultMsg;
-      try {
-        final json = jsonDecode(res.body) as Map<String, dynamic>;
-        msg = json['message'] as String? ?? msg;
-      } catch (_) {}
-      throw Exception('$msg (${res.statusCode})');
+      throw Exception('${_errorDetail(res, defaultMsg)} (${res.statusCode})');
+    }
+  }
+
+  String _errorDetail(http.Response res, String defaultMsg) {
+    try {
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      return (json['message'] ??
+              json['error'] ??
+              json['detail'] ??
+              defaultMsg)
+          .toString();
+    } catch (_) {
+      final body = res.body.trim();
+      return body.isEmpty ? defaultMsg : body;
     }
   }
 }
